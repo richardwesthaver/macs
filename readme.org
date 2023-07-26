@@ -1,0 +1,55 @@
+#+TITLE: macs
+#+FILETAGS: core
+Macros for the macro-programmer.
+
+This library is a core component of my dev env and is depended on by most of the common-lisp programs I write.
+
+Some of the symbols provided are copied directly from their original
+source and annotated appropriately. It is not guaranteed that all
+symbols perform exactly as the originals. Read the inline comments if
+you're unsure.
+
+- Dependencies :: nil
+- Resources ::
+  - [[https://alexandria.common-lisp.dev/][alexandria]]
+  - [[https://edicl.github.io/cl-ppcre/][cl-ppcre]]
+  - [[https://github.com/melisgl/named-readtables][named-readtables]]
+  - [[https://gigamonkeys.com/book/][PCL]]
+  - [[https://letoverlambda.com/][LOL]] ([[https://github.com/thephoeron/let-over-lambda/tree/master][production version]])
+  - [[https://wiki.c2.com/?LispMacro][c2 wiki on Lisp Macro]]
+- Goals ::
+  - power
+- Thoughts ::
+  - /Macros aren't about being terse/. Some people seem to think that
+    once you hit a certain level of macs-ification you're just making
+    your code unreadable to save on typing. This is not the case - the
+    keypresses you can keep for free, but the /power/ comes from using
+    macros to /think smarter/ and /faster/ about your problems.
+  - /Macros don't increase cognitive overhead/. They isolate it. For
+    authors, the benefit of this is ten-fold. We write a complex
+    syntax translation, understand it, and use it in our code. We
+    don't use it to decrease code size, /we use it to simplify
+    patterns/. It allows us to think in terms of the macro and skip a
+    great deal of context switching and processing in our brains.
+  - There has been talk of macros in Blub languages, but these rarely
+    ever come close to the gold standard which is *Unhygienic Lisp
+    Macros*. Hygienic macros are an unfortunate inclusion of the
+    Scheme specification.
+  - /Macros are not functions/. This I credit to Paul Graham. I was
+    actually just searching through the [[http://www.arclanguage.org/tut.txt][tutorial]] for the term
+    'hygienic' because the implementation is in Racket (a scheme but a
+    very good Lisp nonetheless), and I heard there was some discussion
+    about hygienic macros in Arc. I was delighted to find this passage:
+
+    #+begin_quote
+    One of the keys to understanding macros is to remember that macro
+    calls aren't function calls.  Macro calls look like function calls.
+    Macro definitions even look a lot like function definitions.  But
+    something fundamentally different is happening.  You're transforming
+    code, not evaluating it.  Macros live in the land of the names, not 
+    the land of the things they refer to.    
+    #+end_quote
+
+    He has a way with words doesn't he? This is the first thing every
+    aspiring macro-programmer should learn.
+* Symbols
