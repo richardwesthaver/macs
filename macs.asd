@@ -7,9 +7,13 @@
   :bug-tracker "https://lab.rwest.io/ellis/macs/issues"
   :source-control (:hg "https://lab.rwest.io/ellis/macs")
   :in-order-to ((test-op (test-op "macs/tests")))
-  :components ((:file "package")
-	       (:file "pandoric")
-	       (:file "anaphoric")
-	       (:file "string")
-	       (:file "file")  
-	       (:file "list")))
+  :components ((:file "pkg")
+	       (:file "pan") ; doric
+	       (:file "ana") ; phoric
+	       ;;  TODO 2023-07-26: these feel too specific for
+	       ;; inclusion in a macro library. should move them to
+	       ;; modules designed for working with files/os/data
+	       ;; structures..
+	       (:file "l") ; ist
+	       (:file "s") ; tring
+	       (:file "f"))) ; ile

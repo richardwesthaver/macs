@@ -9,37 +9,41 @@ source and annotated appropriately. It is not guaranteed that all
 symbols perform exactly as the originals. Read the inline comments if
 you're unsure.
 
-- Dependencies :: nil
+- Dependencies :: sbcl
 - Resources ::
   - [[https://alexandria.common-lisp.dev/][alexandria]]
   - [[https://edicl.github.io/cl-ppcre/][cl-ppcre]]
   - [[https://github.com/melisgl/named-readtables][named-readtables]]
   - [[https://gigamonkeys.com/book/][PCL]]
   - [[https://letoverlambda.com/][LOL]] ([[https://github.com/thephoeron/let-over-lambda/tree/master][production version]])
+  - [[https://sep.turbifycdn.com/ty/cdn/paulgraham/bellanguage.txt?t=1688221954&][Bel]]
   - [[https://wiki.c2.com/?LispMacro][c2 wiki on Lisp Macro]]
 - Goals ::
   - power
+- Non-goals ::
+  - concretes
 - Thoughts ::
-  - /Macros aren't about being terse/. Some people seem to think that
-    once you hit a certain level of macs-ification you're just making
-    your code unreadable to save on typing. This is not the case - the
+  - /Macros aren't about being needlessly terse/ :: \\
+    Some people seem to think that once you hit a certain level of
+    macs-ification you're just making your code unreadable to save on
+    typing, or for the sake of codegolfing. This is not the case - the
     keypresses you can keep for free, but the /power/ comes from using
     macros to /think smarter/ and /faster/ about your problems.
-  - /Macros don't increase cognitive overhead/. They isolate it. For
-    authors, the benefit of this is ten-fold. We write a complex
-    syntax translation, understand it, and use it in our code. We
-    don't use it to decrease code size, /we use it to simplify
-    patterns/. It allows us to think in terms of the macro and skip a
-    great deal of context switching and processing in our brains.
-  - There has been talk of macros in Blub languages, but these rarely
-    ever come close to the gold standard which is *Unhygienic Lisp
-    Macros*. Hygienic macros are an unfortunate inclusion of the
-    Scheme specification.
+  - /Macros don't increase cognitive overhead/ :: \\
+    They isolate it. For authors, the benefit of this is ten-fold. We
+    write a complex syntax translation, understand it, and use it in
+    our code. We don't use it to decrease code size, /we use it to
+    simplify patterns/. It allows us to think in terms of the macro
+    and skip a great deal of context switching and processing in our
+    brains.
+  - /Blub macros don't come close to the gold standard/ :: \\
+    which is *Unhygienic Lisp Macros*. Hygienic macros are an
+    unfortunate inclusion of the Scheme specification.
   - /Macros are not functions/ :: \\
-    This thought I credit to Paul Graham. I was actually just
-    searching through the Arc [[http://www.arclanguage.org/tut.txt][tutorial]] for the term 'hygienic' because
-    the implementation is in Racket and heard chatter of hygienic
-    macros in Arc. I was delighted to find this passage:
+    This, I credit to Paul Graham. I was actually just searching
+    through the Arc [[http://www.arclanguage.org/tut.txt][tutorial]] for the term 'hygienic' because the
+    implementation is in Racket and heard chatter of hygienic macros
+    in Arc. I was delighted to find this passage:
     #+begin_quote
     One of the keys to understanding macros is to remember that macro
     calls aren't function calls.  Macro calls look like function calls.
@@ -48,6 +52,40 @@ you're unsure.
     code, not evaluating it.  Macros live in the land of the names, not 
     the land of the things they refer to.    
     #+end_quote
-    He has a way with words doesn't he? This is the first thing every
-    aspiring macro-programmer should learn.
+  - /Being terse has utility/ :: \\
+    First a quick anecdote: I heard a story from a buddy about an
+    individual who wrote some middleware in an extremely terse
+    fashion - single letter symbols, one-liners, minimal comments,
+    etc.
+
+    I think it's hard to see a reality where that person isn't just
+    trying to make a statement and piss off some people, without
+    seeing the code or being familiar with the author - because if
+    that's how your audience reacts, you're either doing it wrong, or
+    being an ass.
+
+    Stories like these are why I believe so many talented developers
+    don't fully accept the dark arts of the terse. A bad experience
+    which leaves a bitter taste.
+
+    Another part of me thinks there are some social/psychological
+    issues in play. Or alternatively, /developers write code for too
+    broad of an audience/. Mainstream education encourages high-level
+    code which is /optimized for human-readability/ - which isn't
+    something I know for a fact but will be sure to ask around and
+    report back. I think we can all agree this is a good thing to
+    encourage in the classroom in very broad strokes.
+
+    The problem is that I don't think we're doing a good job of
+    teaching students how to break these rules, and why you would want
+    to. Everyone seems to have this image of the ideal
+    =production-quality-code-base= which is, as it turns out, a hell
+    of a lot of work. Documentation to the nines. Descriptions in
+    every commit. Whitespace! We are conditioned to associate
+    human-readability with quality.
+
+    When you're working with thousands of inexperienced contributors,
+    yea put some weight on the ol' human interfaces. Take a team of 5
+    experts and try that and now you're just overcharging the
+    customer. It gets way more complicated every where in-between.
 * Symbols
