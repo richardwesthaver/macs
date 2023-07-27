@@ -2,7 +2,7 @@
 #+FILETAGS: core
 Macros for the macro-programmer.
 
-This library is a core component of my dev env and is depended on by most of the common-lisp programs I write.
+This is a core library module.
 
 Some of the symbols provided are copied directly from their original
 source and annotated appropriately. It is not guaranteed that all
@@ -35,12 +35,11 @@ you're unsure.
     ever come close to the gold standard which is *Unhygienic Lisp
     Macros*. Hygienic macros are an unfortunate inclusion of the
     Scheme specification.
-  - /Macros are not functions/. This I credit to Paul Graham. I was
-    actually just searching through the [[http://www.arclanguage.org/tut.txt][tutorial]] for the term
-    'hygienic' because the implementation is in Racket (a scheme but a
-    very good Lisp nonetheless), and I heard there was some discussion
-    about hygienic macros in Arc. I was delighted to find this passage:
-
+  - /Macros are not functions/ :: \\
+    This thought I credit to Paul Graham. I was actually just
+    searching through the Arc [[http://www.arclanguage.org/tut.txt][tutorial]] for the term 'hygienic' because
+    the implementation is in Racket and heard chatter of hygienic
+    macros in Arc. I was delighted to find this passage:
     #+begin_quote
     One of the keys to understanding macros is to remember that macro
     calls aren't function calls.  Macro calls look like function calls.
@@ -49,7 +48,6 @@ you're unsure.
     code, not evaluating it.  Macros live in the land of the names, not 
     the land of the things they refer to.    
     #+end_quote
-
     He has a way with words doesn't he? This is the first thing every
     aspiring macro-programmer should learn.
 * Symbols
