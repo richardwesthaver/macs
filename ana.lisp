@@ -1,4 +1,5 @@
-(in-package :ana)
+(in-package :macs.ana)
+(in-readtable macs-syntax)
 ;; Graham's alambda
 (defmacro alambda (parms &body body)
   `(labels ((self ,parms ,@body))

@@ -1,5 +1,7 @@
 ;;; pan.lisp --- pandoric macros
-(in-package :pan)
+(in-package :macs.pan)
+
+(in-readtable macs-syntax)
 
 (defun let-binding-transform (bs)
   (if bs

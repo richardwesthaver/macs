@@ -10,10 +10,11 @@
   :components ((:file "pkg")
 	       (:file "pan") ; doric
 	       (:file "ana") ; phoric
+	       (:file "readtables")
 	       ;;  TODO 2023-07-26: these feel too specific for
 	       ;; inclusion in a macro library. should move them to
 	       ;; modules designed for working with files/os/data
 	       ;; structures..
-	       (:file "l") ; ist
-	       (:file "s") ; tring
-	       (:file "f"))) ; ile
+	       (:file "list")
+	       (:file "string")
+	       (:file "file")))
