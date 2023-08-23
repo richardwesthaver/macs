@@ -1,6 +1,6 @@
 ;; pkg.lisp --- macs packages
-(defpackage macs.readtables
-  (:use :common-lisp)
+(defpackage :macs.readtables
+  (:use :cl)
   (:export
    #:defreadtable
    #:in-readtable
@@ -24,7 +24,7 @@
    #:parse-body)
   (:documentation "See MACS.READTABLES::@READTABLES-MANUAL."))
 
-(defpackage macs.fu
+(defpackage :macs.fu
   (:use :cl :macs.readtables)
   (:export :macs-syntax
            #:mkstr
@@ -73,7 +73,7 @@
    #:this
    #:self))
 
-(defpackage macs.pan
+(defpackage :macs.pan
   (:use :cl :macs.readtables :macs.fu)
   (:export
    #:pandoriclet
@@ -88,5 +88,5 @@
 
 (defparameter *macs-version* "0.1.0")
 
-(defpackage macs
+(defpackage :macs
   (:use :cl :macs.readtables :macs.fu :macs.ana :macs.pan))

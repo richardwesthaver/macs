@@ -1,6 +1,5 @@
 ;;; pan.lisp --- pandoric macros
 (in-package :macs.pan)
-
 (in-readtable macs-syntax)
 
 (defun let-binding-transform (bs)
@@ -13,22 +12,6 @@
             (t
               (error "Bad let bindings")))
       (let-binding-transform (cdr bs)))))
-
-(defmacro pandoriclet (letargs &rest body)
-  (let ((letargs (cons
-                   '(this)
-                   (let-binding-transform
-                     letargs))))
-    `(let (,@letargs)
-       (setq this ,@(last body))
-       ,@(butlast body)
-       (dlambda
-         (:pandoric-get (sym)
-           ,(pandoriclet-get letargs))
-         (:pandoric-set (sym val)
-           ,(pandoriclet-set letargs))
-         (t (&rest args)
-           (apply this args))))))
 
 (defun pandoriclet-get (letargs)
   `(case sym
@@ -46,6 +29,22 @@
      (t (error
           "Unknown pandoric set: ~a"
           sym))))
+
+(defmacro pandoriclet (letargs &rest body)
+  (let ((letargs (cons
+                   '(this)
+                   (let-binding-transform
+                     letargs))))
+    `(let (,@letargs)
+       (setq this ,@(last body))
+       ,@(butlast body)
+       (dlambda
+         (:pandoric-get (sym)
+           ,(pandoriclet-get letargs))
+         (:pandoric-set (sym val)
+           ,(pandoriclet-set letargs))
+         (t (&rest args)
+           (apply this args))))))
 
 (declaim (inline get-pandoric))
 

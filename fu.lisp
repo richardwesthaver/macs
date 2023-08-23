@@ -154,8 +154,6 @@
                                 (setq state 'normal)))))))))
      (coerce (nreverse chars) 'string))))
 
-; (set-dispatch-macro-character #\# #\" #'|#"-reader|)
-
 ; This version is from Martin Dirichs
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun |#>-reader| (stream sub-char numarg)
