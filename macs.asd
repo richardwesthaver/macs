@@ -9,6 +9,7 @@
   :in-order-to ((test-op (test-op "macs/tests")))
   :components ((:file "pkg")
 	       (:file "readtables")
+	       (:file "sym")
 	       (:file "fu")
 	       (:file "pan")
 	       (:file "ana")

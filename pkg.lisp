@@ -1,4 +1,13 @@
 ;; pkg.lisp --- macs packages
+(defpackage :macs.sym
+  (:use :cl)
+  (:export
+   #:ensure-symbol
+   #:format-symbol
+   #:make-keyword
+   #:make-gensym
+   #:make-gensym-list
+   #:symbolicate))
 (defpackage :macs.readtables
   (:use :cl)
   (:export
@@ -25,8 +34,8 @@
   (:documentation "See MACS.READTABLES::@READTABLES-MANUAL."))
 
 (defpackage :macs.fu
-  (:use :cl :macs.readtables)
-  (:export :macs-syntax
+  (:use :cl :macs.readtables :macs.sym)
+  (:export :#macs-syntax
            #:mkstr
            #:symb
            #:group
@@ -59,7 +68,15 @@
            #:sortf
            #:dollar-symbol-p
            #:if-match
-           #:when-match))
+           #:when-match
+	   #:once-only
+	   #:parse-body
+	   #:parse-ordinary-lambda-list
+	   #:with-gensyms
+	   #:with-unique-names
+	   #:destructuring-case
+	   #:destructuring-ccase
+	   #:destructuring-ecase))
 
 (defpackage macs.ana
   (:use :cl :macs.readtables :macs.fu)
@@ -90,3 +107,4 @@
 
 (defpackage :macs
   (:use :cl :macs.readtables :macs.fu :macs.ana :macs.pan))
+
