@@ -368,36 +368,6 @@
   `(if-match (,match-regex ,str)
      (progn ,@forms)))
 
-(deftype string-designator ()
-  "A string designator type. A string designator is either a string, a symbol,
-or a character."
-  `(or symbol string character))
-
-;;; alexandria/macros.lisp
-(defmacro with-gensyms (names &body forms)
-  "Binds a set of variables to gensyms and evaluates the implicit progn FORMS.
-
-Each element within NAMES is either a symbol SYMBOL or a pair (SYMBOL
-STRING-DESIGNATOR). Bare symbols are equivalent to the pair (SYMBOL SYMBOL).
-
-Each pair (SYMBOL STRING-DESIGNATOR) specifies that the variable named by SYMBOL
-should be bound to a symbol constructed using GENSYM with the string designated
-by STRING-DESIGNATOR being its first argument."
-  `(let ,(mapcar (lambda (name)
-                   (multiple-value-bind (symbol string)
-                       (etypecase name
-                         (symbol
-                          (values name (symbol-name name)))
-                         ((cons symbol (cons string-designator null))
-                          (values (first name) (string (second name)))))
-                     `(,symbol (gensym ,string))))
-                 names)
-     ,@forms))
-
-(defmacro with-unique-names (names &body forms)
-  "Alias for WITH-GENSYMS."
-  `(with-gensyms ,names ,@forms))
-
 (defmacro once-only (specs &body forms)
   "Constructs code whose primary goal is to help automate the handling of
 multiple evaluation within macros. Multiple evaluation is handled by introducing

@@ -1,13 +1,19 @@
 ;; pkg.lisp --- macs packages
 (defparameter *macs-version* "0.1.0")
-(defpackage :macs.sym
+(defpackage :macs.str
   (:use :cl)
+  (:export
+   #:string-designator))
+(defpackage :macs.sym
+  (:use :cl :macs.str)
   (:export
    #:ensure-symbol
    #:format-symbol
    #:make-keyword
    #:make-gensym
    #:make-gensym-list
+   #:with-gensyms
+   #:with-unique-names
    #:symbolicate))
 (defpackage :macs.list
   (:use :cl)
@@ -101,12 +107,9 @@
            #:dollar-symbol-p
            #:if-match
            #:when-match
-	   #:string-designator
 	   #:once-only
 	   #:parse-body
 	   #:parse-ordinary-lambda-list
-	   #:with-gensyms
-	   #:with-unique-names
 	   #:destructuring-case
 	   #:destructuring-ccase
 	   #:destructuring-ecase))

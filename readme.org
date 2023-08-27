@@ -9,10 +9,34 @@ Some of the symbols provided are copied directly from their original
 source and annotated appropriately. It is not guaranteed that all
 symbols perform exactly as the originals. Read the inline comments if
 you're unsure.
-** Dependencies
-=sbcl 2.3.7+=
-- requires ::
-  - asdf (uiop)
+
+- requires :: =sbcl 2.3.7+= asdf/uiop
+** Packages
+*** macs.str
+String utilities.
+*** macs.sym
+Symbol utilities.
+*** macs.list
+List utilities.
+*** macs.cond
+Various conditions, restarts, errors, and other utilities for
+exception handling. See [[https://gigamonkeys.com/book/beyond-exception-handling-conditions-and-restarts.html][PCL]] for an introduction to conditions and
+restarts.
+*** macs.readtables
+Named Readtable support. See the [[https://github.com/melisgl/named-readtables][official named-readtables repo]] for details.
+*** macs.reexport
+Symbol reexport support. See the [[https://github.com/takagi/cl-reexport/tree/master][cl-reexport repo]].
+*** macs.fu
+The =fu= extension package. Includes macro utility functions from LOL,
+alexandria, PCL, PG, custom readers, and a named-readtable called
+=macs-syntax=.
+*** macs.ana
+Anaphoric macros.
+*** macs.pan
+Pandoric macros.
+*** macs.cli
+This package provides an API for building CLI apps. It is highly
+opinionated and loosely derived from [[https://github.com/dnaeon/clingon][clingon]].
 ** Resources
   - [[https://alexandria.common-lisp.dev/][alexandria]]
   - [[https://edicl.github.io/cl-ppcre/][cl-ppcre]]
@@ -93,4 +117,3 @@ you're unsure.
   yea put some weight on the ol' human interfaces. Take a team of 5
   experts and try that and now you're just overcharging the
   customer. It gets way more complicated every where in-between.
-* Vocabs

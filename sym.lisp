@@ -1,5 +1,6 @@
 ;;; sym.lisp --- inspired by alexandria/symbols.lisp
 (in-package :macs.sym)
+
 (declaim (inline ensure-symbol))
 (defun ensure-symbol (name &optional (package *package*))
   "Returns a symbol with name designated by NAME, accessible in package
@@ -50,6 +51,31 @@ using the second (optional, defaulting to \"G\") argument."
   (let ((g (if (typep x '(integer 0)) x (string x))))
     (loop repeat length
           collect (gensym g))))
+
+;;; alexandria/macros.lisp
+(defmacro with-gensyms (names &body forms)
+  "Binds a set of variables to gensyms and evaluates the implicit progn FORMS.
+
+Each element within NAMES is either a symbol SYMBOL or a pair (SYMBOL
+STRING-DESIGNATOR). Bare symbols are equivalent to the pair (SYMBOL SYMBOL).
+
+Each pair (SYMBOL STRING-DESIGNATOR) specifies that the variable named by SYMBOL
+should be bound to a symbol constructed using GENSYM with the string designated
+by STRING-DESIGNATOR being its first argument."
+  `(let ,(mapcar (lambda (name)
+                   (multiple-value-bind (symbol string)
+                       (etypecase name
+                         (symbol
+                          (values name (symbol-name name)))
+                         ((cons symbol (cons string-designator null))
+                          (values (first name) (string (second name)))))
+                     `(,symbol (gensym ,string))))
+                 names)
+     ,@forms))
+
+(defmacro with-unique-names (names &body forms)
+  "Alias for WITH-GENSYMS."
+  `(with-gensyms ,names ,@forms))
 
 (defun symbolicate (&rest things)
   "Concatenate together the names of some strings and symbols,
