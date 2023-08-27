@@ -49,6 +49,9 @@
    #:readtable-does-not-exist
    #:parse-body)
   (:documentation "See MACS.READTABLES::@READTABLES-MANUAL."))
+(defpackage :macs.reexport
+  (:use :cl)
+  (:export :reexport-from :reexports))
 (defpackage :macs.fu
   (:use :cl :macs.readtables :macs.sym :macs.list)
   (:export #:macs-syntax
@@ -127,4 +130,8 @@
    :with-cli))
 (defpackage :macs
   (:use :cl
-   :macs.readtables :macs.fu :macs.ana :macs.pan :macs.cli))
+   :macs.sym :macs.list
+   :macs.cond :macs.readtables
+   :macs.reexport :macs.fu
+   :macs.ana :macs.pan
+   :macs.cli))

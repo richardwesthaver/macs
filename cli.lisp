@@ -11,6 +11,8 @@
   `(member ,flag *cli-argv* :test #'string-equal))
 
 (defmacro with-cli (body)
+  "A wrapper which handles the `sb-sys:interactive-interrupt' condition,
+usually triggered via C-c."
   `(handler-case ,body
      (sb-sys:interactive-interrupt ()
        (progn

@@ -14,6 +14,7 @@
 	       (:file "file")
 	       (:file "sym")
 	       (:file "readtables")
+               (:file "reexport")
 	       (:file "fu")
 	       (:file "pan")
 	       (:file "ana")
