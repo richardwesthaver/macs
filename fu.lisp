@@ -237,6 +237,7 @@
 
 ; #+cl-ppcre (set-dispatch-macro-character #\# #\~ #'|#~-reader|)
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
 (defreadtable macs-syntax
     (:merge :standard)
     (:dispatch-macro-char #\# #\" #'|#"-reader|)
@@ -244,9 +245,7 @@
     #+cl-ppcre
     (:dispatch-macro-char #\# #\~ #'|#~-reader|)
     (:dispatch-macro-char #\# #\` #'|#`-reader|)
-    (:dispatch-macro-char #\# #\f #'|#f-reader|))
-
-(in-readtable macs-syntax)
+    (:dispatch-macro-char #\# #\f #'|#f-reader|)))
 
 (defmacro! dlambda (&rest ds)
   `(lambda (&rest ,g!args)
@@ -321,6 +320,8 @@
       (setf p (ash p -1)))
     (nreverse network)))
 
+(in-readtable macs-syntax)
+
 (defmacro! sortf (comparator &rest places)
   (if places
     `(tagbody
@@ -367,6 +368,11 @@
 (defmacro when-match ((match-regex str) &body forms)
   `(if-match (,match-regex ,str)
      (progn ,@forms)))
+
+(deftype string-designator ()
+  "A string designator type. A string designator is either a string, a symbol,
+or a character."
+  `(or symbol string character))
 
 ;;; alexandria/macros.lisp
 (defmacro with-gensyms (names &body forms)

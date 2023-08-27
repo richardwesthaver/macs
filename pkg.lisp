@@ -1,4 +1,5 @@
 ;; pkg.lisp --- macs packages
+(defparameter *macs-version* "0.1.0")
 (defpackage :macs.sym
   (:use :cl)
   (:export
@@ -8,6 +9,22 @@
    #:make-gensym
    #:make-gensym-list
    #:symbolicate))
+(defpackage :macs.list
+  (:use :cl)
+  (:export
+   #:ensure-car
+   #:ensure-cons
+   #:ensure-list))
+(defpackage :macs.cond
+  (:use :cl)
+  (:export
+   #:required-argument
+   #:ignore-some-conditions
+   #:simple-style-warning
+   #:simple-reader-error
+   #:simple-parse-error
+   #:simple-program-error
+   #:unwind-protect-case))
 (defpackage :macs.readtables
   (:use :cl)
   (:export
@@ -32,10 +49,9 @@
    #:readtable-does-not-exist
    #:parse-body)
   (:documentation "See MACS.READTABLES::@READTABLES-MANUAL."))
-
 (defpackage :macs.fu
-  (:use :cl :macs.readtables :macs.sym)
-  (:export :#macs-syntax
+  (:use :cl :macs.readtables :macs.sym :macs.list)
+  (:export #:macs-syntax
            #:mkstr
            #:symb
            #:group
@@ -69,6 +85,7 @@
            #:dollar-symbol-p
            #:if-match
            #:when-match
+	   #:string-designator
 	   #:once-only
 	   #:parse-body
 	   #:parse-ordinary-lambda-list
@@ -77,7 +94,6 @@
 	   #:destructuring-case
 	   #:destructuring-ccase
 	   #:destructuring-ecase))
-
 (defpackage macs.ana
   (:use :cl :macs.readtables :macs.fu)
   (:export
@@ -89,7 +105,6 @@
    #:aif
    #:this
    #:self))
-
 (defpackage :macs.pan
   (:use :cl :macs.readtables :macs.fu)
   (:export
@@ -102,9 +117,14 @@
    #:pandoric-recode
    #:plambda
    #:pandoric-eval))
-
-(defparameter *macs-version* "0.1.0")
-
+(defpackage :macs.cli
+  (:use :cl :macs.fu)
+  (:export
+   #+uiop :command-line-args
+   :*cli-arg0*
+   :*cli-args*
+   :cli-flag-p
+   :with-cli))
 (defpackage :macs
-  (:use :cl :macs.readtables :macs.fu :macs.ana :macs.pan))
-
+  (:use :cl
+   :macs.readtables :macs.fu :macs.ana :macs.pan :macs.cli))

@@ -88,6 +88,7 @@ it must be a function name and its FDEFINITION is returned."
       function-designator
       (fdefinition function-designator)))
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
 (defun parse-body (body &key documentation whole)
   "Parses BODY into (values remaining-forms declarations doc-string).
 Documentation strings are recognized only if DOCUMENTATION is true.
@@ -235,7 +236,7 @@ Signals a PROGRAM-ERROR is the lambda-list is malformed."
              (t
               (simple-program-error "Invalid ordinary lambda-list:~%  ~S" lambda-list)))))))
     (values (nreverse required) (nreverse optional) rest (nreverse keys)
-            allow-other-keys (nreverse aux))))
+            allow-other-keys (nreverse aux)))))
 
 (defmacro define-api (name lambda-list type-list &body body)
   (flet ((parse-type-list (type-list)

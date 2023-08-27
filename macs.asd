@@ -8,8 +8,12 @@
   :source-control (:hg "https://lab.rwest.io/ellis/macs")
   :in-order-to ((test-op (test-op "macs/tests")))
   :components ((:file "pkg")
-	       (:file "readtables")
+	       (:file "cond")
+	       (:file "list")
+	       (:file "string")
+	       (:file "file")
 	       (:file "sym")
+	       (:file "readtables")
 	       (:file "fu")
 	       (:file "pan")
 	       (:file "ana")
@@ -17,6 +21,4 @@
 	       ;; inclusion in a macro library. should move them to
 	       ;; modules designed for working with files/os/data
 	       ;; structures..
-	       (:file "list")
-	       (:file "string")
-	       (:file "file")))
+	       (:file "cli")))
