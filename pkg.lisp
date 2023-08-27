@@ -1,9 +1,21 @@
 ;; pkg.lisp --- macs packages
 (defparameter *macs-version* "0.1.0")
-(defpackage :macs.str
+(defpackage :macs.reexport
   (:use :cl)
-  (:export
-   #:string-designator))
+  (:export :reexport-from :reexports))
+(defpackage :macs.str
+  (:use :cl :macs.reexport)
+  (:export #:string-designator
+	   #:words #:lines #:sentences #:whitespace-p #:uppercase #:lowercase #:titlecase 
+	   #:word-break-class #:line-break-class #:sentence-break-class           
+	   #:cased-p #:uppercase-p #:lowercase-p #:titlecase-p #:casefold             
+	   #:graphemes #:grapheme-break-class                                   
+	   #:bidi-mirroring-glyph #:bidi-class                                  
+	   #:normalize-string #:normalized-p #:default-ignorable-p                
+	   #:confusable-p #:hex-digit-p #:mirrored-p #:alphabetic-p #:math-p          
+	   #:decimal-value #:digit-value                                        
+	   #:unicode< #:unicode> #:unicode= #:unicode-equal                         
+	   #:unicode<= #:unicode>=))
 (defpackage :macs.sym
   (:use :cl :macs.str)
   (:export
@@ -68,9 +80,6 @@
    #:readtable-does-not-exist
    #:parse-body)
   (:documentation "See MACS.READTABLES::@READTABLES-MANUAL."))
-(defpackage :macs.reexport
-  (:use :cl)
-  (:export :reexport-from :reexports))
 (defpackage :macs.fu
   (:use :cl :macs.readtables :macs.sym :macs.list)
   (:export #:macs-syntax
@@ -137,7 +146,7 @@
    #:plambda
    #:pandoric-eval))
 (defpackage :macs.cli
-  (:use :cl :macs.fu)
+  (:use :cl :macs.cond :macs.fu)
   (:import-from :uiop :split-string)
   (:export
    :command-line-args
@@ -151,9 +160,8 @@
    :parse-cli-args
    :parse-args))
 (defpackage :macs
-  (:use :cl
-   :macs.sym :macs.list
+  (:use :cl :macs.reexport
+   :macs.str :macs.sym :macs.list
    :macs.cond :macs.readtables
-   :macs.reexport :macs.fu
-   :macs.ana :macs.pan
+   :macs.fu :macs.ana :macs.pan
    :macs.cli))

@@ -12,8 +12,11 @@ you're unsure.
 
 - requires :: =sbcl 2.3.7+= asdf/uiop
 ** Packages
+*** macs.reexport
+Symbol reexport support. See the [[https://github.com/takagi/cl-reexport/tree/master][cl-reexport repo]].
+
 *** macs.str
-String utilities.
+String utilities. Re-exports from =sb-unicode=.
 *** macs.sym
 Symbol utilities.
 *** macs.list
@@ -24,8 +27,6 @@ exception handling. See [[https://gigamonkeys.com/book/beyond-exception-handling
 restarts.
 *** macs.readtables
 Named Readtable support. See the [[https://github.com/melisgl/named-readtables][official named-readtables repo]] for details.
-*** macs.reexport
-Symbol reexport support. See the [[https://github.com/takagi/cl-reexport/tree/master][cl-reexport repo]].
 *** macs.fu
 The =fu= extension package. Includes macro utility functions from LOL,
 alexandria, PCL, PG, custom readers, and a named-readtable called
