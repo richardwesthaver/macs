@@ -24,6 +24,19 @@
    #:simple-reader-error
    #:simple-parse-error
    #:simple-program-error
+   #:circular-dependency-error
+   #:circular-dependency-error-items
+   #:unknown-argument-error
+   #:unknown-argument-error-name
+   #:unknown-argument-error-kind
+   #:unknown-argument-error-p
+   #:missing-argument-error
+   #:missing-argument-error-command
+   #:missing-argument-error-p
+   #:invalid-argument-error
+   #:invalid-argument-error-item
+   #:invalid-argument-error-reason
+   #:invalid-argument-error-p
    #:unwind-protect-case))
 (defpackage :macs.readtables
   (:use :cl)
@@ -73,7 +86,7 @@
            #:segment-reader
            #:match-mode-ppcre-lambda-form
            #:subst-mode-ppcre-lambda-form
-           #:|#~-reader|
+           #+cl-ppcre #:|#~-reader|
            #:dlambda
            #:make-tlist
            #:tlist-left
@@ -122,12 +135,16 @@
    #:pandoric-eval))
 (defpackage :macs.cli
   (:use :cl :macs.fu)
+  (:import-from :uiop :split-string)
   (:export
-   #+uiop :command-line-args
+   :command-line-args
    :*cli-arg0*
    :*cli-args*
+   :*default-cli-opts*
    :cli-flag-p
-   :with-cli))
+   :with-cli-handlers
+   :cli-cmd
+   :parse-cli-args))
 (defpackage :macs
   (:use :cl
    :macs.sym :macs.list

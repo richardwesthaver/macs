@@ -1,4 +1,5 @@
 (in-package :macs.cond)
+
 (defun required-argument (&optional name)
   "Signals an error for a missing argument of NAME. Intended for
 use as an initialization form for structure and class-slots, and
@@ -18,8 +19,7 @@ a default value for required keyword arguments."
 ;; implementation. But even then it's still inspectable from the
 ;; debugger...
 (define-condition simple-reader-error
-    #-sbcl(simple-error reader-error)
-    #+sbcl(sb-int:simple-reader-error)
+    (sb-int:simple-reader-error)
   ())
 
 (defun simple-reader-error (stream message &rest args)
@@ -43,6 +43,66 @@ a default value for required keyword arguments."
   (error 'simple-program-error
          :format-control message
          :format-arguments args))
+
+(define-condition circular-dependency-error (simple-error)
+  ((items
+    :initarg :items
+    :initform (error "Must specify items")
+    :reader circular-dependency-error-items))
+  (:report (lambda (condition stream)
+             (declare (ignore condition))
+             (format stream "Circular dependency detected")))
+  (:documentation "A condition which is signalled when a circular dependency is encountered."))
+
+(define-condition unknown-argument-error (error)
+  ((name
+    :initarg :name
+    :initform (error "Must specify argument name")
+    :reader unknown-argument-error-name)
+   (kind
+    :initarg :kind
+    :initform (error "Must specify argument kind")
+    :reader unknown-argument-error-kind))
+  (:report (lambda (condition stream)
+             (format stream "Unknown argument ~A of kind ~A"
+                     (unknown-argument-error-name condition)
+                     (unknown-argument-error-kind condition))))
+  (:documentation "A condition which is signalled when an unknown argument is encountered."))
+
+(defun unknown-argument-error-p (value)
+  (typep value 'unknown-argument-error))
+
+(define-condition missing-argument-error (simple-error)
+  ((item
+    :initarg :item
+    :initform (error "Must specify argument item")
+    :reader missing-argument-error-item)
+   (command
+    :initarg :command
+    :initform (error "Must specify command")
+    :reader missing-argument-error-command))
+  (:report (lambda (condition stream)
+             (declare (ignore condition))
+             (format stream "Missing argument")))
+  (:documentation "A condition which is signalled when an option expects an argument, but none was provided"))
+
+(defun missing-argument-error-p (value)
+  (typep value 'missing-argument-error))
+
+(define-condition invalid-argument-error (simple-error)
+  ((item
+    :initarg :item
+    :initform (error "Must specify argument item")
+    :reader invalid-argument-error-item
+    :documentation "The argument which is identified as invalid")
+   (reason
+    :initarg :reason
+    :initform (error "Must specify reason")
+    :reader invalid-argument-error-reason
+    :documentation "The reason why this argument is invalid"))
+  (:report (lambda (condition stream)
+             (format stream "Invalid argument: ~A" (invalid-argument-error-reason condition))))
+  (:documentation "A condition which is signalled when an argument is identified as invalid."))
 
 (defmacro ignore-some-conditions ((&rest conditions) &body body)
   "Similar to CL:IGNORE-ERRORS but the (unevaluated) CONDITIONS

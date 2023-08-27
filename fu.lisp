@@ -235,17 +235,16 @@
                           2)))
         (t (error "Unknown #~~ mode character"))))))
 
-; #+cl-ppcre (set-dispatch-macro-character #\# #\~ #'|#~-reader|)
+#+cl-ppcre (set-dispatch-macro-character #\# #\~ #'|#~-reader|)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
 (defreadtable macs-syntax
-    (:merge :standard)
-    (:dispatch-macro-char #\# #\" #'|#"-reader|)
-    (:dispatch-macro-char #\# #\> #'|#>-reader|)
-    #+cl-ppcre
-    (:dispatch-macro-char #\# #\~ #'|#~-reader|)
-    (:dispatch-macro-char #\# #\` #'|#`-reader|)
-    (:dispatch-macro-char #\# #\f #'|#f-reader|)))
+  (:merge :standard)
+  (:dispatch-macro-char #\# #\" #'|#"-reader|)
+  (:dispatch-macro-char #\# #\> #'|#>-reader|)
+  #+cl-ppcre (:dispatch-macro-char #\# #\~ #'|#~-reader|)
+  (:dispatch-macro-char #\# #\` #'|#`-reader|)
+  (:dispatch-macro-char #\# #\f #'|#f-reader|)))
 
 (defmacro! dlambda (&rest ds)
   `(lambda (&rest ,g!args)
