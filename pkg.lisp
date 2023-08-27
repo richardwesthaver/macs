@@ -143,8 +143,10 @@
    :*default-cli-opts*
    :cli-flag-p
    :with-cli-handlers
+   :cli
    :cli-cmd
-   :parse-cli-args))
+   :parse-cli-args
+   :parse-args))
 (defpackage :macs
   (:use :cl
    :macs.sym :macs.list

@@ -33,16 +33,26 @@ usually triggered via C-c."
 	 (format *error-output* "(:C-~:@C)~&" #\c)
 	 (sb-ext:exit)))))
 
+(defgeneric parse-args (args obj)
+  (:documentation "Parse the ARGS provided against provided OBJ."))
+
+(defclass cli ()
+  ((name :initarg :name :initform (package-name *package*) :type string)
+   (opts :initarg :opts :initform nil :accessor cli-opts)
+   (help :initarg :help :initform nil :accessor cli-help)
+   (version :initarg :version :initform "0.1.0" :accessor cli-version :type string))
+  (:documentation "CLI"))
+
 (defclass cli-cmd ()
-  ((name :initarg :name :initform nil :accessor cli-cmd-name)
+  ((name :initarg :name :initform nil :accessor cli-cmd-name :type string)
    (opts :initarg :opts :initform nil :accessor cli-cmd-opts)
    (usage :initarg :opts :initform nil :accessor cli-cmd-usage))
   (:documentation "A CLI command."))
 
-(defmethod print-object ((obj cli-cmd) stream)
+(defmethod print-object ((self cli-cmd) stream)
   (print-unreadable-object (cli-cmd stream :type t)
     (format stream "name=~A opts=~A"
-            (cli-cmd-name command)
-            (length (cli-cmd-opts command)))))
+            (cli-cmd-name self)
+            (length (cli-cmd-opts self)))))
 
 (defun parse-cli-args ())
