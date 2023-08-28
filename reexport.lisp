@@ -44,5 +44,7 @@
 ;; - also handle package name prefixes 'macs.'.
 (defmacro reexports (&rest pkgs)
   "Reexport external symbols in PKGS from the current package."
-  `(dolist (p ',pkgs) (apply #'reexport-from p)))
+  `(loop for p in ',pkgs do (apply #'reexport-from p)))
+	 
+	    
 	    
