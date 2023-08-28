@@ -19,5 +19,5 @@ or a character."
 	    #:unicode< #:unicode> #:unicode= #:unicode-equal
 	    #:unicode<= #:unicode>=))
  (:uiop
-  :include (#:list #:strcat #:stripln #:string-suffix-p #:string-enclosed-p #:split-string)))
+  :include (#:strcat #:stripln #:string-suffix-p #:string-enclosed-p #:split-string)))
 ;;;  TODO 2023-08-27: camel snake kebab
