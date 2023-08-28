@@ -14,6 +14,7 @@
    #:ensure-symbol
    #:format-symbol
    #:make-keyword
+   #:make-slot-name
    #:make-gensym
    #:make-gensym-list
    #:with-gensyms
@@ -34,19 +35,19 @@
    #:simple-reader-error
    #:simple-parse-error
    #:simple-program-error
-   #:circular-dependency-error
-   #:circular-dependency-error-items
-   #:unknown-argument-error
-   #:unknown-argument-error-name
-   #:unknown-argument-error-kind
-   #:unknown-argument-error-p
-   #:missing-argument-error
-   #:missing-argument-error-command
-   #:missing-argument-error-p
-   #:invalid-argument-error
-   #:invalid-argument-error-item
-   #:invalid-argument-error-reason
-   #:invalid-argument-error-p
+   #:circular-dependency
+   #:circular-dependency-items
+   #:unknown-argument
+   #:unknown-argument-name
+   #:unknown-argument-kind
+   #:unknown-argument-p
+   #:missing-argument
+   #:missing-argument-command
+   #:missing-argument-p
+   #:invalid-argument
+   #:invalid-argument-item
+   #:invalid-argument-reason
+   #:invalid-argument-p
    #:unwind-protect-case))
 (defpackage :macs.readtables
   (:use :cl)
@@ -118,7 +119,7 @@
 (defpackage macs.ana
   (:use :cl :macs.readtables :macs.fu)
   (:export
-   :alambda
+   #:alambda
    #:nlet-tail
    #:alet%
    #:alet
@@ -127,7 +128,7 @@
    #:this
    #:self))
 (defpackage :macs.pan
-  (:use :cl :macs.readtables :macs.fu)
+  (:use :cl :macs.readtables :macs.fu :macs.ana)
   (:export
    #:pandoriclet
    #:pandoriclet-get
@@ -139,8 +140,9 @@
    #:plambda
    #:pandoric-eval))
 (defpackage :macs.cli
-  (:use :cl :macs.cond :macs.fu :macs.pan)
+  (:use :cl :macs.sym :macs.cond :macs.fu :macs.pan)
   (:import-from :uiop :split-string)
+  (:import-from :sb-ext :exit)
   (:export
    :command-line-args
    :*cli-arg0*
@@ -148,7 +150,10 @@
    :*default-cli-opts*
    :*cli-group-separator*
    :cli-flag-p
+   :make-short-name
    :with-cli-handlers
+   :defmain
+   :main
    :with-cli
    :cli-name
    :cli-opts

@@ -44,64 +44,64 @@ a default value for required keyword arguments."
          :format-control message
          :format-arguments args))
 
-(define-condition circular-dependency-error (simple-error)
+(define-condition circular-dependency (simple-error)
   ((items
     :initarg :items
     :initform (error "Must specify items")
-    :reader circular-dependency-error-items))
+    :reader circular-dependency-items))
   (:report (lambda (condition stream)
              (declare (ignore condition))
              (format stream "Circular dependency detected")))
   (:documentation "A condition which is signalled when a circular dependency is encountered."))
 
-(define-condition unknown-argument-error (error)
+(define-condition unknown-argument (error)
   ((name
     :initarg :name
     :initform (error "Must specify argument name")
-    :reader unknown-argument-error-name)
+    :reader unknown-argument-name)
    (kind
     :initarg :kind
     :initform (error "Must specify argument kind")
-    :reader unknown-argument-error-kind))
+    :reader unknown-argument-kind))
   (:report (lambda (condition stream)
              (format stream "Unknown argument ~A of kind ~A"
-                     (unknown-argument-error-name condition)
-                     (unknown-argument-error-kind condition))))
+                     (unknown-argument-name condition)
+                     (unknown-argument-kind condition))))
   (:documentation "A condition which is signalled when an unknown argument is encountered."))
 
-(defun unknown-argument-error-p (value)
-  (typep value 'unknown-argument-error))
+(defun unknown-argument-p (value)
+  (typep value 'unknown-argument))
 
-(define-condition missing-argument-error (simple-error)
+(define-condition missing-argument (simple-error)
   ((item
     :initarg :item
     :initform (error "Must specify argument item")
-    :reader missing-argument-error-item)
+    :reader missing-argument-item)
    (command
     :initarg :command
     :initform (error "Must specify command")
-    :reader missing-argument-error-command))
+    :reader missing-argument-command))
   (:report (lambda (condition stream)
              (declare (ignore condition))
              (format stream "Missing argument")))
   (:documentation "A condition which is signalled when an option expects an argument, but none was provided"))
 
-(defun missing-argument-error-p (value)
-  (typep value 'missing-argument-error))
+(defun missing-argument-p (value)
+  (typep value 'missing-argument))
 
-(define-condition invalid-argument-error (simple-error)
+(define-condition invalid-argument (simple-error)
   ((item
     :initarg :item
     :initform (error "Must specify argument item")
-    :reader invalid-argument-error-item
+    :reader invalid-argument-item
     :documentation "The argument which is identified as invalid")
    (reason
     :initarg :reason
     :initform (error "Must specify reason")
-    :reader invalid-argument-error-reason
+    :reader invalid-argument-reason
     :documentation "The reason why this argument is invalid"))
   (:report (lambda (condition stream)
-             (format stream "Invalid argument: ~A" (invalid-argument-error-reason condition))))
+             (format stream "Invalid argument: ~A" (invalid-argument-reason condition))))
   (:documentation "A condition which is signalled when an argument is identified as invalid."))
 
 (defmacro ignore-some-conditions ((&rest conditions) &body body)

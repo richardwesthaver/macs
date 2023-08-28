@@ -37,6 +37,10 @@ interned in the package designated by PACKAGE."
   "Interns the string designated by NAME in the KEYWORD package."
   (intern (string name) :keyword))
 
+(defmacro make-slot-name (name)
+  "make slot-name"
+  `(intern ,(string-upcase name) :keyword))
+
 (defun make-gensym (name)
   "If NAME is a non-negative integer, calls GENSYM using it. Otherwise NAME
 must be a string designator, in which case calls GENSYM using the designated

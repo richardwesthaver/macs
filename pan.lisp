@@ -56,14 +56,11 @@
      (funcall ,box :pandoric-set ,sym ,val)
      ,val))
 
-(defmacro with-pandoric (syms box &rest body)
-  (let ((g!box (gensym "box")))
-    `(let ((,g!box ,box))
-       (declare (ignorable ,g!box))
-       (symbol-macrolet
+(defmacro! with-pandoric (syms o!box &rest body)
+       `(symbol-macrolet
          (,@(mapcar #`(,a1 (get-pandoric ,g!box ',a1))
                     syms))
-         ,@body))))
+         ,@body))
 
 (defun pandoric-hotpatch (box new)
   (with-pandoric (this) box

@@ -247,6 +247,7 @@
   (:dispatch-macro-char #\# #\f #'|#f-reader|)))
 
 (defmacro! dlambda (&rest ds)
+  "Dynamic dispatch lambda."
   `(lambda (&rest ,g!args)
      (case (car ,g!args)
        ,@(mapcar
