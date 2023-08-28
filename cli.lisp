@@ -9,6 +9,10 @@
     *cli-license-flag*)
   "A list of default flags to add to a top-level CLI program.")
 
+(defparameter *cli-group-separator*
+  "--"
+  "A marker specifying the end of a unique group of CLI args.")
+
 (defun command-line-args () (uiop:command-line-arguments))
 
 (defmacro cli-flag-p (flag)
@@ -40,18 +44,22 @@ usually triggered via C-c."
 (defgeneric parse-args (args obj)
   (:documentation "Parse the ARGS provided against provided OBJ."))
 
-(defclass cli ()
-  ((name :initarg :name :initform (package-name *package*) :type string)
-   (opts :initarg :opts :initform nil :accessor cli-opts)
-   (help :initarg :help :initform nil :accessor cli-help)
-   (version :initarg :version :initform "0.1.0" :accessor cli-version :type string))
-  (:documentation "CLI"))
+(defclass cli-opt ()
+  ((name :initarg :name :initform nil :accessor cli-opt-name :type (or null string))))
 
 (defclass cli-cmd ()
   ((name :initarg :name :initform nil :accessor cli-cmd-name :type string)
    (opts :initarg :opts :initform nil :accessor cli-cmd-opts)
    (usage :initarg :opts :initform nil :accessor cli-cmd-usage))
   (:documentation "A CLI command."))
+
+(defclass cli ()
+  ((name :initarg :name :initform (package-name *package*) :accessor cli-name :type string)
+   (opts :initarg :opts :initform nil :accessor cli-opts :type (or list (vector cli-opt)))
+   (cmds :initarg :cmds :initform nil :accessor cli-cmds :type (or list (vector cli-cmd)))
+   (help :initarg :help :initform nil :accessor cli-help)
+   (version :initarg :version :initform "0.1.0" :accessor cli-version :type string))
+  (:documentation "CLI"))
 
 (defmethod print-object ((self cli-cmd) stream)
   (print-unreadable-object (cli-cmd stream :type t)

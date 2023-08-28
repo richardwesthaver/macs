@@ -145,10 +145,21 @@
    :*cli-arg0*
    :*cli-args*
    :*default-cli-opts*
+   :*cli-group-separator*
    :cli-flag-p
    :with-cli-handlers
-   :cli
+   :with-cli
+   :cli-name
+   :cli-opts
+   :cli-cmds
+   :cli-help
+   :cli-version
+   :cli-opt
+   :cli-opt-name
    :cli-cmd
+   :cli-cmd-name
+   :cli-cmd-opts
+   :cli-cmd-usage
    :parse-cli-args
    :parse-args))
 (defpackage :macs
