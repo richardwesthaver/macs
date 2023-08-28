@@ -33,6 +33,10 @@ usually triggered via C-c."
 	 (format *error-output* "(:C-~:@C)~&" #\c)
 	 (sb-ext:exit)))))
 
+(defmacro with-cli (letargs &body body) ;with-pandoric
+  `(pandoriclet ,letargs
+		(with-cli-handlers (progn ,@body))))
+
 (defgeneric parse-args (args obj)
   (:documentation "Parse the ARGS provided against provided OBJ."))
 

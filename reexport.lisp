@@ -43,5 +43,6 @@
 ;; TODO 2023-08-27: handle include and exclude keywords
 ;; - also handle package name prefixes 'macs.'.
 (defmacro reexports (&rest pkgs)
-  "Reexport all external symbols in PKGS from the current package."
-  `(mapc #'reexport-from ',pkgs))
+  "Reexport external symbols in PKGS from the current package."
+  `(dolist (p ',pkgs) (apply #'reexport-from p)))
+	    

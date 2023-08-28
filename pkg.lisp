@@ -4,7 +4,7 @@
   (:use :cl)
   (:export :reexport-from :reexports))
 (defpackage :macs.str
-  (:use :cl :macs.reexport)
+  (:use :cl :macs.reexport :uiop)
   (:export #:string-designator
 	   #:words #:lines #:sentences #:whitespace-p #:uppercase #:lowercase #:titlecase 
 	   #:word-break-class #:line-break-class #:sentence-break-class           
@@ -13,9 +13,10 @@
 	   #:bidi-mirroring-glyph #:bidi-class                                  
 	   #:normalize-string #:normalized-p #:default-ignorable-p                
 	   #:confusable-p #:hex-digit-p #:mirrored-p #:alphabetic-p #:math-p          
-	   #:decimal-value #:digit-value                                        
+	   #:decimal-value #:digit-value #:char-block                                        
 	   #:unicode< #:unicode> #:unicode= #:unicode-equal                         
-	   #:unicode<= #:unicode>=))
+	   #:unicode<= #:unicode>=
+	   #:strcat #:stripln #:string-suffix-p #:string-enclosed-p #:split-string))
 (defpackage :macs.sym
   (:use :cl :macs.str)
   (:export
@@ -146,7 +147,7 @@
    #:plambda
    #:pandoric-eval))
 (defpackage :macs.cli
-  (:use :cl :macs.cond :macs.fu)
+  (:use :cl :macs.cond :macs.fu :macs.pan)
   (:import-from :uiop :split-string)
   (:export
    :command-line-args
