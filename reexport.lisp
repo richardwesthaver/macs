@@ -23,6 +23,8 @@
         (remove-if-not #'aux symbols)
         symbols)))
 
+;; NOTE 2023-08-28: nested reexports aren't handled correctly
+
 ;;; Syntax:
 ;;;
 ;;;   REEXPORT-FROM package-from &key include exclude
@@ -44,7 +46,10 @@
 ;; - also handle package name prefixes 'macs.'.
 (defmacro reexports (&rest pkgs)
   "Reexport external symbols in PKGS from the current package."
-  `(loop for p in ,pkgs do (apply #'reexport-from p)))
+  (loop for p in `,pkgs do
+    (if (consp p)
+	(apply #'reexport-from p)
+	(funcall #'reexport-from p))))
 	 
 	    
 	    

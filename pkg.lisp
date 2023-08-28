@@ -4,7 +4,8 @@
   (:use :cl)
   (:export :reexport-from :reexports))
 (defpackage :macs.str
-  (:use :cl :macs.reexport :uiop)
+  (:use :cl :uiop)
+  (:import-from :macs.reexport :reexports)
   (:export
    #:string-designator))
 (defpackage :macs.sym
@@ -72,7 +73,7 @@
    #:parse-body)
   (:documentation "See MACS.READTABLES::@READTABLES-MANUAL."))
 (defpackage :macs.fu
-  (:use :cl :macs.readtables :macs.sym :macs.list)
+  (:use :cl :macs.readtables :macs.sym :macs.list :macs.cond)
   (:export
    #:macs-syntax
    #:mkstr
@@ -162,11 +163,3 @@
    :cli-cmd-usage
    :parse-cli-args
    :parse-args))
-(defpackage :macs
-  (:use
-   :cl
-   :macs.reexport
-   :macs.str :macs.sym :macs.list
-   :macs.cond :macs.readtables
-   :macs.fu :macs.ana :macs.pan
-   :macs.cli))
