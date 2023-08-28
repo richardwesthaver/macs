@@ -5,18 +5,8 @@
   (:export :reexport-from :reexports))
 (defpackage :macs.str
   (:use :cl :macs.reexport :uiop)
-  (:export #:string-designator
-	   #:words #:lines #:sentences #:whitespace-p #:uppercase #:lowercase #:titlecase 
-	   #:word-break-class #:line-break-class #:sentence-break-class           
-	   #:cased-p #:uppercase-p #:lowercase-p #:titlecase-p #:casefold             
-	   #:graphemes #:grapheme-break-class                                   
-	   #:bidi-mirroring-glyph #:bidi-class                                  
-	   #:normalize-string #:normalized-p #:default-ignorable-p                
-	   #:confusable-p #:hex-digit-p #:mirrored-p #:alphabetic-p #:math-p          
-	   #:decimal-value #:digit-value #:char-block                                        
-	   #:unicode< #:unicode> #:unicode= #:unicode-equal                         
-	   #:unicode<= #:unicode>=
-	   #:strcat #:stripln #:string-suffix-p #:string-enclosed-p #:split-string))
+  (:export
+   #:string-designator))
 (defpackage :macs.sym
   (:use :cl :macs.str)
   (:export
@@ -83,46 +73,47 @@
   (:documentation "See MACS.READTABLES::@READTABLES-MANUAL."))
 (defpackage :macs.fu
   (:use :cl :macs.readtables :macs.sym :macs.list)
-  (:export #:macs-syntax
-           #:mkstr
-           #:symb
-           #:group
-           #:flatten
-           #:fact
-           #:choose
-           #:g!-symbol-p
-           #:defmacro/g!
-           #:o!-symbol-p
-           #:o!-symbol-to-g!-symbol
-           #:defmacro!
-           #:defun!
-           #:|#"-reader|
-           #:|#`-reader|
-           #:|#f-reader|
-           #:segment-reader
-           #:match-mode-ppcre-lambda-form
-           #:subst-mode-ppcre-lambda-form
-           #+cl-ppcre #:|#~-reader|
-           #:dlambda
-           #:make-tlist
-           #:tlist-left
-           #:tlist-right
-           #:tlist-empty-p
-           #:tlist-add-left
-           #:tlist-add-right
-           #:tlist-rem-left
-           #:tlist-update
-           #:build-batcher-sn
-           #:sortf
-           #:dollar-symbol-p
-           #:if-match
-           #:when-match
-	   #:once-only
-	   #:parse-body
-	   #:parse-ordinary-lambda-list
-	   #:destructuring-case
-	   #:destructuring-ccase
-	   #:destructuring-ecase))
+  (:export
+   #:macs-syntax
+   #:mkstr
+   #:symb
+   #:group
+   #:flatten
+   #:fact
+   #:choose
+   #:g!-symbol-p
+   #:defmacro/g!
+   #:o!-symbol-p
+   #:o!-symbol-to-g!-symbol
+   #:defmacro!
+   #:defun!
+   #:|#"-reader|
+   #:|#`-reader|
+   #:|#f-reader|
+   #:segment-reader
+   #:match-mode-ppcre-lambda-form
+   #:subst-mode-ppcre-lambda-form
+   #+cl-ppcre #:|#~-reader|
+   #:dlambda
+   #:make-tlist
+   #:tlist-left
+   #:tlist-right
+   #:tlist-empty-p
+   #:tlist-add-left
+   #:tlist-add-right
+   #:tlist-rem-left
+   #:tlist-update
+   #:build-batcher-sn
+   #:sortf
+   #:dollar-symbol-p
+   #:if-match
+   #:when-match
+   #:once-only
+   #:parse-body
+   #:parse-ordinary-lambda-list
+   #:destructuring-case
+   #:destructuring-ccase
+   #:destructuring-ecase))
 (defpackage macs.ana
   (:use :cl :macs.readtables :macs.fu)
   (:export
@@ -161,7 +152,9 @@
    :parse-cli-args
    :parse-args))
 (defpackage :macs
-  (:use :cl :macs.reexport
+  (:use
+   :cl
+   :macs.reexport
    :macs.str :macs.sym :macs.list
    :macs.cond :macs.readtables
    :macs.fu :macs.ana :macs.pan
