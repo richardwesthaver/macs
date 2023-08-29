@@ -32,31 +32,41 @@
 ;;   (invoke-restart (find-restart 'discard-argument condition)))
 
 (defmacro with-cli-handlers (&body body)
-  "A wrapper which handles the `sb-sys:interactive-interrupt' condition,
-usually triggered via C-c."
+  "A wrapper which handles common cli errors."
   `(handler-case ,body
      (sb-sys:interactive-interrupt ()
-       (progn
 	 (format *error-output* "~&(:SIGINT)~&")
-	 (exit :code 130)))
+	 (exit :code 130))
      (error (c)
        (format *error-output* "~&~A~&" c)
        (exit :code 1))))
 
 (defmacro defmain (&body body)
   "Define a main function in the current package."
-  (let ((pkg *package*))
+  (let ((pkg *package*)
+	(main 'main))
     `(progn
-       (defun main ()
-	 (with-cli-handlers progn (list ,@body '(exit :code 0))))
-       (export 'main ,pkg)
-       (unintern :main))))
+       (defun ,main ()
+	 (with-cli-handlers ,@`(list ,@body '(exit :code 0))))
+       (export 'main ,pkg))))
 
 (defmacro with-cli (largs env &body body) ;with-pandoric
   "Eval BODY with pandoric variables LARGS which should be accessible
 from the provided closure ENV."
   `(with-pandoric ,largs ,env
      (with-cli-handlers (progn ,@body))))
+
+(defmacro make-cli (kind &optional &rest slots)
+  "Creates a new CLI object of the given kind."
+  (declare (type (member :main :opt :cmd t) kind))
+  `(make-instance
+    ,(cond
+       ((eql kind :cli) ''cli)
+       ((eql kind :main) ''cli)
+       ((eql kind :opt) 'cli-opt)
+       ((eql kind :cmd) 'cli-cmd)
+       (t ''cli))
+    ,@slots))
 
 (defgeneric parse-args (args obj)
   (:documentation "Parse ARGS against OBJ."))
@@ -70,13 +80,14 @@ from the provided closure ENV."
 (defgeneric handle-unknown-argument (obj arg))
 (defgeneric handle-missing-argument (obj arg))
 (defgeneric handle-invalid-argument (obj arg))
+
 (defclass cli-opt ()
-  ((name :initarg :name :initform nil :accessor cli-opt-name :type (or null string))))
+  ((name :initarg :name :initform nil :accessor cli-name :type (or null string))))
 
 (defclass cli-cmd ()
-  ((name :initarg :name :initform nil :accessor cli-cmd-name :type (or null string))
-   (opts :initarg :opts :initform nil :accessor cli-cmd-opts)
-   (usage :initarg :opts :initform nil :accessor cli-cmd-usage))
+  ((name :initarg :name :initform nil :accessor cli-name :type (or null string))
+   (opts :initarg :opts :initform nil :accessor cli-opts)
+   (usage :initarg :opts :initform nil :accessor cli-usage))
   (:documentation "A CLI command."))
 
 (defclass cli ()
@@ -87,10 +98,13 @@ from the provided closure ENV."
    (version :initarg :version :initform "0.1.0" :accessor cli-version :type string))
   (:documentation "CLI"))
 
-(defmethod print-object ((self cli-cmd) stream)
+(defmethod print-object ((self cli) stream)
   (print-unreadable-object (self stream :type t)
-    (format stream "name=~A opts=~A"
-            (cli-cmd-name self)
-            (length (cli-cmd-opts self)))))
+    (format stream "name=~A opts=~A cmds=~A help=~A version=~A"
+            (cli-name self)
+            (length (cli-opts self))
+	    (length (cli-cmds self))
+	    (cli-help self)
+	    (cli-version self))))
 
 (defun parse-cli-args ())

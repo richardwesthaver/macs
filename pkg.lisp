@@ -155,16 +155,15 @@
    :defmain
    :main
    :with-cli
+   :make-cli
+   :cli
    :cli-name
    :cli-opts
    :cli-cmds
    :cli-help
    :cli-version
+   :cli-usage
    :cli-opt
-   :cli-opt-name
    :cli-cmd
-   :cli-cmd-name
-   :cli-cmd-opts
-   :cli-cmd-usage
    :parse-cli-args
    :parse-args))
