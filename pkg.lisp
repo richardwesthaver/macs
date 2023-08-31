@@ -75,7 +75,7 @@
 (defpackage :macs.fu
   (:use :cl :macs.readtables :macs.sym :macs.list :macs.cond)
   (:export
-   #:macs-readtable
+   #:*macs-readtable*
    #:mkstr
    #:symb
    #:group
@@ -197,5 +197,3 @@
    :test
    :test-fixture
    :test-suite))
-
-  

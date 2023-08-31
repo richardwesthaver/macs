@@ -30,14 +30,14 @@ Named Readtable support. See the [[https://github.com/melisgl/named-readtables][
 *** macs.fu
 The =fu= extension package. Includes macro utility functions from LOL,
 alexandria, PCL, PG, custom readers, and a named-readtable called
-=macs-syntax=.
+=*macs-readtable*=.
 *** macs.ana
 Anaphoric macros.
 *** macs.pan
 Pandoric macros.
 *** macs.cli
 This package provides an API for building CLI apps. It is highly
-opinionated and loosely derived from [[https://github.com/dnaeon/clingon][clingon]].
+opinionated and loosely derived from [[https://github.com/dnaeon/clingon][clingon]] and uiop.
 ** Resources
   - [[https://alexandria.common-lisp.dev/][alexandria]]
   - [[https://edicl.github.io/cl-ppcre/][cl-ppcre]]

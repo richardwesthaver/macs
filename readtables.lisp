@@ -1,3 +1,15 @@
+;;; readtables.lisp --- macs.readtables
+;; The standard readtable is controlled by the Lisp implementation and
+;; generally shouldn't be touched. There can be problems with
+;; 'stacking' multiple read-macros as can be seen in this SO post:
+;; https://stackoverflow.com/questions/73346051/how-can-i-modify-the-and-readtable-macros-in-lisp
+
+;; Instead, if you really want to change standard readtable behavior,
+;; it is better to define your own readtables and be aware of the
+;; context in which they are enabled. For example, loading a system
+;; definition before enabling the readtable may cause divergent
+;; behavior (using standard) versus your source code (custom).
+
 (in-package :macs.readtables)
 (pushnew :macs.readtables *features*)
 

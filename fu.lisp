@@ -238,7 +238,7 @@
 #+cl-ppcre (set-dispatch-macro-character #\# #\~ #'|#~-reader|)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-(defreadtable macs-readtable
+(defreadtable *macs-readtable*
   (:merge :standard)
   (:dispatch-macro-char #\# #\" #'|#"-reader|)
   (:dispatch-macro-char #\# #\> #'|#>-reader|)
@@ -320,7 +320,7 @@
       (setf p (ash p -1)))
     (nreverse network)))
 
-(in-readtable macs-readtable)
+(in-readtable *macs-readtable*)
 
 (defmacro! sortf (comparator &rest places)
   (if places
