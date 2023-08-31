@@ -4,15 +4,15 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require 'sb-rt))
 (in-package :macs.rt)
-
+(in-readtable *macs-readtable*)
 (defvar *compile-tests* nil
   "When nil do not compile tests. With a value of t, tests are compiled
 with default optimizations else the value is used to configure
 compiler optimizations.")
 (defvar *catch-test-errors* t "When non-nil, cause errors in a test to be caught.")
 (defvar *test-suffix* "-test" "A suffix to append to every `test' defined with `deftest'.")
-(defvar *test-suites* nil "List of available `test-suite' objects.")
-(defvar *active-test-suite* nil "A 'test-suite-designator' which identifies the current `test-suite'.")
+(defvar *test-suite-list* nil "List of available `test-suite' objects.")
+(defvar *test-suite* nil "A 'test-suite-designator' which identifies the current `test-suite'.")
 (defvar *test-debug* nil "When non-nil, enable debug-mode for tests defined with `deftest'. The
 value is actually treated as a stream-designator - so you can point
 the debug output wherever you want.")
@@ -42,6 +42,9 @@ is used as the function value of `test-debug-timestamp-source'.")
 
 (defun make-test (&rest slots)
   (apply #'make-instance 'test slots))
+
+(defun make-suite (&rest slots)
+  (apply #'make-instance 'test-suite slots))
 
 (defmacro with-test (test))
 
@@ -75,14 +78,14 @@ is used as the function value of `test-debug-timestamp-source'.")
 (defun do-tests (&optional (s *standard-output*))
   (if (streamp s)
       (with-open-stream (stream s)
-	(do-suite *active-test-suite*))
+	(do-suite *test-suite*))
       (with-open-file (stream s :direction :output)
-	(do-suite *active-test-suite*))))
+	(do-suite *test-suite*))))
 
 (defun continue-testing ()
   (if-let ((test *testing*))
     (throw '*in-test* test)
-    (do-suite *active-test-suite*)))
+    (do-suite *test-suite*)))
       
 (defmacro with-test-env (env &body body)
   "Generate a test closure from ENV and BODY."
@@ -97,9 +100,28 @@ is used as the function value of `test-debug-timestamp-source'.")
 `make-test' which returns a value based on the dynamic environment."
   `(make-test :name ,name))
 
-(defmacro defsuite (&rest opts)
+(defun suite-name= (a b)
+  "Return t if `test-suite' objects A and B have the same name"
+  (eq (test-name a) (test-name b)))
+
+(defmacro defsuite (name &key opts)
   "Define a `test-suite' with provided OPTS. The object returned can be
-enabled using the `in-suite' macro, similiar to the `defpackage' API.")
+enabled using the `in-suite' macro, similiar to the `defpackage' API."
+  (let ((obj `(make-suite :name ',name ,@opts)))
+    `(if-let ((tail (member-if (lambda (x) (suite-name= ,obj x)) *test-suite-list*)))
+       (progn
+	 (format t "redefining test-suite: ~A" ',name)
+	 (if (consp tail)
+	     (setf (car tail) ,obj)
+	     (setf tail ,obj)))
+       (push ,obj *test-suite-list*))))
+
+(defmacro in-suite (name)
+  "Set `*test-suite*' to the `test-suite' referred to by symbol
+NAME. Return the `test-suite'."
+  (check-type name test-suite-designator)
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (setf *test-suite* ',name)))
 
 (defgeneric eval-test (self &rest opts))
 (defgeneric compile-test (self &rest opts))

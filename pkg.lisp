@@ -186,7 +186,8 @@
    :*catch-test-errors*
    :*test-suffix*
    :*test-suites*
-   :*active-test-suite*
+   :*test-suite*
+   :*test-suite-list*
    :*testing*
    :test-suite-designator
    :test-debug-timestamp-source
@@ -199,6 +200,8 @@
    :with-test-env
    :deftest
    :defsuite
+   :ensure-suite
+   :in-suite
    :eval-test
    :compile-test
    :pending-tests
