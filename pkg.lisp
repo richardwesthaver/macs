@@ -71,12 +71,11 @@
    #:reader-macro-conflict
    #:readtable-does-already-exist
    #:readtable-does-not-exist
-   #:parse-body)
-  (:documentation "See MACS.READTABLES::@READTABLES-MANUAL."))
+   #:parse-body))
 (defpackage :macs.fu
   (:use :cl :macs.readtables :macs.sym :macs.list :macs.cond)
   (:export
-   #:macs-syntax
+   #:macs-readtable
    #:mkstr
    #:symb
    #:group
@@ -139,9 +138,11 @@
    #:pandoric-recode
    #:plambda
    #:pandoric-eval))
+(defpackage :macs.fs
+  (:use :cl :macs.str :macs.cond :macs.fu)
+  (:export))
 (defpackage :macs.cli
-  (:use :cl :macs.sym :macs.cond :macs.fu :macs.pan)
-  (:import-from :uiop :split-string)
+  (:use :cl :macs.sym :macs.cond :macs.fu :macs.pan :macs.str)
   (:import-from :sb-ext :exit)
   (:export
    :command-line-args
@@ -172,3 +173,18 @@
    :cli-cmd
    :parse-cli-args
    :parse-args))
+(defpackage :macs.rt
+  (:use :cl :macs.sym :macs.cond :macs.fu)
+  (:export
+   :*compile-tests*
+   :make-test
+   :with-test
+   :do-test
+   :with-test-env
+   :deftest
+   :test-object
+   :test
+   :test-fixture
+   :test-suite))
+
+  

@@ -15,7 +15,7 @@
 	       (:file "list")
 	       (:file "cond")
 	       (:file "readtables")
-	       ;; (:file "file")
+	       (:file "fs")
 	       (:file "fu")
 	       (:file "ana")
 	       (:file "pan")

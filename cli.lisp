@@ -1,3 +1,4 @@
+;;; cli.lisp --- macs.cli
 (in-package :macs.cli)
 
 (defvar *cli-arg0* (car sb-ext:*posix-argv*))
