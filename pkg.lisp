@@ -178,7 +178,7 @@
    :parse-cli-args
    :parse-args))
 (defpackage :macs.rt
-  (:use :cl :macs.sym :macs.cond :macs.fu)
+  (:use :cl :macs.sym :macs.cond :macs.readtables :macs.fu)
   (:export
    :*test-debug*
    :*test-debug-timestamp*
@@ -187,6 +187,8 @@
    :*test-suffix*
    :*test-suites*
    :*active-test-suite*
+   :*testing*
+   :test-suite-designator
    :test-debug-timestamp-source
    :dbg!
    :make-test

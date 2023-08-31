@@ -21,6 +21,10 @@ the debug output wherever you want.")
 is used as the function value of `test-debug-timestamp-source'.")
 (defvar *testing* nil "Testing state var.")
 
+(deftype test-suite-designator ()
+  "Either a symbol or a `test-suite' object."
+  '(or test-suite symbol))
+    
 (declaim (inline test-debug-timestamp-source))
 (defun test-debug-timestamp-source ()
   (format nil "~f" (/ (get-internal-real-time) internal-time-units-per-second)))
@@ -70,16 +74,23 @@ is used as the function value of `test-debug-timestamp-source'.")
 
 (defun do-tests (&optional (s *standard-output*))
   (if (streamp s)
-      (do-entries s)
+      (with-open-stream (stream s)
+	(do-suite *active-test-suite*))
       (with-open-file (stream s :direction :output)
 	(do-suite *active-test-suite*))))
 
 (defun continue-testing ()
   (if-let ((test *testing*))
     (throw '*in-test* test)
-    (do-suite)))
+    (do-suite *active-test-suite*)))
       
-(defmacro with-test-env (&body body))
+(defmacro with-test-env (env &body body)
+  "Generate a test closure from ENV and BODY."
+  ;; TODO 2023-08-31: test
+  (in-readtable *macs-readtable*)
+  (prog1
+      `(lambda () ,@body)
+    (in-readtable nil)))
 
 (defmacro deftest (name &body body)
   "Build a test. BODY is wrapped in `with-test-env' and passed to
