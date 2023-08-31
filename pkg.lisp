@@ -196,8 +196,13 @@
    :continue-testing
    :with-test-env
    :deftest
-   :compile-test
+   :defsuite
    :eval-test
+   :compile-test
+   :pending-tests
+   :add-test
+   :delete-test
+   :find-test
    :do-suite
    :test-object
    :test
@@ -205,5 +210,4 @@
    :test-suite
    :test-name
    :tests
-   :should-fail-tests
-   :pending-tests))
+   :should-fail-tests))

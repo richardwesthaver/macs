@@ -19,6 +19,7 @@ the debug output wherever you want.")
 (defvar *test-debug-timestamp* t "If non-nil, print a timestamp with debug output. Has no effect when
 `*debug-tests*' is nil. The value may be a function in which case it
 is used as the function value of `test-debug-timestamp-source'.")
+(defvar *testing* nil "Testing state var.")
 
 (declaim (inline test-debug-timestamp-source))
 (defun test-debug-timestamp-source ()
@@ -35,9 +36,11 @@ is used as the function value of `test-debug-timestamp-source'.")
        ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
        (map nil (lambda (x) (format *test-debug* " ~x~%" x)) ',args))))
 
-(defun make-test (env body))
+(defun make-test (&rest slots)
+  (apply #'make-instance 'test slots))
+
 (defmacro with-test (test))
-(defvar *testing* nil "Testing state var.")
+
 (defun do-test (test &optional (s *standard-output*))
   "Do TEST, printing results to S (default `*standard-output*')"
   (catch '*in-test*
@@ -64,21 +67,25 @@ is used as the function value of `test-debug-timestamp-source'.")
 				    (return-from bail nil))))
 		      (%do))
 		    (%do))))))))
+
 (defun do-tests (&optional (s *standard-output*))
   (if (streamp s)
       (do-entries s)
       (with-open-file (stream s :direction :output)
 	(do-suite *active-test-suite*))))
+
 (defun continue-testing ()
   (if-let ((test *testing*))
     (throw '*in-test* test)
     (do-suite)))
       
 (defmacro with-test-env (&body body))
+
 (defmacro deftest (name &body body)
   "Build a test. BODY is wrapped in `with-test-env' and passed to
 `make-test' which returns a value based on the dynamic environment."
-  `())
+  `(make-test :name ,name))
+
 (defmacro defsuite (&rest opts)
   "Define a `test-suite' with provided OPTS. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API.")
@@ -86,6 +93,9 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API.")
 (defgeneric eval-test (self &rest opts))
 (defgeneric compile-test (self &rest opts))
 (defgeneric pending-tests (self))
+(defgeneric add-test (self))
+(defgeneric delete-test (self))
+(defgeneric find-test (self))
 (defgeneric do-suite (self &rest opts))
 
 (defclass test-object ()
@@ -93,17 +103,20 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API.")
   (:documentation "Super class for all test-related objects."))
 
 (defmethod initialize-instance :after ((self test-object) &key)
-  ;; - generate `:fn' slot-value (prepend `*test-suffix*')
+  ;; - generate `:function-name' slot-value (prepend `*test-suffix*')
   ;; - partial-eval of test environment
   ;; - trigger per-test debugging features
   (dbg! "initializing instance:"
 	(print-object self nil)))
 
+  ;; HACK 2023-08-31: inherit sxp?
 (defclass test (test-object)
-  ((fn :type symbol)
+  ((function-name :type symbol)
    (args)
+   (form :initform nil :type function-lambda-expression)
    (lock :initform nil :initarg :lock :type boolean :accessor test-lock))
   (:documentation "Test class typically made with `deftest'."))
+
 (defmethod eval-test ((self test) &rest opts))
 (defmethod compile-test ((self test) &rest opts))
 
@@ -132,7 +145,7 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API.")
   (dolist (i (cdr (test-set self)))
     (when (test-lock i)
       (format t "~@[~<~%~:; ~:@(~S~)~>~]"
-	      (do-test test t))))
+	      (do-test i t))))
   (let ((pending (pending-tests self))
 	(expected (make-hash-table :test #'equal)))
     (dolist (ex (should-fail-tests self))
@@ -160,4 +173,4 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API.")
 			  (length fails)
 			  fails)))))
       (finish-output t)
-      (values (null fails) (null pending) pending))))      
+      (values (null fails) (null pending) pending))))
