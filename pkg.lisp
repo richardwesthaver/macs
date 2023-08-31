@@ -186,12 +186,14 @@
    :*catch-test-errors*
    :*test-suffix*
    :*test-suites*
+   :*active-test-suite*
    :test-debug-timestamp-source
    :dbg!
    :make-test
    :with-test
    :do-test
    :do-tests
+   :continue-testing
    :with-test-env
    :deftest
    :compile-test
@@ -200,4 +202,8 @@
    :test-object
    :test
    :test-fixture
-   :test-suite))
+   :test-suite
+   :test-name
+   :tests
+   :should-fail-tests
+   :pending-tests))
