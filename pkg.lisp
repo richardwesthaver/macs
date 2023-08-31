@@ -199,8 +199,9 @@
    :continue-testing
    :with-test-env
    :deftest
+   :suite-name-eq
+   :suite-name=
    :defsuite
-   :ensure-suite
    :in-suite
    :eval-test
    :compile-test

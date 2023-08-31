@@ -33,12 +33,11 @@ is used as the function value of `test-debug-timestamp-source'.")
 (defmacro dbg! (&rest args)
   (with-gensyms (dbg)
     `(when-let ((,dbg *test-debug*))
-       (format ,dbg ":DBG")
+       (format ,dbg "~%:DBG")
        (if ,*test-debug-timestamp*
-	   (format ,dbg " @ ~a~%" (test-debug-timestamp-source))
-	   (terpri ,dbg))
+	   (format ,dbg " @ ~a :: " (test-debug-timestamp-source)))
        ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
-       (map nil (lambda (x) (format *test-debug* " ~x~%" x)) ',args))))
+       (map nil (lambda (x) (format *test-debug* "~x~%" x)) ,@args))))
 
 (defun make-test (&rest slots)
   (apply #'make-instance 'test slots))
@@ -100,21 +99,25 @@ is used as the function value of `test-debug-timestamp-source'.")
 `make-test' which returns a value based on the dynamic environment."
   `(make-test :name ,name))
 
-(defun suite-name= (a b)
+(defun suite-name-eq (a b)
   "Return t if `test-suite' objects A and B have the same name"
   (eq (test-name a) (test-name b)))
+
+(defun suite-name= (a sym)
+  "Return t if `test-suite' object A has the name SYM."
+  (eq (test-name a) sym))
 
 (defmacro defsuite (name &key opts)
   "Define a `test-suite' with provided OPTS. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
-  (let ((obj `(make-suite :name ',name ,@opts)))
-    `(if-let ((tail (member-if (lambda (x) (suite-name= ,obj x)) *test-suite-list*)))
+  `(let ((obj (make-suite :name ',name ,@opts)))
+     (if-let ((tail (member-if (lambda (x) (suite-name= x ',name)) *test-suite-list*)))
        (progn
-	 (format t "redefining test-suite: ~A" ',name)
+	 (format t "~%redefining test-suite: ~A" ',name)
 	 (if (consp tail)
-	     (setf (car tail) ,obj)
-	     (setf tail ,obj)))
-       (push ,obj *test-suite-list*))))
+	     (setf (car tail) obj)
+	     (setf tail obj)))
+       (push obj *test-suite-list*))))
 
 (defmacro in-suite (name)
   "Set `*test-suite*' to the `test-suite' referred to by symbol
@@ -139,8 +142,7 @@ NAME. Return the `test-suite'."
   ;; - generate `:function-name' slot-value (prepend `*test-suffix*')
   ;; - partial-eval of test environment
   ;; - trigger per-test debugging features
-  (dbg! "initializing instance:"
-	(print-object self nil)))
+  (dbg! (print-object self nil)))
 
   ;; HACK 2023-08-31: inherit sxp?
 (defclass test (test-object)
