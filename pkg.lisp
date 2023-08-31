@@ -114,7 +114,11 @@
    #:parse-ordinary-lambda-list
    #:destructuring-case
    #:destructuring-ccase
-   #:destructuring-ecase))
+   #:destructuring-ecase
+   #:when-let
+   #:when-let*
+   #:if-let
+   #:if-let*))
 (defpackage macs.ana
   (:use :cl :macs.readtables :macs.fu)
   (:export
@@ -176,7 +180,14 @@
 (defpackage :macs.rt
   (:use :cl :macs.sym :macs.cond :macs.fu)
   (:export
+   :*test-debug*
+   :*test-debug-timestamp*
    :*compile-tests*
+   :*catch-test-errors*
+   :*test-suffix*
+   :*test-suites
+   :test-debug-timestamp-source
+   :dbg!
    :make-test
    :with-test
    :do-test
