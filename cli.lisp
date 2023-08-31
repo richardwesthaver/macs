@@ -31,24 +31,25 @@
 ;;   "A handler which can be used to invoke the `discard-argument' restart"
 ;;   (invoke-restart (find-restart 'discard-argument condition)))
 
-(defmacro with-cli-handlers (&body body)
-  "A wrapper which handles common cli errors."
-  `(handler-case ,body
+(defmacro with-cli-handlers (form)
+  "A wrapper which handles common cli errors that may occur during
+evaluation of FORM."
+  `(handler-case ,form
      (sb-sys:interactive-interrupt ()
-	 (format *error-output* "~&(:SIGINT)~&")
-	 (exit :code 130))
+       (format *error-output* "~&(:SIGINT)~&")
+       (exit :code 130))
      (error (c)
        (format *error-output* "~&~A~&" c)
        (exit :code 1))))
 
 (defmacro defmain (&body body)
-  "Define a main function in the current package."
-  (let ((pkg *package*)
-	(main 'main))
-    `(progn
-       (defun ,main ()
-	 (with-cli-handlers ,@`(list ,@body '(exit :code 0))))
-       (export 'main ,pkg))))
+  "Define a main function in the current package.
+
+Note that this macro does not export the defined function and requires
+`macs.cli:main' to be an external symbol."
+  `(progn
+     (defun main ()
+       (with-cli-handlers (progn ,@body (exit :code 0))))))
 
 (defmacro with-cli (largs env &body body) ;with-pandoric
   "Eval BODY with pandoric variables LARGS which should be accessible
@@ -71,10 +72,10 @@ from the provided closure ENV."
 (defgeneric parse-args (args obj)
   (:documentation "Parse ARGS against OBJ."))
 
-(defgeneric format-help (obj)
+(defgeneric print-help (obj)
   (:documentation "Format cli OBJ as a helpful string."))
 
-(defgeneric format-usage (obj)
+(defgeneric print-usage (obj)
   (:documentation "Format cli OBJ as a useful string."))
 
 (defgeneric handle-unknown-argument (obj arg))
@@ -86,25 +87,22 @@ from the provided closure ENV."
 
 (defclass cli-cmd ()
   ((name :initarg :name :initform nil :accessor cli-name :type (or null string))
-   (opts :initarg :opts :initform nil :accessor cli-opts)
-   (usage :initarg :opts :initform nil :accessor cli-usage))
+   (opts :initarg :opts :initform nil :accessor cli-opts))
   (:documentation "A CLI command."))
 
 (defclass cli ()
   ((name :initarg :name :initform (package-name *package*) :accessor cli-name :type string)
    (opts :initarg :opts :initform nil :accessor cli-opts :type (or list (vector cli-opt)))
    (cmds :initarg :cmds :initform nil :accessor cli-cmds :type (or list (vector cli-cmd)))
-   (help :initarg :help :initform nil :accessor cli-help)
    (version :initarg :version :initform "0.1.0" :accessor cli-version :type string))
   (:documentation "CLI"))
 
 (defmethod print-object ((self cli) stream)
   (print-unreadable-object (self stream :type t)
-    (format stream "name=~A opts=~A cmds=~A help=~A version=~A"
+    (format stream "name=~A opts=~A cmds=~A version=~A"
             (cli-name self)
             (length (cli-opts self))
 	    (length (cli-cmds self))
-	    (cli-help self)
 	    (cli-version self))))
 
 (defun parse-cli-args ())

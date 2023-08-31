@@ -156,6 +156,11 @@
    :main
    :with-cli
    :make-cli
+   :print-help
+   :print-usage
+   :handle-unknown-argument
+   :handle-missing-argument
+   :handle-invalid-argument
    :cli
    :cli-name
    :cli-opts
