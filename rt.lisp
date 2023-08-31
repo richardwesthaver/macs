@@ -37,7 +37,39 @@ is used as the function value of `test-debug-timestamp-source'.")
 
 (defun make-test (env body))
 (defmacro with-test (test))
-(defun do-test (test))
+(defvar *testing* nil "Testing state var.")
+(defun do-test (test &optional (s *standard-output*))
+  "Do TEST, printing results to S (default `*standard-output*')"
+  (catch '&test
+    (setf (test-lock test) t)
+    (let* ((*testing* (test-name test))
+	   (bail nil)
+	   r)
+      (block bail
+	(setf r
+	      (flet ((%do
+		       ()
+		       (if-let ((opt *compile-tests*))
+			 (multiple-value-list
+			  ;; RESEARCH 2023-08-31: with-compilation-unit?
+			  (funcall (compile-test test opt)))
+			 (multiple-value-list
+			  (eval-test test)))))
+		(if *catch-test-errors*
+		    (handler-bind
+			((style-warning #'muffle-warning)
+			 (error #'(lambda (c)
+				    (setf bail t)
+				    (setf r (list c))
+				    (return-from bail nil))))
+		      (%do))
+		    (%do))))))))
+(defun do-tests (&optional (s *standard-output*))
+  (if (streamp s)
+      (do-entries s)
+      (with-open-file (stream s :direction :output)
+	(do-suite *active-test-suite*))))
+
 (defmacro with-test-env (&body body))
 (defmacro deftest (name &body body)
   "Build a test. BODY is wrapped in `with-test-env' and passed to
@@ -47,8 +79,11 @@ is used as the function value of `test-debug-timestamp-source'.")
   "Define a `test-suite' with provided OPTS. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API.")
 
+(defgeneric eval-test (self &rest opts))
+(defgeneric compile-test (self &rest opts))
+(defgeneric do-suite (self &rest opts))
 (defclass test-object ()
-  ((name :initarg :name :initform (required-argument) :type string))
+  ((name :initarg :name :initform (required-argument) :type string :accessor test-name))
   (:documentation "Super class for all test-related objects."))
 
 (defmethod initialize-instance :after ((self test-object) &key)
@@ -61,8 +96,10 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API.")
 (defclass test (test-object)
   ((fn :type symbol)
    (args)
-   )
+   (lock :initform nil :initarg :lock :type boolean :accessor test-lock))
   (:documentation "Test class typically made with `deftest'."))
+(defmethod eval-test ((self test) &rest opts))
+(defmethod compile-test ((self test) &rest opts))
 
 (defclass test-fixture (test-object)
   ()
@@ -72,3 +109,5 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API.")
 (defclass test-suite (test-object)
   ((tests :initarg :tests :initform nil :type list))
   (:documentation "A class for collections of related `test' objects."))
+
+(defmethod do-suite ((self test-suite) &rest opts))

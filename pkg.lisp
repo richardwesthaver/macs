@@ -185,14 +185,18 @@
    :*compile-tests*
    :*catch-test-errors*
    :*test-suffix*
-   :*test-suites
+   :*test-suites*
    :test-debug-timestamp-source
    :dbg!
    :make-test
    :with-test
    :do-test
+   :do-tests
    :with-test-env
    :deftest
+   :compile-test
+   :eval-test
+   :do-suite
    :test-object
    :test
    :test-fixture
