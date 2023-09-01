@@ -185,11 +185,12 @@
    :*compile-tests*
    :*catch-test-errors*
    :*test-suffix*
-   :*test-suites*
    :*test-suite*
    :*test-suite-list*
+   :test-suites
    :*testing*
    :test-suite-designator
+   :check-suite-designator
    :test-debug-timestamp-source
    :dbg!
    :make-test
@@ -201,6 +202,7 @@
    :deftest
    :suite-name-eq
    :suite-name=
+   :make-suite
    :defsuite
    :ensure-suite
    :assure-suite
@@ -219,3 +221,11 @@
    :test-name
    :tests
    :should-fail-tests))
+
+(defpackage :macs.ffi
+  (:use :cl :sb-alien :macs.str :macs.sym :macs.fu)
+  (:export
+   :defbytes
+   :u2 :u4 :u8 :u16 :u32 :u64 :u128
+   :i4 :i8 :i16 :i32 :i64 :i128
+   :f16 :f32 :f64 :f128))

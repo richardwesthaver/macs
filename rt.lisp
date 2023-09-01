@@ -16,14 +16,10 @@ compiler optimizations.")
 (defvar *test-debug* nil "When non-nil, enable debug-mode for tests defined with `deftest'. The
 value is actually treated as a stream-designator - so you can point
 the debug output wherever you want.")
-(defvar *test-debug-timestamp* t "If non-nil, print a timestamp with debug output. Has no effect when
+(defparameter *test-debug-timestamp* t "If non-nil, print a timestamp with debug output. Has no effect when
 `*debug-tests*' is nil. The value may be a function in which case it
 is used as the function value of `test-debug-timestamp-source'.")
 (defvar *testing* nil "Testing state var.")
-
-(deftype test-suite-designator ()
-  "Either a symbol or a `test-suite' object."
-  '(or test-suite symbol boolean))
     
 (declaim (inline test-debug-timestamp-source))
 (defun test-debug-timestamp-source ()
@@ -33,11 +29,11 @@ is used as the function value of `test-debug-timestamp-source'.")
 (defmacro dbg! (&rest args)
   (with-gensyms (dbg)
     `(when-let ((,dbg *test-debug*))
-       (format ,dbg "~%:DBG")
-       (if ,*test-debug-timestamp*
-	   (format ,dbg " @ ~a :: " (test-debug-timestamp-source)))
+       (format ,dbg ":DBG")
+       (if *test-debug-timestamp*
+	   (format ,dbg " @ ~a ::~t" (test-debug-timestamp-source)))
        ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
-       (map nil (lambda (x) (format *test-debug* "~x~%" x)) ,@args))))
+       (map nil (lambda (x) (format ,dbg "~s " x)) ',args))))
 
 (defun make-test (&rest slots)
   (apply #'make-instance 'test slots))
@@ -97,28 +93,21 @@ is used as the function value of `test-debug-timestamp-source'.")
 
 ;; NOTE 2023-09-01: `pushnew' does not return an indication of whether
 ;; place is changed - it returns place. This is functionally sound but
-;; means that if we want to take some sort of alternative code-path in
-;; response to whether the original
+;; means that if we want to do something else in the event that place
+;; is unchanged, we run into some friction, 
 ;; https://stackoverflow.com/questions/56228832/adapting-common-lisp-pushnew-to-return-success-failure
-
-(defun pushnew% (item place &key (test #'eql) (key nil))
-  (unless (eq item (car place))
-    (pushnew item place :test test)
-    (when (eq item (car place))
-      (dbg! (format t "redefining object: ~A" item)))))
-
 (defun spush (item lst &key (test #'eql))
-  "Substituting `push'."
+  "Substituting `push'"
   (cond
     ((null lst) (push item lst))
-    ((listp lst)
+    ((list lst)
      (if-let ((found (member item lst
 			     :test test)))
        (progn
 	 (rplaca found item)
 	 lst)
        (push item lst)))
-    (t (setf lst (cons item lst)))))
+    (t (cons item lst))))
 
 ;; FIX 2023-08-31: spush, replace with `add-test' method.
 (defmacro deftest (name &body body)
@@ -136,21 +125,24 @@ is used as the function value of `test-debug-timestamp-source'.")
     ((string) (symb (string-upcase a)))
     (t (symb a))))
 
-(defun suite-name= (a b)
-  "Return t if A and B are similar `test-suite-designator's."
-  (let ((a (normalize-test-name a))
-	(b (normalize-test-name b)))
-    (equal a b)))
-
-(defun check-suite-designator (name) (check-type name test-suite-designator))
-
-(defmacro defsuite (name &key opts)
+(eval-when (:compile-toplevel :execute :load-toplevel)
+  (defun suite-name= (a b)
+    "Return t if A and B are similar `test-suite-designator's."
+    (let ((a (normalize-test-name a))
+	  (b (normalize-test-name b)))
+      (equal a b)))
+  (deftype test-suite-designator ()
+    "Either a symbol or a `test-suite' object."
+    '(or test-suite symbol boolean))
+  (defun check-suite-designator (suite) (check-type suite test-suite-designator))
+  (defmacro defsuite (suite-name &key opts)
   "Define a `test-suite' with provided OPTS. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
-  (check-suite-designator name)
-  `(let ((obj (make-suite :name ',name ,@opts)))
+  (check-suite-designator suite-name)
+  `(let ((obj (make-suite :name ',suite-name ,@opts)))
      (setf *test-suite-list* (spush obj *test-suite-list* :test #'suite-name=))
-     obj))
+     obj)))
+
 
 (declaim (inline assert-suite ensure-suite))
 (defun ensure-suite (name)
@@ -181,11 +173,6 @@ NAME. Return the `test-suite'."
   ((name :initarg :name :initform (required-argument) :type string :accessor test-name))
   (:documentation "Super class for all test-related objects."))
 
-(defmethod initialize-instance :after ((self test-object) &key)
-  ;; - partial-eval of test environment
-  ;; - trigger per-test debugging features
-  (dbg! (print-object self nil)))
-
   ;; HACK 2023-08-31: inherit sxp?
 (defclass test (test-object)
   ((function-symbol :type symbol :accessor test-function-symbol)
@@ -195,12 +182,14 @@ NAME. Return the `test-suite'."
   (:documentation "Test class typically made with `deftest'."))
 
 (declaim (inline make-test-function))
+
 (defun make-test-function (sym)
   (symb sym (string-upcase *test-suffix*)))
 
-(defmethod initialize-instance :after ((self test) &key)
-  ;; - generate `:function-symbol' slot-value (prepend `*test-suffix*')
-  (setf (test-function-symbol self) (make-test-function (test-name self))))
+(defmethod initialize-instance ((self test) &key keys)
+  (dbg! "building test" self keys)
+  (setf (test-function-symbol self) (make-test-function (get keys :name)))
+  (call-next-method))
 
 (defmethod eval-test ((self test) &rest opts)
   (eval `(progn ,@(test-form self))))

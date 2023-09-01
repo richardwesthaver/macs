@@ -19,4 +19,6 @@
 	       (:file "fu")
 	       (:file "ana")
 	       (:file "pan")
-	       (:file "cli")))
+	       (:file "cli")
+	       (:file "rt")
+	       (:file "ffi")))
