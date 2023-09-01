@@ -98,7 +98,10 @@ is used as the function value of `test-debug-timestamp-source'.")
 (defmacro deftest (name &body body)
   "Build a test. BODY is wrapped in `with-test-env' and passed to
 `make-test' which returns a value based on the dynamic environment."
-  `(make-test :name ',name :form ',body))
+  `(progn
+     (make-test :name ',name :form ',body)
+     ;;     (setf (tests *test-suite*)
+     ))
 
 (defun normalize-test-name (a)
   "Return the normalized `test-suite-designator' of A."
@@ -113,31 +116,37 @@ is used as the function value of `test-debug-timestamp-source'.")
 	(b (normalize-test-name b)))
     (equal a b)))
 
+(defmacro pushnew-else (item lst (&key test key) &body else)
+  "Lazy Destructive (Non-consing) version of pushnew."
+  `(if-let ((found (member ,item ,lst
+			  ,@(when test `(:test ,test))
+			  ,@(when key `(:key ,key)))))
+     (setf (car found) ,item)
+     (progn
+       (push ,item ,lst)
+       ,@else)))
+
+(defun check-suite-designator (name) (check-type name test-suite-designator))
+
 (defmacro defsuite (name &key opts)
   "Define a `test-suite' with provided OPTS. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
-     (check-type `,name test-suite-designator)
+  (check-suite-designator `,name)
   `(let ((obj (make-suite :name ',name ,@opts)))
-     (if-let ((tail (member-if (lambda (x) (suite-name= ',name x)) *test-suite-list*)))
-       (progn
-	 (format t "redefining test-suite: ~A" ',name)
-	 (if (consp tail)
-	     (setf (car tail) obj)
-	     (setf tail obj)))
-       (push obj *test-suite-list*))))
+     (pushnew-else obj *test-suite-list* (:test #'suite-name=)
+       obj)))
 
 (declaim (inline assert-suite ensure-suite))
 (defun ensure-suite (name)
   (member name *test-suite-list* :test #'suite-name=))
 (defun assert-suite (name)
-  (check-type name test-suite-designator)
+  (check-suite-designator name)
   (assert (ensure-suite name)))
 
 (defmacro in-suite (name)
   "Set `*test-suite*' to the `test-suite' referred to by symbol
 NAME. Return the `test-suite'."
-  
-  (assert-suite name)
+    (assert-suite name)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (setf *test-suite* ',name)))
 
