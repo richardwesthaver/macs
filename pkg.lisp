@@ -154,50 +154,6 @@
    :cli-cmd
    :parse-cli-args
    :parse-args))
-(defpackage :macs.rt
-  (:use :cl :macs.sym :macs.cond :macs.readtables :macs.fu)
-  (:export
-   :*test-debug*
-   :*test-debug-timestamp*
-   :*compile-tests*
-   :*catch-test-errors*
-   :*test-suffix*
-   :*test-suite*
-   :*test-suite-list*
-   :test-suites
-   :*testing*
-   :test-suite-designator
-   :check-suite-designator
-   :test-debug-timestamp-source
-   :dbg!
-   :make-test
-   :with-test
-   :do-test
-   :do-tests
-   :continue-testing
-   :with-test-env
-   :deftest
-   :suite-name-eq
-   :suite-name=
-   :make-suite
-   :defsuite
-   :ensure-suite
-   :assure-suite
-   :in-suite
-   :eval-test
-   :compile-test
-   :pending-tests
-   :add-test
-   :delete-test
-   :find-test
-   :do-suite
-   :test-object
-   :test
-   :test-fixture
-   :test-suite
-   :test-name
-   :tests
-   :should-fail-tests))
 
 (defpackage :macs.ffi
   (:use :cl :sb-alien :macs.str :macs.sym :macs.fu)

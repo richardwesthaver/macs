@@ -3,6 +3,53 @@
 ;; code which currently resides at sbcl/contrib/sb-rt.
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require 'sb-rt))
+
+(defpackage :macs.rt
+  (:use :cl :macs.sym :macs.cond :macs.readtables :macs.fu)
+  (:export
+   :*test-debug*
+   :*test-debug-timestamp*
+   :*compile-tests*
+   :*catch-test-errors*
+   :*test-suffix*
+   :*test-suite*
+   :*test-suite-list*
+   :test-suites
+   :*testing*
+   :test-suite-designator
+   :check-suite-designator
+   :test-debug-timestamp-source
+   :dbg!
+   :make-test
+   :with-test
+   :do-test
+   :do-tests
+   :continue-testing
+   :with-test-env
+   :deftest
+   :suite-name-eq
+   :suite-name=
+   :make-suite
+   :defsuite
+   :ensure-suite
+   :assure-suite
+   :in-suite
+   :eval-test
+   :compile-test
+   :pending-tests
+   :push-test
+   :pop-test
+   :delete-test
+   :find-test
+   :do-suite
+   :test-object
+   :test
+   :test-fixture
+   :test-suite
+   :test-name
+   :tests
+   :should-fail-tests))
+
 (in-package :macs.rt)
 (in-readtable *macs-readtable*)
 (defvar *compile-tests* nil
@@ -73,10 +120,9 @@ is used as the function value of `test-debug-timestamp-source'.")
 
 (defun do-tests (&optional (s *standard-output*))
   (if (streamp s)
-      (with-open-stream (stream s)
-	(do-suite *test-suite*))
+      (do-suite *test-suite* s)
       (with-open-file (stream s :direction :output)
-	(do-suite *test-suite*))))
+	(do-suite *test-suite* stream))))
 
 (defun continue-testing ()
   (if-let ((test *testing*))
@@ -115,7 +161,7 @@ is used as the function value of `test-debug-timestamp-source'.")
 `make-test' which returns a value based on the dynamic environment."
   `(let ((obj (make-test :name ',name :form ',body))
 	 (ts (tests (ensure-suite *test-suite*))))
-     (spush obj ts)
+     (setf (tests (ensure-suite *test-suite*)) (spush obj ts))
      obj))
 
 (defun normalize-test-name (a)
@@ -125,19 +171,20 @@ is used as the function value of `test-debug-timestamp-source'.")
     ((string) (symb (string-upcase a)))
     (t (symb a))))
 
-(eval-when (:compile-toplevel :execute :load-toplevel)
-  (defun suite-name= (a b)
-    "Return t if A and B are similar `test-suite-designator's."
-    (let ((a (normalize-test-name a))
-	  (b (normalize-test-name b)))
-      (equal a b)))
-  (defmacro defsuite (suite-name &key opts)
+(defun suite-name= (a b)
+  "Return t if A and B are similar `test-suite-designator's."
+  (let ((a (normalize-test-name a))
+	(b (normalize-test-name b)))
+    (equal a b)))
+
+(defmacro defsuite (suite-name &key opts)
   "Define a `test-suite' with provided OPTS. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
-  `(let ((obj (make-suite :name ',suite-name ,@opts)))
-     (check-suite-designator ',suite-name)
-     (setf *test-suite-list* (spush obj *test-suite-list* :test #'suite-name=))
-     obj)))
+  (check-type suite-name symbol)
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (let ((obj (make-suite :name ',suite-name ,@opts)))
+       (setf *test-suite-list* (spush obj *test-suite-list* :test #'suite-name=))
+       obj)))
 
 (declaim (inline assert-suite ensure-suite))
 (defun ensure-suite (name)
@@ -162,10 +209,11 @@ NAME. Return the `test-suite'."
 (defgeneric eval-test (self &rest opts))
 (defgeneric compile-test (self &rest opts))
 (defgeneric pending-tests (self))
-(defgeneric add-test (self))
+(defgeneric push-test (self place))
+(defgeneric pop-test (self))
 (defgeneric delete-test (self))
 (defgeneric find-test (self))
-(defgeneric do-suite (self &rest opts))
+(defgeneric do-suite (self stream &rest opts))
 
 (defclass test-object ()
   ((name :initarg :name :initform (required-argument) :type string :accessor test-name))
@@ -214,20 +262,19 @@ NAME. Return the `test-suite'."
   '(or test-suite symbol boolean))
 
 (defmethod pending-tests ((self test-suite))
-  (do ((l (cdr (tests self)) (cdr l))
+  (do ((l (tests self) (cdr l))
        (r nil))
       ((null l) (nreverse r))
     (when (test-lock (car l))
       (push (test-name (car l)) r))))
 
-(defmethod do-suite ((self test-suite) &rest opts)
-  (format t "testing ~A / ~A.~%"
-	  (count t (cdr (tests self))
-		 :key #'test-lock)
-	  (length (cdr (tests self))))
-  (dolist (i (cdr (tests self)))
+(defmethod do-suite ((self test-suite) stream &rest opts)
+  (format stream "running ~A tests.~%"
+	  (count t (tests self)
+		 :key #'test-lock))
+  (dolist (i (tests self))
     (when (test-lock i)
-      (format t "~@[~<~%~:; ~:@(~S~)~>~]"
+      (format stream "~@[~<~%~:; ~:@(~S~)~>~]"
 	      (do-test i t))))
   (let ((pending (pending-tests self))
 	(expected (make-hash-table :test #'equal)))
@@ -238,9 +285,9 @@ NAME. Return the `test-suite'."
 		  unless (gethash p expected)
 		    collect p)))
       (if (null pending)
-	  (format t "~&No tests failed.")
+	  (format stream "~&No tests failed.")
 	  (progn
-	    (format t "~&~A out of ~A ~
+	    (format stream "~&~A out of ~A ~
                    total tests failed: ~
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."
@@ -248,9 +295,9 @@ NAME. Return the `test-suite'."
                   (length (cdr (tests self)))
                   pending)
 	    (if (null fails)
-		(format t "~&No unexpected failures.")
+		(format stream "~&No unexpected failures.")
 		(when (should-fail-tests self)
-		  (format t "~&~A unexpected failures: ~
+		  (format stream "~&~A unexpected failures: ~
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."
 			  (length fails)
