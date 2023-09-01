@@ -12,7 +12,6 @@ compiler optimizations.")
 (defvar *catch-test-errors* t "When non-nil, cause errors in a test to be caught.")
 (defvar *test-suffix* "-test" "A suffix to append to every `test' defined with `deftest'.")
 (defvar *test-suite-list* nil "List of available `test-suite' objects.")
-(defvar *default-suite* (defsuite default))
 (defvar *test-suite* nil "A 'test-suite-designator' which identifies the current `test-suite'.")
 (defvar *test-debug* nil "When non-nil, enable debug-mode for tests defined with `deftest'. The
 value is actually treated as a stream-designator - so you can point
@@ -96,28 +95,39 @@ is used as the function value of `test-debug-timestamp-source'.")
       `(lambda () ,@body)
     (in-readtable nil)))
 
-(defun npushnew (item lst &key (test #'eql) (key nil))
-  "Destructive (Non-consing) version of pushnew."
-  (if (null lst)
-      (progn
-	(push item lst)
-	item)
-      (if-let ((found (member item lst
-			      :test test
-			      :key key)))
-	   (setf (car found) item)
-	   (progn
-	     (push item lst)
-	     item))))
+;; NOTE 2023-09-01: `pushnew' does not return an indication of whether
+;; place is changed - it returns place. This is functionally sound but
+;; means that if we want to take some sort of alternative code-path in
+;; response to whether the original
+;; https://stackoverflow.com/questions/56228832/adapting-common-lisp-pushnew-to-return-success-failure
 
-;; FIX 2023-08-31: npushnew, replace with `add-test' method.
+(defun pushnew% (item place &key (test #'eql) (key nil))
+  (unless (eq item (car place))
+    (pushnew item place :test test)
+    (when (eq item (car place))
+      (dbg! (format t "redefining object: ~A" item)))))
+
+(defun spush (item lst &key (test #'eql))
+  "Substituting `push'."
+  (cond
+    ((null lst) (push item lst))
+    ((listp lst)
+     (if-let ((found (member item lst
+			     :test test)))
+       (progn
+	 (rplaca found item)
+	 lst)
+       (push item lst)))
+    (t (setf lst (cons item lst)))))
+
+;; FIX 2023-08-31: spush, replace with `add-test' method.
 (defmacro deftest (name &body body)
   "Build a test. BODY is wrapped in `with-test-env' and passed to
 `make-test' which returns a value based on the dynamic environment."
-  `(progn
-     (let ((obj (make-test :name ',name :form ',body))
-	   (ts (tests (ensure-suite *test-suite*))))
-       (npushnew obj ts))))
+  `(let ((obj (make-test :name ',name :form ',body))
+	 (ts (tests (ensure-suite *test-suite*))))
+     (spush obj ts)
+     obj))
 
 (defun normalize-test-name (a)
   "Return the normalized `test-suite-designator' of A."
@@ -137,9 +147,10 @@ is used as the function value of `test-debug-timestamp-source'.")
 (defmacro defsuite (name &key opts)
   "Define a `test-suite' with provided OPTS. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
-  (check-suite-designator `,name)
+  (check-suite-designator name)
   `(let ((obj (make-suite :name ',name ,@opts)))
-     (npushnew obj *test-suite-list*)))
+     (setf *test-suite-list* (spush obj *test-suite-list* :test #'suite-name=))
+     obj))
 
 (declaim (inline assert-suite ensure-suite))
 (defun ensure-suite (name)
@@ -156,7 +167,7 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API."
 NAME. Return the `test-suite'."
     (assert-suite name)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (setf *test-suite* ',name)))
+     (setf *test-suite* (ensure-suite ',name))))
 
 (defgeneric eval-test (self &rest opts))
 (defgeneric compile-test (self &rest opts))
@@ -173,8 +184,7 @@ NAME. Return the `test-suite'."
 (defmethod initialize-instance :after ((self test-object) &key)
   ;; - partial-eval of test environment
   ;; - trigger per-test debugging features
-  (dbg! (print-object self nil))
-  (call-next-method))
+  (dbg! (print-object self nil)))
 
   ;; HACK 2023-08-31: inherit sxp?
 (defclass test (test-object)
@@ -188,7 +198,7 @@ NAME. Return the `test-suite'."
 (defun make-test-function (sym)
   (symb sym (string-upcase *test-suffix*)))
 
-(defmethod initialize-instance :after ((self test-object) &key)
+(defmethod initialize-instance :after ((self test) &key)
   ;; - generate `:function-symbol' slot-value (prepend `*test-suffix*')
   (setf (test-function-symbol self) (make-test-function (test-name self))))
 
@@ -211,6 +221,8 @@ NAME. Return the `test-suite'."
   ((tests :initarg :set :initform nil :type list :accessor tests)
    (should-fail :initarg :should-fail :initform nil :type list :accessor should-fail-tests))
   (:documentation "A class for collections of related `test' objects."))
+
+(defvar *default-suite* (defsuite default))
 
 (defmethod pending-tests ((self test-suite))
   (do ((l (cdr (tests self)) (cdr l))
