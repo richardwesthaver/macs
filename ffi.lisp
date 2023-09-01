@@ -19,11 +19,11 @@ member of CDR."
 		 (mapc
 		  (lambda (x)
 		    `(deftype ,(symbolicate pfx (format 'nil "~a" x)) ()
-		       (list ,(symbolicate ty '-byte) ,x)))
+		       (cons ,ty ,x)))
 		       nums))
 	   (cons ty r))))
 
 (defbytes
-  (unsigned 1 2 4 8 16 24 32 64 128)
-  (signed 2 4 8 16 32 64 128)
-  (float 16 32 64 128))
+  (unsigned-byte 1 2 3 4 8 16 24 32 64 128)
+  (signed-byte 2 3 4 8 16 24 32 64 128)
+  (float 16 24 32 64 128))
