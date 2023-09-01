@@ -131,19 +131,13 @@ is used as the function value of `test-debug-timestamp-source'.")
     (let ((a (normalize-test-name a))
 	  (b (normalize-test-name b)))
       (equal a b)))
-  (deftype test-suite-designator ()
-    "Either a symbol or a `test-suite' object."
-    '(or test-suite symbol boolean))
-  (defun check-suite-designator (suite) (check-type suite test-suite-designator))
   (defmacro defsuite (suite-name &key opts)
   "Define a `test-suite' with provided OPTS. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
-  (check-suite-designator suite-name)
   `(let ((obj (make-suite :name ',suite-name ,@opts)))
+     (check-suite-designator ',suite-name)
      (setf *test-suite-list* (spush obj *test-suite-list* :test #'suite-name=))
-     obj))
-
-  (defvar *default-suite* (defsuite default)))
+     obj)))
 
 (declaim (inline assert-suite ensure-suite))
 (defun ensure-suite (name)
@@ -151,9 +145,12 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API."
     (car ok)
     (when (or (eq name t) (null name)) *default-suite*)))
 
+(defun check-suite-designator (suite) (check-type suite test-suite-designator))
+
 (defun assert-suite (name)
   (check-suite-designator name)
   (assert (ensure-suite name)))
+
 
 (defmacro in-suite (name)
   "Set `*test-suite*' to the `test-suite' referred to by symbol
@@ -212,6 +209,10 @@ NAME. Return the `test-suite'."
    (should-fail :initarg :should-fail :initform nil :type list :accessor should-fail-tests))
   (:documentation "A class for collections of related `test' objects."))
 
+(deftype test-suite-designator ()
+  "Either a symbol or a `test-suite' object."
+  '(or test-suite symbol boolean))
+
 (defmethod pending-tests ((self test-suite))
   (do ((l (cdr (tests self)) (cdr l))
        (r nil))
@@ -256,3 +257,5 @@ NAME. Return the `test-suite'."
 			  fails)))))
       (finish-output t)
       (values (null fails) (null pending) pending))))
+
+(defvar *default-suite* (defsuite default))
