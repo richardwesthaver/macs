@@ -171,18 +171,26 @@ NAME. Return the `test-suite'."
   (:documentation "Super class for all test-related objects."))
 
 (defmethod initialize-instance :after ((self test-object) &key)
-  ;; - generate `:function-name' slot-value (prepend `*test-suffix*')
   ;; - partial-eval of test environment
   ;; - trigger per-test debugging features
-  (dbg! (print-object self nil)))
+  (dbg! (print-object self nil))
+  (call-next-method))
 
   ;; HACK 2023-08-31: inherit sxp?
 (defclass test (test-object)
-  ((function-name :type symbol)
-   (args)
+  ((function-symbol :type symbol :accessor test-function-symbol)
+   (args :type list :accessor test-args :initform nil :initarg :args)
    (form :initarg :form :initform nil :type function-lambda-expression :accessor test-form)
    (lock :initform nil :initarg :lock :type boolean :accessor test-lock))
   (:documentation "Test class typically made with `deftest'."))
+
+(declaim (inline make-test-function))
+(defun make-test-function (sym)
+  (symb sym (string-upcase *test-suffix*)))
+
+(defmethod initialize-instance :after ((self test-object) &key)
+  ;; - generate `:function-symbol' slot-value (prepend `*test-suffix*')
+  (setf (test-function-symbol self) (make-test-function (test-name self))))
 
 (defmethod eval-test ((self test) &rest opts)
   (eval `(progn ,@(test-form self))))
