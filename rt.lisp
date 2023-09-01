@@ -23,7 +23,7 @@ is used as the function value of `test-debug-timestamp-source'.")
 
 (deftype test-suite-designator ()
   "Either a symbol or a `test-suite' object."
-  '(or test-suite symbol))
+  '(or test-suite symbol boolean))
     
 (declaim (inline test-debug-timestamp-source))
 (defun test-debug-timestamp-source ()
@@ -54,6 +54,7 @@ is used as the function value of `test-debug-timestamp-source'.")
     (let* ((*testing* (test-name test))
 	   (bail nil)
 	   r)
+      (declare (ignorable bail))
       (block bail
 	(setf r
 	      (flet ((%do
@@ -97,32 +98,46 @@ is used as the function value of `test-debug-timestamp-source'.")
 (defmacro deftest (name &body body)
   "Build a test. BODY is wrapped in `with-test-env' and passed to
 `make-test' which returns a value based on the dynamic environment."
-  `(make-test :name ,name))
+  `(make-test :name ',name :form ',body))
 
-(defun suite-name-eq (a b)
-  "Return t if `test-suite' objects A and B have the same name"
-  (eq (test-name a) (test-name b)))
+(defun normalize-test-name (a)
+  "Return the normalized `test-suite-designator' of A."
+  (etypecase a
+    (test-suite (test-name a))
+    ((string) (symb (string-upcase a)))
+    (t (symb a))))
 
-(defun suite-name= (a sym)
-  "Return t if `test-suite' object A has the name SYM."
-  (eq (test-name a) sym))
+(defun suite-name= (a b)
+  "Return t if A and B are similar `test-suite-designator's."
+  (let ((a (normalize-test-name a))
+	(b (normalize-test-name b)))
+    (equal a b)))
 
 (defmacro defsuite (name &key opts)
   "Define a `test-suite' with provided OPTS. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
+     (check-type `,name test-suite-designator)
   `(let ((obj (make-suite :name ',name ,@opts)))
-     (if-let ((tail (member-if (lambda (x) (suite-name= x ',name)) *test-suite-list*)))
+     (if-let ((tail (member-if (lambda (x) (suite-name= ',name x)) *test-suite-list*)))
        (progn
-	 (format t "~%redefining test-suite: ~A" ',name)
+	 (format t "redefining test-suite: ~A" ',name)
 	 (if (consp tail)
 	     (setf (car tail) obj)
 	     (setf tail obj)))
        (push obj *test-suite-list*))))
 
+(declaim (inline assert-suite ensure-suite))
+(defun ensure-suite (name)
+  (member name *test-suite-list* :test #'suite-name=))
+(defun assert-suite (name)
+  (check-type name test-suite-designator)
+  (assert (ensure-suite name)))
+
 (defmacro in-suite (name)
   "Set `*test-suite*' to the `test-suite' referred to by symbol
 NAME. Return the `test-suite'."
-  (check-type name test-suite-designator)
+  
+  (assert-suite name)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (setf *test-suite* ',name)))
 
@@ -148,12 +163,19 @@ NAME. Return the `test-suite'."
 (defclass test (test-object)
   ((function-name :type symbol)
    (args)
-   (form :initform nil :type function-lambda-expression)
+   (form :initarg :form :initform nil :type function-lambda-expression :accessor test-form)
    (lock :initform nil :initarg :lock :type boolean :accessor test-lock))
   (:documentation "Test class typically made with `deftest'."))
 
-(defmethod eval-test ((self test) &rest opts))
-(defmethod compile-test ((self test) &rest opts))
+(defmethod eval-test ((self test) &rest opts)
+  (eval `(progn ,@(test-form self))))
+
+(defmethod compile-test ((self test) &rest opts)
+  (compile
+   nil
+   `(lambda ()
+      (declare (optimize ,@opts))
+      ,@(test-form self))))
 
 (defclass test-fixture (test-object)
   ()
@@ -166,7 +188,7 @@ NAME. Return the `test-suite'."
   (:documentation "A class for collections of related `test' objects."))
 
 (defmethod pending-tests ((self test-suite))
-  (do ((l (cdr (test-set self)) (cdr l))
+  (do ((l (cdr (tests self)) (cdr l))
        (r nil))
       ((null l) (nreverse r))
     (when (test-lock (car l))
@@ -174,10 +196,10 @@ NAME. Return the `test-suite'."
 
 (defmethod do-suite ((self test-suite) &rest opts)
   (format t "testing ~A / ~A.~%"
-	  (count t (cdr (test-set self))
+	  (count t (cdr (tests self))
 		 :key #'test-lock)
-	  (length (cdr (test-set self))))
-  (dolist (i (cdr (test-set self)))
+	  (length (cdr (tests self))))
+  (dolist (i (cdr (tests self)))
     (when (test-lock i)
       (format t "~@[~<~%~:; ~:@(~S~)~>~]"
 	      (do-test i t))))

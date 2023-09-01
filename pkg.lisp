@@ -202,6 +202,8 @@
    :suite-name-eq
    :suite-name=
    :defsuite
+   :ensure-suite
+   :assure-suite
    :in-suite
    :eval-test
    :compile-test
