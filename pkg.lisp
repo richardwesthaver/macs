@@ -49,29 +49,6 @@
    #:invalid-argument-reason
    #:invalid-argument-p
    #:unwind-protect-case))
-(defpackage :macs.readtables
-  (:use :cl)
-  (:export
-   #:defreadtable
-   #:in-readtable
-   #:make-readtable
-   #:merge-readtables-into
-   #:find-readtable
-   #:ensure-readtable
-   #:rename-readtable
-   #:readtable-name
-   #:register-readtable
-   #:unregister-readtable
-   #:copy-named-readtable
-   #:list-all-named-readtables
-   ;; Types
-   #:named-readtable-designator
-   ;; Conditions
-   #:readtable-error
-   #:reader-macro-conflict
-   #:readtable-does-already-exist
-   #:readtable-does-not-exist
-   #:parse-body))
 (defpackage :macs.fu
   (:use :cl :macs.readtables :macs.sym :macs.list :macs.cond)
   (:export

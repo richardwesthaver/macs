@@ -141,8 +141,9 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API."
   (check-suite-designator suite-name)
   `(let ((obj (make-suite :name ',suite-name ,@opts)))
      (setf *test-suite-list* (spush obj *test-suite-list* :test #'suite-name=))
-     obj)))
+     obj))
 
+  (defvar *default-suite* (defsuite default)))
 
 (declaim (inline assert-suite ensure-suite))
 (defun ensure-suite (name)
@@ -210,8 +211,6 @@ NAME. Return the `test-suite'."
   ((tests :initarg :set :initform nil :type list :accessor tests)
    (should-fail :initarg :should-fail :initform nil :type list :accessor should-fail-tests))
   (:documentation "A class for collections of related `test' objects."))
-
-(defvar *default-suite* (defsuite default))
 
 (defmethod pending-tests ((self test-suite))
   (do ((l (cdr (tests self)) (cdr l))

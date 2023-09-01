@@ -10,6 +10,30 @@
 ;; definition before enabling the readtable may cause divergent
 ;; behavior (using standard) versus your source code (custom).
 
+(defpackage :macs.readtables
+  (:use :cl)
+  (:export
+   #:defreadtable
+   #:in-readtable
+   #:make-readtable
+   #:merge-readtables-into
+   #:find-readtable
+   #:ensure-readtable
+   #:rename-readtable
+   #:readtable-name
+   #:register-readtable
+   #:unregister-readtable
+   #:copy-named-readtable
+   #:list-all-named-readtables
+   ;; Types
+   #:named-readtable-designator
+   ;; Conditions
+   #:readtable-error
+   #:reader-macro-conflict
+   #:readtable-does-already-exist
+   #:readtable-does-not-exist
+   #:parse-body))
+
 (in-package :macs.readtables)
 (pushnew :macs.readtables *features*)
 
