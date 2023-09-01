@@ -12,6 +12,7 @@ compiler optimizations.")
 (defvar *catch-test-errors* t "When non-nil, cause errors in a test to be caught.")
 (defvar *test-suffix* "-test" "A suffix to append to every `test' defined with `deftest'.")
 (defvar *test-suite-list* nil "List of available `test-suite' objects.")
+(defvar *default-suite* (defsuite default))
 (defvar *test-suite* nil "A 'test-suite-designator' which identifies the current `test-suite'.")
 (defvar *test-debug* nil "When non-nil, enable debug-mode for tests defined with `deftest'. The
 value is actually treated as a stream-designator - so you can point
@@ -95,13 +96,28 @@ is used as the function value of `test-debug-timestamp-source'.")
       `(lambda () ,@body)
     (in-readtable nil)))
 
+(defun npushnew (item lst &key (test #'eql) (key nil))
+  "Destructive (Non-consing) version of pushnew."
+  (if (null lst)
+      (progn
+	(push item lst)
+	item)
+      (if-let ((found (member item lst
+			      :test test
+			      :key key)))
+	   (setf (car found) item)
+	   (progn
+	     (push item lst)
+	     item))))
+
+;; FIX 2023-08-31: npushnew, replace with `add-test' method.
 (defmacro deftest (name &body body)
   "Build a test. BODY is wrapped in `with-test-env' and passed to
 `make-test' which returns a value based on the dynamic environment."
   `(progn
-     (make-test :name ',name :form ',body)
-     ;;     (setf (tests *test-suite*)
-     ))
+     (let ((obj (make-test :name ',name :form ',body))
+	   (ts (tests (ensure-suite *test-suite*))))
+       (npushnew obj ts))))
 
 (defun normalize-test-name (a)
   "Return the normalized `test-suite-designator' of A."
@@ -116,16 +132,6 @@ is used as the function value of `test-debug-timestamp-source'.")
 	(b (normalize-test-name b)))
     (equal a b)))
 
-(defmacro pushnew-else (item lst (&key test key) &body else)
-  "Lazy Destructive (Non-consing) version of pushnew."
-  `(if-let ((found (member ,item ,lst
-			  ,@(when test `(:test ,test))
-			  ,@(when key `(:key ,key)))))
-     (setf (car found) ,item)
-     (progn
-       (push ,item ,lst)
-       ,@else)))
-
 (defun check-suite-designator (name) (check-type name test-suite-designator))
 
 (defmacro defsuite (name &key opts)
@@ -133,12 +139,14 @@ is used as the function value of `test-debug-timestamp-source'.")
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
   (check-suite-designator `,name)
   `(let ((obj (make-suite :name ',name ,@opts)))
-     (pushnew-else obj *test-suite-list* (:test #'suite-name=)
-       obj)))
+     (npushnew obj *test-suite-list*)))
 
 (declaim (inline assert-suite ensure-suite))
 (defun ensure-suite (name)
-  (member name *test-suite-list* :test #'suite-name=))
+  (if-let ((ok (member name *test-suite-list* :test #'suite-name=)))
+    (car ok)
+    (when (or (eq name t) (null name)) *default-suite*)))
+
 (defun assert-suite (name)
   (check-suite-designator name)
   (assert (ensure-suite name)))
