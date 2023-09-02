@@ -48,7 +48,7 @@
    :test-suite
    :test-name
    :tests
-   :should-fail-tests))
+   :test-fails))
 
 (in-package :macs.rt)
 (in-readtable *macs-readtable*)
@@ -117,9 +117,7 @@ is used as the function value of `test-debug-timestamp-source'.")
 				    (return-from bail nil))))
 		      (%do))
 		    (%do)))))
-      (setf (test-lock test) (or (null (test-one-shot test)) bail)))))
-
-
+      (setf (test-lock test) (or (null (test-once test)) bail)))))
 
 (defun do-tests (&optional (s *standard-output*))
   (if (streamp s)
@@ -221,14 +219,27 @@ NAME. Return the `test-suite'."
   ((name :initarg :name :initform (required-argument) :type string :accessor test-name))
   (:documentation "Super class for all test-related objects."))
 
-  ;; HACK 2023-08-31: inherit sxp?
+(defmethod print-object ((self test-object) stream)
+  (print-unreadable-object (self stream :type t :identity t)
+    (format stream "~A"
+	    (test-name self))))
+
+;; HACK 2023-08-31: inherit sxp?
 (defclass test (test-object)
   ((function-symbol :type symbol :accessor test-function-symbol)
    (args :type list :accessor test-args :initform nil :initarg :args)
    (form :initarg :form :initform nil :type function-lambda-expression :accessor test-form)
    (lock :initarg :lock :type boolean :accessor test-lock)
-   (one-shot :initarg :one-shot :initform nil :type boolean :accessor test-one-shot))
+   (once :initarg :once :initform nil :type boolean :accessor test-once))
   (:documentation "Test class typically made with `deftest'."))
+
+(defmethod print-object ((self test) stream)
+  (print-unreadable-object (self stream :type t :identity t)
+    (format stream "~A ~A :lock ~A :once ~A"
+	    (test-name self)
+	    (test-form self)
+	    (test-lock self)
+	    (test-once self))))
 
 (declaim (inline make-test-function))
 (defun make-test-function (sym)
@@ -261,8 +272,15 @@ NAME. Return the `test-suite'."
 
 (defclass test-suite (test-object)
   ((tests :initarg :set :initform nil :type list :accessor tests)
-   (should-fail :initarg :should-fail :initform nil :type list :accessor should-fail-tests))
+   (fails :initarg :fails :initform nil :type list :accessor test-fails))
   (:documentation "A class for collections of related `test' objects."))
+
+(defmethod print-object ((self test-suite) stream)
+  (print-unreadable-object (self stream :type t :identity t)
+    (format stream "~A :tests ~A :fails ~A"
+	    (test-name self)
+	    (length (tests self))
+	    (length (test-fails self)))))
 
 (deftype test-suite-designator ()
   "Either a symbol or a `test-suite' object."
@@ -287,7 +305,7 @@ NAME. Return the `test-suite'."
 	      (do-test i t))))
   (let ((pending (pending-tests self))
 	(expected (make-hash-table :test #'equal)))
-    (dolist (ex (should-fail-tests self))
+    (dolist (ex (test-fails self))
       (setf (gethash ex expected) t))
     (let ((fails
 	    (loop for p in pending
@@ -305,7 +323,7 @@ NAME. Return the `test-suite'."
                   pending)
 	    (if (null fails)
 		(format stream "~&No unexpected failures.")
-		(when (should-fail-tests self)
+		(when (test-fails self)
 		  (format stream "~&~A unexpected failures: ~
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."

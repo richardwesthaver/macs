@@ -155,9 +155,10 @@
    :parse-cli-args
    :parse-args))
 
-(defpackage :macs.ffi
-  (:use :cl :sb-alien :macs.str :macs.sym :macs.fu)
+(defpackage :macs.alien
+  (:use :cl :sb-alien :sb-ext :sb-c :macs.str :macs.sym :macs.fu)
   (:export
+   :foreign-int-to-integer :foreign-int-to-bool :bool-to-foreign-int
    :defbytes
    :u1 :u2 :u3 :u4 :u8 :u16 :u24 :u32 :u64 :u128
    :i2 :i3 :i4 :i8 :i16 :i24 :i32 :i64 :i128

@@ -1,5 +1,18 @@
 ;;; macs/ffi.lisp --- FFI utils
-(in-package :macs.ffi)
+(in-package :macs.alien)
+
+(defun foreign-int-to-integer (buffer size)
+  "Check SIZE of int BUFFER. return BUFFER."
+  (assert (= size (sb-alien:alien-size sb-alien:int :bytes)))
+  buffer)
+
+(defun foreign-int-to-bool (x size)
+  (if (zerop (foreign-int-to-integer x size))
+      nil
+      t))
+
+(defun bool-to-foreign-int (val)
+  (if val 1 0))
 
 (defmacro defbytes (&body bitsets)
   "For each cons-cell in BITSETS, define a new CAR-byte type for each

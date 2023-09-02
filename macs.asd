@@ -29,7 +29,7 @@
 	       (:file "ana")
 	       (:file "pan")
 	       (:file "cli")
-	       (:file "ffi")))
+	       (:file "alien")))
 
 (defsystem "macs/rt"
   :version "0.1.0"
