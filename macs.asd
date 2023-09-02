@@ -1,4 +1,4 @@
-;;; macs.asd
+;;; macs.asd --- macros for the macro-programmer -*- mode: lisp; -*-
 (defsystem "macs/readtables"
   :version "0.1.0"
   :author "ellis <ellis@rwest.io>"

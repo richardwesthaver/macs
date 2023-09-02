@@ -14,7 +14,6 @@ you're unsure.
 ** Packages
 *** macs.reexport
 Symbol reexport support. See the [[https://github.com/takagi/cl-reexport/tree/master][cl-reexport repo]].
-
 *** macs.str
 String utilities. Re-exports from =sb-unicode=.
 *** macs.sym
@@ -38,6 +37,8 @@ Pandoric macros.
 *** macs.cli
 This package provides an API for building CLI apps. It is highly
 opinionated and loosely derived from [[https://github.com/dnaeon/clingon][clingon]] and uiop.
+*** macs.rt
+*** macs.ffi
 ** Resources
   - [[https://alexandria.common-lisp.dev/][alexandria]]
   - [[https://edicl.github.io/cl-ppcre/][cl-ppcre]]

@@ -116,7 +116,10 @@ is used as the function value of `test-debug-timestamp-source'.")
 				    (setf r (list c))
 				    (return-from bail nil))))
 		      (%do))
-		    (%do))))))))
+		    (%do)))))
+      (setf (test-lock test) (or (null (test-one-shot test)) bail)))))
+
+
 
 (defun do-tests (&optional (s *standard-output*))
   (if (streamp s)
@@ -127,7 +130,7 @@ is used as the function value of `test-debug-timestamp-source'.")
 (defun continue-testing ()
   (if-let ((test *testing*))
     (throw '*in-test* test)
-    (do-suite *test-suite*)))
+    (do-suite *test-suite* *standard-output*)))
       
 (defmacro with-test-env (env &body body)
   "Generate a test closure from ENV and BODY."
@@ -153,15 +156,14 @@ is used as the function value of `test-debug-timestamp-source'.")
 	 (rplaca found item)
 	 lst)
        (push item lst)))
-    (t (cons item lst))))
+    #|(or nil '(t (cons item lst)))|#))
 
 ;; FIX 2023-08-31: spush, replace with `add-test' method.
 (defmacro deftest (name &body body)
   "Build a test. BODY is wrapped in `with-test-env' and passed to
 `make-test' which returns a value based on the dynamic environment."
-  `(let ((obj (make-test :name ',name :form ',body))
-	 (ts (tests (ensure-suite *test-suite*))))
-     (setf (tests (ensure-suite *test-suite*)) (spush obj ts))
+  `(let ((obj (make-test :name ',name :form ',body)))
+     (setf (tests (ensure-suite *test-suite*)) (spush obj (tests *test-suite*)))
      obj))
 
 (defun normalize-test-name (a)
@@ -224,21 +226,26 @@ NAME. Return the `test-suite'."
   ((function-symbol :type symbol :accessor test-function-symbol)
    (args :type list :accessor test-args :initform nil :initarg :args)
    (form :initarg :form :initform nil :type function-lambda-expression :accessor test-form)
-   (lock :initform nil :initarg :lock :type boolean :accessor test-lock))
+   (lock :initarg :lock :type boolean :accessor test-lock)
+   (one-shot :initarg :one-shot :initform nil :type boolean :accessor test-one-shot))
   (:documentation "Test class typically made with `deftest'."))
 
 (declaim (inline make-test-function))
-
 (defun make-test-function (sym)
   (symb sym (string-upcase *test-suffix*)))
+
+;; TODO 2023-09-01: use sxp?
+(defun validate-form (form)
+  "")
 
 (defmethod initialize-instance ((self test) &key keys)
   (dbg! "building test" self keys)
   (setf (test-function-symbol self) (make-test-function (get keys :name)))
+  (setf (test-lock self) t)
   (call-next-method))
 
 (defmethod eval-test ((self test) &rest opts)
-  (eval `(progn ,@(test-form self))))
+  (eval (read (test-form self))))
 
 (defmethod compile-test ((self test) &rest opts)
   (compile
@@ -268,13 +275,15 @@ NAME. Return the `test-suite'."
     (when (test-lock (car l))
       (push (test-name (car l)) r))))
 
+;; HACK 2023-09-01: find better method of declaring failures from
+;; within the body of `deftest'.
 (defmethod do-suite ((self test-suite) stream &rest opts)
-  (format stream "running ~A tests.~%"
+  (format stream "test [:~A]~%"
 	  (count t (tests self)
 		 :key #'test-lock))
   (dolist (i (tests self))
     (when (test-lock i)
-      (format stream "~@[~<~%~:; ~:@(~S~)~>~]"
+      (format stream "~@[~<~%~:; ~:@(~S~) ~>~]"
 	      (do-test i t))))
   (let ((pending (pending-tests self))
 	(expected (make-hash-table :test #'equal)))
@@ -292,7 +301,7 @@ NAME. Return the `test-suite'."
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."
                   (length pending)
-                  (length (cdr (tests self)))
+                  (length (tests self))
                   pending)
 	    (if (null fails)
 		(format stream "~&No unexpected failures.")
