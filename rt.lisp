@@ -1,9 +1,37 @@
 ;;; rt.lisp --- macs.rt
-;; regression testing library. inspired by PCL and the original CMUCL
-;; code which currently resides at sbcl/contrib/sb-rt.
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (require 'sb-rt))
 
+;; Regression Testing framework. inspired by PCL, the original CMUCL
+;; code, and the SBCL port.
+
+;; - :rt https://www.merl.com/publications/docs/TR91-04.pdf Chapter 1
+;; - :com.gigamonkeys.test https://github.com/gigamonkey/monkeylib-test-framework
+;; - :sb-rt https://github.com/sbcl/sbcl/blob/master/contrib/sb-rt/rt.lisp
+
+;; This package is intended to provide a modernized Lisp testing
+;; library with features found in some of the test frameworks listed
+;; below.
+
+;; - :it.bese.fiveam https://github.com/lispci/fiveam
+;; - :try https://github.com/melisgl/try
+;; - :rove https://github.com/fukamachi/rove
+
+;;; Commentary:
+
+;;; TODO:
+#|
+
+- [ ] with-test
+
+- [ ] with-test-env
+
+- [ ] is (assertions)
+
+- [ ] fixtures
+
+- [ ] sxp formatter
+
+|#
+;;; Code:
 (defpackage :macs.rt
   (:use :cl :macs.sym :macs.cond :macs.readtables :macs.fu)
   (:export
@@ -198,7 +226,6 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API."
   (check-suite-designator name)
   (assert (ensure-suite name)))
 
-
 (defmacro in-suite (name)
   "Set `*test-suite*' to the `test-suite' referred to by symbol
 NAME. Return the `test-suite'."
@@ -206,26 +233,47 @@ NAME. Return the `test-suite'."
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (setf *test-suite* (ensure-suite ',name))))
 
-(defgeneric eval-test (self &rest opts))
-(defgeneric compile-test (self &rest opts))
-(defgeneric pending-tests (self))
-(defgeneric push-test (self place))
-(defgeneric pop-test (self))
-(defgeneric delete-test (self))
-(defgeneric find-test (self))
-(defgeneric do-suite (self stream &rest opts))
+(defgeneric eval-test (self &rest opts)
+  (:documentation "Eval a `test'."))
+
+(defgeneric compile-test (self &rest opts)
+  (:documentation "Compile a `test'."))
+
+(defgeneric pending-tests (self)
+  (:documentation "Return a list of pending tests in `test-suite' object SELF."))
+
+(defgeneric push-test (self place)
+  (:documentation
+   "Push `test' SELF to the value of slot ':tests' in `test-suite' object PLACE."))
+
+(defgeneric pop-test (self)
+  (:documentation
+   "Pop the first `test' from the slot-value of ':tests' in `test-suite' object SELF."))
+
+(defgeneric delete-test (self &rest opts)
+  (:documentation "Delete `test' object specified by `test-object' SELF and OPTS."))
+
+(defgeneric find-test (self &rest opts)
+  (:documentation "Find `test' object specified by `test-object' SELF and OPTS."))
+
+(defgeneric do-suite (self stream &rest opts)
+  (:documentation
+   "Perform actions on `test-suite' object SELF, with output to STREAM, modulo OPTS."))
 
 (defclass test-object ()
   ((name :initarg :name :initform (required-argument) :type string :accessor test-name))
   (:documentation "Super class for all test-related objects."))
 
 (defmethod print-object ((self test-object) stream)
+  "test"
   (print-unreadable-object (self stream :type t :identity t)
     (format stream "~A"
 	    (test-name self))))
 
 ;; HACK 2023-08-31: inherit sxp?
+
 (defclass test (test-object)
+  ;; RESEARCH 2023-09-02: should this be a string?
   ((function-symbol :type symbol :accessor test-function-symbol)
    (args :type list :accessor test-args :initform nil :initarg :args)
    (form :initarg :form :initform nil :type function-lambda-expression :accessor test-form)
@@ -299,21 +347,33 @@ NAME. Return the `test-suite'."
   (format stream "test [:~A]~%"
 	  (count t (tests self)
 		 :key #'test-lock))
+  ;; loop over each test, calling `do-test' if lock=t
   (dolist (i (tests self))
     (when (test-lock i)
-      (format stream "~@[~<~%~:; ~:@(~S~) ~>~]"
-	      (do-test i t))))
+      (format stream "~@[~<~%~:;~:@(~S~) ~>~]"
+	      (do-test i nil))))
+  ;; compare pending vs expected
   (let ((pending (pending-tests self))
+	;; TODO - consider test-fn param
 	(expected (make-hash-table :test #'equal)))
+    ;; TODO - depends on fail infrastructure
     (dolist (ex (test-fails self))
+      ;; t isn't really a useful value to put here..
+      ;; RESEARCH 2023-09-02: hashset
       (setf (gethash ex expected) t))
+    ;; process fails
     (let ((fails
+	    ;; collect if pending test not expected
 	    (loop for p in pending
 		  unless (gethash p expected)
 		    collect p)))
+      ;; if not pending
       (if (null pending)
+	  ;; no pending tests
 	  (format stream "~&No tests failed.")
+	  ;; pending tests
 	  (progn
+	    ;; print fails
 	    (format stream "~&~A out of ~A ~
                    total tests failed: ~
                    ~:@(~{~<~%   ~1:;~S~>~
@@ -321,15 +381,21 @@ NAME. Return the `test-suite'."
                   (length pending)
                   (length (tests self))
                   pending)
+	    ;; if no fails
 	    (if (null fails)
+		;; no fails
 		(format stream "~&No unexpected failures.")
+		;; fails
 		(when (test-fails self)
 		  (format stream "~&~A unexpected failures: ~
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."
 			  (length fails)
 			  fails)))))
-      (finish-output t)
-      (values (null fails) (null pending) pending))))
+      ;; close stream
+      (finish-output stream)
+      ;; return values (PASS FAIL TOTAL)
+      (values (not fails) (not pending) pending))))
 
 (defvar *default-suite* (defsuite default))
+

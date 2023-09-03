@@ -1,4 +1,6 @@
-;;; fu.lisp --- utility functions
+;;; fu.lisp --- Function utilities
+
+;;; Code:
 (in-package :macs.fu)
 
 ;;; From LOL

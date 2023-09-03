@@ -29,17 +29,25 @@
 	       (:file "ana")
 	       (:file "pan")
 	       (:file "cli")
-	       (:file "alien")))
+	       (:file "alien")
+	       (:file "macs")))
 
 (defsystem "macs/rt"
   :version "0.1.0"
   :author "ellis <ellis@rwest.io>"
-  :maintainer "ellis <ellis@rwest.io>"
-  :description "test framework"
+  :description "regression test framework"
   :bug-tracker "https://lab.rwest.io/ellis/macs/issues"
   :source-control (:hg "https://lab.rwest.io/ellis/macs")
   :depends-on (:macs)
   :in-order-to ((test-op (test-op "macs/tests")))
   :components ((:file "rt")))
 
-
+(defsystem "macs/tests"
+  :version "0.1.0"
+  :author "ellis <ellis@rwest.io>"
+  :description "tests for the macros for the macro-programmer"
+  :bug-tracker "https://lab.rwest.io/ellis/macs/issues"
+  :source-control (:hg "https://lab.rwest.io/ellis/macs")
+  :depends-on (:macs/readtables :macs :macs/rt)
+  :components ((:file "tests")))
+  

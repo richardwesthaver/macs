@@ -1,3 +1,6 @@
+;;; list.lisp --- List utils
+
+;;; Code:
 (in-package :macs.list)
 (defun ensure-car (thing)
   "If THING is a CONS, its CAR is returned. Otherwise THING is returned."

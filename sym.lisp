@@ -1,4 +1,8 @@
-;;; sym.lisp --- inspired by alexandria/symbols.lisp
+;;; sym.lisp --- Symbol utils
+
+;; inspired by alexandria/symbols.lisp
+
+;;; Code:
 (in-package :macs.sym)
 
 (declaim (inline ensure-symbol))

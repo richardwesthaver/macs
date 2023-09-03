@@ -1,6 +1,9 @@
 ;;; reexport.lisp --- macs.reexport
-;; this is pulled directly from Masayuki Takagi's `cl-reexport' package:
+
+;; this is pulled directly from Masayuki Takagi's `cl-reexport':
 ;; https://github.com/takagi/cl-reexport/blob/master/src/cl-reexport.lisp
+
+;;; Code:
 (in-package :macs.reexport)
 
 ;;; internal
@@ -40,16 +43,18 @@
                    (exclude-symbols exclude
                      (external-symbols package-from)))))
     (import symbols)
-    (export symbols)))
+    (export symbols)
+    symbols))
 
 ;; TODO 2023-08-27: handle include and exclude keywords
 ;; - also handle package name prefixes 'macs.'.
 (defmacro reexports (&rest pkgs)
   "Reexport external symbols in PKGS from the current package."
-  (loop for p in `,pkgs do
-    (if (consp p)
-	(apply #'reexport-from p)
-	(funcall #'reexport-from p))))
+  `(loop for p in ',pkgs
+	 collect
+	 (if (consp p)
+	     (apply #'reexport-from p)
+	     (funcall #'reexport-from p))))
 	 
 	    
 	    

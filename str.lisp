@@ -1,4 +1,6 @@
 ;;; str.lisp --- String utilities
+
+;;; Code:
 (in-package :macs.str)
 
 (deftype string-designator ()

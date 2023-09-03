@@ -1,13 +1,16 @@
-;; pkg.lisp --- macs packages
-(defparameter *macs-version* "0.1.0")
+;;; pkg.lisp --- macs packages
+(defvar *macs-version* "0.1.0")
+
 (defpackage :macs.reexport
   (:use :cl)
   (:export :reexport-from :reexports))
+
 (defpackage :macs.str
   (:use :cl :uiop)
   (:import-from :macs.reexport :reexports)
   (:export
    #:string-designator))
+
 (defpackage :macs.sym
   (:use :cl :macs.str)
   (:export
@@ -20,12 +23,14 @@
    #:with-gensyms
    #:with-unique-names
    #:symbolicate))
+
 (defpackage :macs.list
   (:use :cl)
   (:export
    #:ensure-car
    #:ensure-cons
    #:ensure-list))
+
 (defpackage :macs.cond
   (:use :cl)
   (:export
@@ -49,6 +54,7 @@
    #:invalid-argument-reason
    #:invalid-argument-p
    #:unwind-protect-case))
+
 (defpackage :macs.fu
   (:use :cl :macs.readtables :macs.sym :macs.list :macs.cond)
   (:export
@@ -96,7 +102,8 @@
    #:when-let*
    #:if-let
    #:if-let*))
-(defpackage macs.ana
+
+(defpackage :macs.ana
   (:use :cl :macs.readtables :macs.fu)
   (:export
    #:alambda
@@ -119,9 +126,11 @@
    #:pandoric-recode
    #:plambda
    #:pandoric-eval))
+
 (defpackage :macs.fs
   (:use :cl :macs.str :macs.cond :macs.fu)
   (:export))
+
 (defpackage :macs.cli
   (:use :cl :macs.sym :macs.cond :macs.fu :macs.pan :macs.str)
   (:import-from :sb-ext :exit)

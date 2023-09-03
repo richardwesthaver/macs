@@ -1,5 +1,9 @@
+;;; ana.lisp --- anaphoric macros
+
+;;; Code:
 (in-package :macs.ana)
 (in-readtable *macs-readtable*)
+
 ;; Graham's alambda
 (defmacro alambda (parms &body body)
   `(labels ((self ,parms ,@body))

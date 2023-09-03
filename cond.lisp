@@ -1,3 +1,6 @@
+;;; cond.lisp --- Conditions
+
+;;; Code:
 (in-package :macs.cond)
 
 (defun required-argument (&optional name)

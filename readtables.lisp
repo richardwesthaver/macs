@@ -1,4 +1,5 @@
 ;;; readtables.lisp --- macs.readtables
+
 ;; The standard readtable is controlled by the Lisp implementation and
 ;; generally shouldn't be touched. There can be problems with
 ;; 'stacking' multiple read-macros as can be seen in this SO post:
@@ -10,6 +11,7 @@
 ;; definition before enabling the readtable may cause divergent
 ;; behavior (using standard) versus your source code (custom).
 
+;;; Code:
 (defpackage :macs.readtables
   (:use :cl)
   (:export

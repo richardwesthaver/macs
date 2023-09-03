@@ -1,4 +1,6 @@
-;;; pan.lisp --- pandoric macros
+;;; pan.lisp --- Pandoric macros
+
+;;; Code:
 (in-package :macs.pan)
 (in-readtable *macs-readtable*)
 

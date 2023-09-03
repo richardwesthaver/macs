@@ -1,4 +1,6 @@
-;;; macs/ffi.lisp --- FFI utils
+;;; macs/alien.lisp --- foreign alien friends
+
+;;; Code:
 (in-package :macs.alien)
 
 (defun foreign-int-to-integer (buffer size)
