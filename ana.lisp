@@ -14,6 +14,9 @@
   `(let ((it ,test))
      (if it ,then ,else)))
 
+;; TODO 2023-09-05: wrap, document, optimize, hack
+(reexport-from :sb-int :include '(:awhen :acond))
+
 (defmacro! nlet-tail (n letargs &body body)
   (let ((gs (loop for i in letargs
                collect (gensym))))

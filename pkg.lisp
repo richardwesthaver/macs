@@ -1,5 +1,4 @@
 ;;; pkg.lisp --- macs packages
-(defvar *macs-version* "0.1.0")
 
 (defpackage :macs.reexport
   (:use :cl)
@@ -25,11 +24,11 @@
    #:symbolicate))
 
 (defpackage :macs.list
-  (:use :cl)
+  (:use :cl :macs.reexport)
+  (:shadowing-import-from :sb-int :ensure-list)
   (:export
    #:ensure-car
-   #:ensure-cons
-   #:ensure-list))
+   #:ensure-cons))
 
 (defpackage :macs.cond
   (:use :cl)
@@ -105,7 +104,7 @@
    :defcmd))
 
 (defpackage :macs.ana
-  (:use :cl :macs.readtables :macs.fu)
+  (:use :cl :macs.readtables :macs.reexport :macs.fu)
   (:export
    #:alambda
    #:nlet-tail
@@ -115,6 +114,7 @@
    #:aif
    #:this
    #:self))
+
 (defpackage :macs.pan
   (:use :cl :macs.readtables :macs.fu :macs.ana)
   (:export

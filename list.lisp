@@ -2,6 +2,9 @@
 
 ;;; Code:
 (in-package :macs.list)
+(reexport-from :sb-int
+	       :include '(:recons :memq :assq :ensure-list :proper-list-of-length-p :proper-list-p
+			  :singleton-p))
 (defun ensure-car (thing)
   "If THING is a CONS, its CAR is returned. Otherwise THING is returned."
   (if (consp thing)
@@ -14,9 +17,3 @@
   (if (consp cons)
       cons
       (cons cons nil)))
-
-(defun ensure-list (list)
-  "If LIST is a list, it is returned. Otherwise returns the list designated by LIST."
-  (if (listp list)
-      list
-      (list list)))

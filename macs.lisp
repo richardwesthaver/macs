@@ -23,10 +23,13 @@
    (:pan :macs.pan)
    (:cli :macs.cli)
    (:fs :macs.fs)
-   (:alien :macs.alien)))
+   (:alien :macs.alien))
+  (:export :*macs-version*))
 
 (in-package :macs)
 (in-readtable *macs-readtable*)
+(defvar *macs-version* "0.1.0")
 (reexports :readtables :reexport :str :sym :ls :cond :fu :ana :pan :cli :fs :alien)
 (defpackage :macs-user
   (:use :cl :macs))
+
