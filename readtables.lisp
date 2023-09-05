@@ -14,6 +14,7 @@
 ;;; Code:
 (defpackage :macs.readtables
   (:use :cl)
+  (:nicknames :readtables)
   (:export
    #:defreadtable
    #:in-readtable

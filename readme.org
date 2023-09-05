@@ -173,8 +173,7 @@ you're unsure.
 Named Readtable support. See the [[https://github.com/melisgl/named-readtables][official named-readtables repo]] for details.
 ** macs
 *** macs
-Wrapper package. Rexports =macs.*= including =macs.readtables= and
-defines LPNs without the =macs.= prefix.
+Wrapper package. Rexports =macs.*= including =macs.readtables=.
 **** macs-user
 A special user-space package where extensions, experiments and
 prototype symbols can be defined.

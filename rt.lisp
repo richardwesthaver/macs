@@ -41,6 +41,7 @@
    :cl
    :macs.sym :macs.cond :macs.readtables :macs.fu :sb-aprof
    #+x86-64 :sb-sprof)
+  (:nicknames :rt)
   (:export
    :*test-debug*
    :*test-debug-timestamp*

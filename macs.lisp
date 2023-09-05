@@ -11,25 +11,15 @@
    :macs.ana :macs.pan
    :macs.cli
    :macs.fs :macs.alien)
-  (:local-nicknames
-   (:readtables :macs.readtables)
-   (:reexport :macs.reexport)
-   (:str :macs.str)
-   (:sym :macs.sym)
-   (:ls :macs.list)
-   (:cond :macs.cond)
-   (:fu :macs.fu)
-   (:ana :macs.ana)
-   (:pan :macs.pan)
-   (:cli :macs.cli)
-   (:fs :macs.fs)
-   (:alien :macs.alien))
   (:export :*macs-version*))
 
 (in-package :macs)
 (in-readtable *macs-readtable*)
 (defvar *macs-version* "0.1.0")
-(reexports :readtables :reexport :str :sym :ls :cond :fu :ana :pan :cli :fs :alien)
+(reexports :macs.readtables
+	   :macs.reexport :macs.str :macs.sym :macs.list
+	   :macs.cond :macs.fu :macs.ana :macs.pan :macs.cli :macs.fs :macs.alien)
+		  
 (defpackage :macs-user
   (:use :cl :macs))
 

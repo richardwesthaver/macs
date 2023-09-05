@@ -2,16 +2,19 @@
 
 (defpackage :macs.reexport
   (:use :cl)
+  (:nicknames :reexport)
   (:export :reexport-from :reexports))
 
 (defpackage :macs.str
   (:use :cl :uiop)
+  (:nicknames :str)
   (:import-from :macs.reexport :reexports)
   (:export
    #:string-designator))
 
 (defpackage :macs.sym
   (:use :cl :macs.reexport :macs.str :sb-int)
+  (:nicknames :sym)
   (:export
    #:ensure-symbol
    #:format-symbol
@@ -25,13 +28,14 @@
 
 (defpackage :macs.list
   (:use :cl :macs.reexport)
-  (:shadowing-import-from :sb-int :ensure-list)
+  (:nicknames :list)
   (:export
    #:ensure-car
    #:ensure-cons))
 
 (defpackage :macs.cond
   (:use :cl)
+  (:nicknames :cond)
   (:export
    #:required-argument
    #:ignore-some-conditions
@@ -56,6 +60,7 @@
 
 (defpackage :macs.fu
   (:use :cl :sb-c :macs.readtables :macs.reexport :macs.sym :macs.list :macs.cond)
+  (:nicknames :fu)
   (:export
    #:*macs-readtable*
    #:mkstr
@@ -105,6 +110,7 @@
 
 (defpackage :macs.ana
   (:use :cl :macs.readtables :macs.reexport :macs.fu)
+  (:nicknames :ana)
   (:export
    #:alambda
    #:nlet-tail
@@ -117,6 +123,7 @@
 
 (defpackage :macs.pan
   (:use :cl :macs.readtables :macs.fu :macs.ana)
+  (:nicknames :pan)
   (:export
    #:pandoriclet
    #:pandoriclet-get
@@ -130,10 +137,12 @@
 
 (defpackage :macs.fs
   (:use :cl :macs.str :macs.cond :macs.fu)
+  (:nicknames :fs)
   (:export))
 
 (defpackage :macs.cli
   (:use :cl :macs.sym :macs.cond :macs.fu :macs.pan :macs.str)
+  (:nicknames :cli)
   (:import-from :sb-ext :exit)
   (:export
    :command-line-args
@@ -167,6 +176,7 @@
 
 (defpackage :macs.alien
   (:use :cl :macs.reexport :sb-vm :sb-alien :sb-ext :sb-c :macs.str :macs.sym :macs.fu)
+  (:nicknames :alien)
   (:export
    :foreign-int-to-integer :foreign-int-to-bool :bool-to-foreign-int
    :defbytes
