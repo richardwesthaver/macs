@@ -886,3 +886,6 @@ Example:
 	       :include '(:define-source-transformation
 			  :parse-eval-when-situations
 			  :source-location))
+
+;;; Named Lambdas
+(reexport-from :sb-int :include '(:make-macro-lambda))

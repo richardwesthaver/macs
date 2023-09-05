@@ -12,7 +12,7 @@
    #:string-designator))
 
 (defpackage :macs.sym
-  (:use :cl :macs.str)
+  (:use :cl :macs.reexport :macs.str :sb-int)
   (:export
    #:ensure-symbol
    #:format-symbol

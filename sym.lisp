@@ -53,47 +53,22 @@ string as the argument."
               name
               (string name))))
 
-(defun make-gensym-list (length &optional (x "G"))
-  "Returns a list of LENGTH gensyms, each generated as if with a call to MAKE-GENSYM,
-using the second (optional, defaulting to \"G\") argument."
-  (let ((g (if (typep x '(integer 0)) x (string x))))
-    (loop repeat length
-          collect (gensym g))))
-
+(sb-ext:with-unlocked-packages (:sb-int)
+  (defun make-gensym-list (length &optional (x "G"))
+    "Returns a list of LENGTH gensyms, each generated as if with a call to
+MAKE-GENSYM, using the second (optional, defaulting to \"G\")
+argument. This function is implemented in SBCL
+src/code/primordial-extensions.lisp but re-implemented here. The only
+difference is that we also handle non-zero integers, which can be
+passed as the first argument to `gensym'."
+    (let ((g (if (typep x '(integer 0)) x (string x))))
+      (loop repeat length
+            collect (gensym g)))))
+  
 ;;; alexandria/macros.lisp
-(defmacro with-gensyms (names &body forms)
-  "Binds a set of variables to gensyms and evaluates the implicit progn FORMS.
-
-Each element within NAMES is either a symbol SYMBOL or a pair (SYMBOL
-STRING-DESIGNATOR). Bare symbols are equivalent to the pair (SYMBOL SYMBOL).
-
-Each pair (SYMBOL STRING-DESIGNATOR) specifies that the variable named by SYMBOL
-should be bound to a symbol constructed using GENSYM with the string designated
-by STRING-DESIGNATOR being its first argument."
-  `(let ,(mapcar (lambda (name)
-                   (multiple-value-bind (symbol string)
-                       (etypecase name
-                         (symbol
-                          (values name (symbol-name name)))
-                         ((cons symbol (cons string-designator null))
-                          (values (first name) (string (second name)))))
-                     `(,symbol (gensym ,string))))
-                 names)
-     ,@forms))
-
-(defmacro with-unique-names (names &body forms)
-  "Alias for WITH-GENSYMS."
-  `(with-gensyms ,names ,@forms))
-
-(defun symbolicate (&rest things)
-  "Concatenate together the names of some strings and symbols,
-producing a symbol in the current package."
-  (let* ((length (reduce #'+ things
-                         :key (lambda (x) (length (string x)))))
-         (name (make-array length :element-type 'character)))
-    (let ((index 0))
-      (dolist (thing things (values (intern name)))
-        (let* ((x (string thing))
-               (len (length x)))
-          (replace name x :start1 index)
-          (incf index len))))))
+(reexport-from :sb-int
+	       :include '(:with-unique-names :symbolicate :package-symbolicate :keywordicate :gensymify*))
+;; On SBCL, `with-unique-names' is defined under
+;; src/code/primordial-extensions.lisp. We use that instead of
+;; defining our own.
+(setf (macro-function 'with-gensyms) (macro-function 'with-unique-names))
