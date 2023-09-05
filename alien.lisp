@@ -3,6 +3,11 @@
 ;;; Code:
 (in-package :macs.alien)
 
+(reexport-from :sb-vm
+	       :include
+	       '(:with-pinned-objects :with-pinned-object-iterator :with-code-pages-pinned
+		 :sanctify-for-execution))
+
 (defun foreign-int-to-integer (buffer size)
   "Check SIZE of int BUFFER. return BUFFER."
   (assert (= size (sb-alien:alien-size sb-alien:int :bytes)))

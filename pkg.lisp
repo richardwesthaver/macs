@@ -56,7 +56,7 @@
    #:unwind-protect-case))
 
 (defpackage :macs.fu
-  (:use :cl :macs.readtables :macs.sym :macs.list :macs.cond)
+  (:use :cl :sb-c :macs.readtables :macs.reexport :macs.sym :macs.list :macs.cond)
   (:export
    #:*macs-readtable*
    #:mkstr
@@ -101,7 +101,8 @@
    #:when-let
    #:when-let*
    #:if-let
-   #:if-let*))
+   #:if-let*
+   :defcmd))
 
 (defpackage :macs.ana
   (:use :cl :macs.readtables :macs.fu)
@@ -165,7 +166,7 @@
    :parse-args))
 
 (defpackage :macs.alien
-  (:use :cl :sb-alien :sb-ext :sb-c :macs.str :macs.sym :macs.fu)
+  (:use :cl :macs.reexport :sb-vm :sb-alien :sb-ext :sb-c :macs.str :macs.sym :macs.fu)
   (:export
    :foreign-int-to-integer :foreign-int-to-bool :bool-to-foreign-int
    :defbytes

@@ -32,8 +32,15 @@
 
 |#
 ;;; Code:
+#+x86-64
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require 'sb-sprof))
+
 (defpackage :macs.rt
-  (:use :cl :macs.sym :macs.cond :macs.readtables :macs.fu)
+  (:use
+   :cl
+   :macs.sym :macs.cond :macs.readtables :macs.fu :sb-aprof
+   #+x86-64 :sb-sprof)
   (:export
    :*test-debug*
    :*test-debug-timestamp*
@@ -42,7 +49,7 @@
    :*test-suffix*
    :*test-suite*
    :*test-suite-list*
-   :test-suites
+   ;;  TODO 2023-09-04: :*test-profiler-list* not yet
    :*testing*
    :test-suite-designator
    :check-suite-designator
@@ -64,11 +71,12 @@
    :in-suite
    :eval-test
    :compile-test
-   :pending-tests
+   :locked-tests
    :push-test
    :pop-test
    :delete-test
    :find-test
+   :get-test-opt
    :do-suite
    :test-object
    :test
@@ -76,11 +84,13 @@
    :test-suite
    :test-name
    :tests
-   :test-fails))
+   :test-fails
+   :test-results))
+swank::*current-debug-io*
 
 (in-package :macs.rt)
 (in-readtable *macs-readtable*)
-(defvar *compile-tests* nil
+(defvar *compile-tests* '(optimize sb-c::instrument-consing)
   "When nil do not compile tests. With a value of t, tests are compiled
 with default optimizations else the value is used to configure
 compiler optimizations.")
@@ -88,6 +98,9 @@ compiler optimizations.")
 (defvar *test-suffix* "-test" "A suffix to append to every `test' defined with `deftest'.")
 (defvar *test-suite-list* nil "List of available `test-suite' objects.")
 (defvar *test-suite* nil "A 'test-suite-designator' which identifies the current `test-suite'.")
+(declaim (type (or stream boolean string) *test-input*))
+(defvar *test-input* nil "When non-nil, specifies an input stream or buffer for `*testing*'.")
+(declaim (type (or stream boolean) *test-debug*))
 (defvar *test-debug* nil "When non-nil, enable debug-mode for tests defined with `deftest'. The
 value is actually treated as a stream-designator - so you can point
 the debug output wherever you want.")
@@ -116,60 +129,35 @@ is used as the function value of `test-debug-timestamp-source'.")
 (defun make-suite (&rest slots)
   (apply #'make-instance 'test-suite slots))
 
-(defmacro with-test (test))
+(defmacro with-test ((arg test &rest slots) &body body)
+  "Do BODY with ARG bound to `test-object' TEST."
+  `(let ((,arg ,test)) ;; TODO: CoW?
+     (with-slots ',slots ,test ,@body)))
 
-(defun do-test (test &optional (s *standard-output*))
-  "Do TEST, printing results to S (default `*standard-output*')"
-  (catch '*in-test*
-    (setf (test-lock test) t)
-    (let* ((*testing* (test-name test))
-	   (bail nil)
-	   r)
-      (declare (ignorable bail))
-      (block bail
-	(setf r
-	      (flet ((%do
-		       ()
-		       (if-let ((opt *compile-tests*))
-			 (multiple-value-list
-			  ;; RESEARCH 2023-08-31: with-compilation-unit?
-			  (funcall (compile-test test opt)))
-			 (multiple-value-list
-			  (eval-test test)))))
-		(if *catch-test-errors*
-		    (handler-bind
-			((style-warning #'muffle-warning)
-			 (error #'(lambda (c)
-				    (setf bail t)
-				    (setf r (list c))
-				    (return-from bail nil))))
-		      (%do))
-		    (%do)))))
-      (setf (test-lock test) (or (null (test-once test)) bail)))))
-
+;; TODO 2023-09-04: optimize
 (defun do-tests (&optional (s *standard-output*))
   (if (streamp s)
       (do-suite *test-suite* s)
       (with-open-file (stream s :direction :output)
-	(do-suite *test-suite* stream))))
+	(do-suite *test-suite* :stream stream))))
 
 (defun continue-testing ()
   (if-let ((test *testing*))
     (throw '*in-test* test)
-    (do-suite *test-suite* *standard-output*)))
+    (do-suite *test-suite*)))
       
 (defmacro with-test-env (env &body body)
   "Generate a test closure from ENV and BODY."
   ;; TODO 2023-08-31: test
   (in-readtable *macs-readtable*)
   (prog1
-      `(lambda () ,@body)
+      `(lambda () (let ',env ,@body))
     (in-readtable nil)))
 
 ;; NOTE 2023-09-01: `pushnew' does not return an indication of whether
 ;; place is changed - it returns place. This is functionally sound but
 ;; means that if we want to do something else in the event that place
-;; is unchanged, we run into some friction, 
+;; is unchanged, we run into some friction,
 ;; https://stackoverflow.com/questions/56228832/adapting-common-lisp-pushnew-to-return-success-failure
 (defun spush (item lst &key (test #'eql))
   "Substituting `push'"
@@ -233,14 +221,14 @@ NAME. Return the `test-suite'."
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (setf *test-suite* (ensure-suite ',name))))
 
-(defgeneric eval-test (self &rest opts)
+(defgeneric eval-test (self)
   (:documentation "Eval a `test'."))
 
 (defgeneric compile-test (self &rest opts)
   (:documentation "Compile a `test'."))
 
-(defgeneric pending-tests (self)
-  (:documentation "Return a list of pending tests in `test-suite' object SELF."))
+(defgeneric locked-tests (self)
+  (:documentation "Return a list of locked tests in `test-suite' object SELF."))
 
 (defgeneric push-test (self place)
   (:documentation
@@ -256,12 +244,20 @@ NAME. Return the `test-suite'."
 (defgeneric find-test (self &rest opts)
   (:documentation "Find `test' object specified by `test-object' SELF and OPTS."))
 
-(defgeneric do-suite (self stream &rest opts)
+(defgeneric do-test (self)
+  (:documentation "Run `test' SELF, printing results to `*standard-output*'."))
+
+(defgeneric do-suite (self &rest opts)
   (:documentation
    "Perform actions on `test-suite' object SELF, with output to STREAM, modulo OPTS."))
 
+(defgeneric get-test-opt (self key)
+  (:documentation
+   "Get the value of first cons where car is KEY in :opts slot of SELF."))
+
 (defclass test-object ()
-  ((name :initarg :name :initform (required-argument) :type string :accessor test-name))
+  ((name :initarg :name :initform (required-argument) :type string :accessor test-name)
+   #+nil (cached :initarg :cache :allocation :class :accessor test-cached-p :type boolean))
   (:documentation "Super class for all test-related objects."))
 
 (defmethod print-object ((self test-object) stream)
@@ -277,33 +273,32 @@ NAME. Return the `test-suite'."
   ((function-symbol :type symbol :accessor test-function-symbol)
    (args :type list :accessor test-args :initform nil :initarg :args)
    (form :initarg :form :initform nil :type function-lambda-expression :accessor test-form)
-   (lock :initarg :lock :type boolean :accessor test-lock)
-   (once :initarg :once :initform nil :type boolean :accessor test-once))
+   (lock :initarg :lock :type boolean :accessor test-lock-p)
+   (once :initarg :once :initform nil :type boolean :accessor test-once-p))
   (:documentation "Test class typically made with `deftest'."))
+
+(declaim (inline make-test-function))
+(defun make-test-function (sym)
+  (symb sym (string-upcase *test-suffix*)))
+
+(defmethod initialize-instance ((self test) &key keys)
+  (dbg! "building test" self keys)
+  (setf (test-function-symbol self) (make-test-function (get keys :name)))
+  (setf (test-lock-p self) t)
+  (call-next-method))
 
 (defmethod print-object ((self test) stream)
   (print-unreadable-object (self stream :type t :identity t)
     (format stream "~A ~A :lock ~A :once ~A"
 	    (test-name self)
 	    (test-form self)
-	    (test-lock self)
-	    (test-once self))))
-
-(declaim (inline make-test-function))
-(defun make-test-function (sym)
-  (symb sym (string-upcase *test-suffix*)))
+	    (test-lock-p self)
+	    (test-once-p self))))
 
 ;; TODO 2023-09-01: use sxp?
-(defun validate-form (form)
-  "")
+;; (defun validate-form (form))
 
-(defmethod initialize-instance ((self test) &key keys)
-  (dbg! "building test" self keys)
-  (setf (test-function-symbol self) (make-test-function (get keys :name)))
-  (setf (test-lock self) t)
-  (call-next-method))
-
-(defmethod eval-test ((self test) &rest opts)
+(defmethod eval-test ((self test))
   (eval (read (test-form self))))
 
 (defmethod compile-test ((self test) &rest opts)
@@ -313,89 +308,133 @@ NAME. Return the `test-suite'."
       (declare (optimize ,@opts))
       ,@(test-form self))))
 
+(defmethod do-test ((self test))
+  (catch '*in-test* ;; for `continue-testing' restart
+    (setf (test-lock-p self) t)
+    (let* ((*testing* (test-name self))
+	   (bail nil)
+	   r)
+      (block bail
+	(setf r
+	      (flet ((%do
+		       ()
+		       (if-let ((opt *compile-tests*))
+			 (multiple-value-list
+			  ;; RESEARCH 2023-08-31: with-compilation-unit?
+			  (funcall (compile-test self opt)))
+			 (multiple-value-list
+			  (eval-test self)))))
+		(if *catch-test-errors*
+		    (handler-bind
+			((style-warning #'muffle-warning)
+			 (error #'(lambda (c)
+				    (setf bail t)
+				    (setf r (list c))
+				    (return-from bail nil))))
+		      (%do))
+		    (%do)))))
+      (setf (test-lock-p self) (or bail (not (test-once-p self))))
+      r)))
+
 (defclass test-fixture (test-object)
   ()
   (:documentation "A generic wrapper around test fixtures. Our test
   fixtures are lexical environments which specialize on a `test-suite'."))
 
 (defclass test-suite (test-object)
-  ((tests :initarg :set :initform nil :type list :accessor tests)
-   (fails :initarg :fails :initform nil :type list :accessor test-fails))
+  ((tests :initarg :set :initform nil :type list :accessor tests
+	  :documentation "test-suite tests")
+   (fails :initarg :fails :initform nil :type list :accessor test-fails
+	  :documentation "test-suite failures")
+   (results :initarg :results :initform nil :type list :accessor test-results
+	    :documentation "test-suite results")
+   (opts :initarg :opts :initform nil :type list :accessor test-opts))
   (:documentation "A class for collections of related `test' objects."))
 
 (defmethod print-object ((self test-suite) stream)
   (print-unreadable-object (self stream :type t :identity t)
-    (format stream "~A :tests ~A :fails ~A"
+    (format stream "~A :tests ~A :opts ~A"
 	    (test-name self)
 	    (length (tests self))
-	    (length (test-fails self)))))
+	    (test-opts self))))
 
 (deftype test-suite-designator ()
-  "Either a symbol or a `test-suite' object."
-  '(or test-suite symbol boolean))
+  "Either nil, a symbol, a string, or a `test-suite' object."
+  '(or null symbol string test-suite))
 
-(defmethod pending-tests ((self test-suite))
+(defmethod locked-tests ((self test-suite))
   (do ((l (tests self) (cdr l))
        (r nil))
       ((null l) (nreverse r))
-    (when (test-lock (car l))
+    (when (test-lock-p (car l))
       (push (test-name (car l)) r))))
+
+(defun test-opt-key-p (k)
+  "Test if K is a `test-opt-key'."
+  (member k '(:profile :save :stream)))
+
+(defun test-opt-valid-p (f)
+  "Test if F is a valid `test-opt' form. If so, return F else nil."
+  (when (test-opt-key-p (car f))
+    f))
+
+(defmethod get-test-opt ((self test-suite) key)
+  (assoc key (test-opts self)))
 
 ;; HACK 2023-09-01: find better method of declaring failures from
 ;; within the body of `deftest'.
-(defmethod do-suite ((self test-suite) stream &rest opts)
-  (format stream "test [:~A]~%"
-	  (count t (tests self)
-		 :key #'test-lock))
-  ;; loop over each test, calling `do-test' if lock=t
-  (dolist (i (tests self))
-    (when (test-lock i)
-      (format stream "~@[~<~%~:;~:@(~S~) ~>~]"
-	      (do-test i nil))))
-  ;; compare pending vs expected
-  (let ((pending (pending-tests self))
-	;; TODO - consider test-fn param
-	(expected (make-hash-table :test #'equal)))
-    ;; TODO - depends on fail infrastructure
-    (dolist (ex (test-fails self))
-      ;; t isn't really a useful value to put here..
-      ;; RESEARCH 2023-09-02: hashset
-      (setf (gethash ex expected) t))
-    ;; process fails
-    (let ((fails
-	    ;; collect if pending test not expected
-	    (loop for p in pending
-		  unless (gethash p expected)
-		    collect p)))
-      ;; if not pending
-      (if (null pending)
-	  ;; no pending tests
-	  (format stream "~&No tests failed.")
-	  ;; pending tests
-	  (progn
-	    ;; print fails
-	    (format stream "~&~A out of ~A ~
+(defmethod do-suite ((self test-suite) &rest opts)
+  ;; collect opts
+  (setq opts (unless (null opts) (mapcar #'test-opt-valid-p opts)))
+    (with-slots (opts) self
+      (let ((stream (assoc :stream (test-opts self))))
+	(format stream "testing [:~A]~%"
+		(count t (tests self)
+		       :key #'test-lock-p))
+
+	;; loop over each test, calling `do-test' if locked
+	(dolist (i (tests self))
+	  (when (test-lock-p i)
+	    (format stream "~@[~<~%~:;~:@(~S~) ~>~]"
+		    (do-test i))))
+	;; compare locked vs expected
+	(let ((locked (locked-tests self))
+	      ;; TODO - consider test-fn param
+	      (expected (make-hash-table :test #'equal)))
+	  ;; TODO - depends on fail infrastructure
+	  (dolist (ex (test-fails self))
+	    ;; t isn't really a useful value to put here..
+	    ;; RESEARCH 2023-09-02: hashset
+	    (setf (gethash ex expected) t))
+	  ;; process fails
+	  (let ((fails
+		  ;; collect if locked test not expected
+		  (loop for p in locked
+			unless (gethash p expected)
+			  collect p)))
+	    (if (null locked)
+		(format stream "~&No tests failed.")
+		(progn
+		  ;;  RESEARCH 2023-09-04: print fails ??
+		  (format stream "~&~A out of ~A ~
                    total tests failed: ~
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."
-                  (length pending)
-                  (length (tests self))
-                  pending)
-	    ;; if no fails
-	    (if (null fails)
-		;; no fails
-		(format stream "~&No unexpected failures.")
-		;; fails
-		(when (test-fails self)
-		  (format stream "~&~A unexpected failures: ~
+			  (length locked)
+			  (length (tests self))
+			  locked)
+		  (if (null fails)
+		      (format stream "~&No unexpected failures.")
+		      (when (test-fails self)
+			;; print unexpected failures
+			(format stream "~&~A unexpected failures: ~
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."
-			  (length fails)
-			  fails)))))
+				(length fails)
+				fails)))))
       ;; close stream
       (finish-output stream)
       ;; return values (PASS FAIL TOTAL)
-      (values (not fails) (not pending) pending))))
+      (values (not fails) (not locked) locked))))))
 
 (defvar *default-suite* (defsuite default))
-

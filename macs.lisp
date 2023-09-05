@@ -2,11 +2,15 @@
 
 ;;; Code:
 (defpackage :macs
-  (:use
+  (:use 
    :cl
    :macs.readtables
-   :macs.reexport :macs.str :macs.sym :macs.list :macs.cond
-   :macs.fu :macs.ana :macs.pan :macs.cli :macs.fs :macs.alien)
+   :macs.reexport
+   :macs.str :macs.sym :macs.list :macs.cond
+   :macs.fu
+   :macs.ana :macs.pan
+   :macs.cli
+   :macs.fs :macs.alien)
   (:local-nicknames
    (:readtables :macs.readtables)
    (:reexport :macs.reexport)
@@ -23,6 +27,6 @@
 
 (in-package :macs)
 (in-readtable *macs-readtable*)
-(reexports :macs.reexport :str :sym :ls :cond :fu :ana :pan :cli :fs :alien)
+(reexports :readtables :reexport :str :sym :ls :cond :fu :ana :pan :cli :fs :alien)
 (defpackage :macs-user
   (:use :cl :macs))

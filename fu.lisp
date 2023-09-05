@@ -1,6 +1,8 @@
 ;;; fu.lisp --- Function utilities
 
 ;;; Code:
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require :sb-introspect))
 (in-package :macs.fu)
 
 ;;; From LOL
@@ -862,3 +864,25 @@ Example:
                                              (return-from ,inner nil))))
            (return-from ,outer ,then)))
        ,else)))
+
+
+(defmacro defcmd (name &body body)
+  "`defun' without args."
+  `(defun ,name () ,@body))
+
+;;; TODO 2023-09-04: Env
+
+;;; Introspection
+(reexport-from :sb-introspect
+	       :include '(:function-lambda-list :lambda-list-keywords :lambda-parameters-limit
+			  :method-combination-lambda-list :deftype-lambda-list
+			  :primitive-object-size :allocation-information
+			  :function-type
+			  :who-specializes-directly :who-specializes-generally
+			  :find-function-callees :find-function-callers))
+
+;;; Compiler
+(reexport-from :sb-c
+	       :include '(:define-source-transformation
+			  :parse-eval-when-situations
+			  :source-location))
