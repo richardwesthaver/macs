@@ -6,6 +6,14 @@
 (defvar *cli-arg0* (car sb-ext:*posix-argv*))
 (defvar *cli-args* (cdr sb-ext:*posix-argv*))
 
+(declaim (inline exec-path-list))
+(defun exec-path-list ()
+  (mapcar #'directory
+	  (loop for i = 0 then (1+ j)
+		as j = (position #\: string :start i)
+		collect (subseq (getenv "PATH") i j)
+		while j)))
+
 (defparameter *default-cli-opts*
   '(*cli-help-flag*
     *cli-version-flag*

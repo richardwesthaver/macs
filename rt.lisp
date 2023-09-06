@@ -149,7 +149,7 @@ is used as the function value of `test-debug-timestamp-source'.")
 ;; TODO 2023-09-04: optimize
 (defun do-tests (&optional (s *standard-output*))
   (if (streamp s)
-      (do-suite *test-suite* s)
+      (do-suite *test-suite* :stream s)
       (with-open-file (stream s :direction :output)
 	(do-suite *test-suite* :stream stream))))
 
@@ -202,8 +202,9 @@ is used as the function value of `test-debug-timestamp-source'.")
 (defun ensure-suite (name)
   (if-let ((ok (member name *test-suite-list* :test #'suite-name=)))
     (car ok)
-    (when (or (eq name t) (null name)) (make-suite :name *default-test-suite-name*)))
-  (defun check-suite-designator (suite) (check-type suite test-suite-designator)))
+    (when (or (eq name t) (null name)) (make-suite :name *default-test-suite-name*))))
+
+(defun check-suite-designator (suite) (check-type suite test-suite-designator))
 
 (defun assert-suite (name)
   (check-suite-designator name)
@@ -278,12 +279,12 @@ not evaluated."
      (setf (tests (ensure-suite *test-suite*)) (spush obj (tests *test-suite*)))
      obj))
 
-(defmacro defsuite (suite-name &key opts)
-  "Define a `test-suite' with provided OPTS. The object returned can be
+(defmacro defsuite (suite-name ((&key stream)))
+  "Define a `test-suite' with provided keys. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
   (check-type suite-name symbol)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (let ((obj (make-suite :name ',suite-name ,@opts)))
+     (let ((obj (make-suite :name ',suite-name ,@(when stream `(:stream ,stream)))))
        (setf *test-suite-list* (spush obj *test-suite-list* :test #'suite-name=))
        obj)))
 
@@ -298,7 +299,7 @@ NAME. Return the `test-suite'."
 (defgeneric eval-test (self)
   (:documentation "Eval a `test'."))
 
-(defgeneric compile-test (self &rest opts)
+(defgeneric compile-test (self &key &allow-other-keys)
   (:documentation "Compile a `test'."))
 
 (defgeneric locked-tests (self)
@@ -312,18 +313,18 @@ NAME. Return the `test-suite'."
   (:documentation
    "Pop the first `test' from the slot-value of ':tests' in `test-suite' object SELF."))
 
-(defgeneric delete-test (self &rest opts)
-  (:documentation "Delete `test' object specified by `test-object' SELF and OPTS."))
+(defgeneric delete-test (self &key &allow-other-keys)
+  (:documentation "Delete `test' object specified by `test-object' SELF and optional keys."))
 
-(defgeneric find-test (self &rest opts)
-  (:documentation "Find `test' object specified by `test-object' SELF and OPTS."))
+(defgeneric find-test (self &key &allow-other-keys)
+  (:documentation "Find `test' object specified by `test-object' SELF and optional keys."))
 
 (defgeneric do-test (self)
   (:documentation "Run `test' SELF, printing results to `*standard-output*'."))
 
-(defgeneric do-suite (self &rest opts)
+(defgeneric do-suite (self &key &allow-other-keys)
   (:documentation
-   "Perform actions on `test-suite' object SELF, with output to STREAM, modulo OPTS."))
+   "Perform actions on `test-suite' object SELF with optional keys."))
 
 (defgeneric get-test-opt (self key)
   (:documentation
@@ -376,11 +377,11 @@ NAME. Return the `test-suite'."
 (defmethod eval-test ((self test))
   (eval (read (test-form self))))
 
-(defmethod compile-test ((self test) &rest opts)
+(defmethod compile-test ((self test) &key declare &allow-other-keys)
   (compile
    nil
    `(lambda ()
-      (declare (optimize ,@opts))
+      (declare ,declare)
       ,@(test-form self))))
 
 (defmethod do-test ((self test))
@@ -396,7 +397,7 @@ NAME. Return the `test-suite'."
 		       (if-let ((opt *compile-tests*))
 			 (multiple-value-list
 			  ;; RESEARCH 2023-08-31: with-compilation-unit?
-			  (funcall (compile-test self opt)))
+			  (funcall (compile-test self :declare opt)))
 			 (multiple-value-list
 			  (eval-test self)))))
 		(if *catch-test-errors*
@@ -449,12 +450,12 @@ NAME. Return the `test-suite'."
 
 ;; HACK 2023-09-01: find better method of declaring failures from
 ;; within the body of `deftest'.
-(defmethod do-suite ((self test-suite) &rest opts)
-  ;; collect opts
-  (setq opts (unless (null opts) (mapcar #'test-opt-valid-p opts)))
-    (with-slots (opts) self
-      (let ((stream (assoc :stream (test-opts self))))
-	(format stream "testing [:~A]~%"
+(defmethod do-suite ((self test-suite) &key stream)
+  ;; push opts
+  (when stream (push `(:stream ,stream) (test-opts self)))
+  (with-slots (opts) self
+    (let ((stream (assoc :stream (test-opts self))))
+      (format stream "testing [:~A]~%"
 		(count t (tests self)
 		       :key #'test-lock-p))
 
@@ -502,4 +503,3 @@ NAME. Return the `test-suite'."
       (finish-output stream)
       ;; return values (PASS FAIL TOTAL)
       (values (not fails) (not locked) locked))))))
-

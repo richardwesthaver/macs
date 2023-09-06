@@ -150,6 +150,7 @@
    :*cli-args*
    :*default-cli-opts*
    :*cli-group-separator*
+   :exec-path-list
    :cli-flag-p
    :make-short-name
    :with-cli-handlers
