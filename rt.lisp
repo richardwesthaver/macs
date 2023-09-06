@@ -3,6 +3,8 @@
 ;; Regression Testing framework. inspired by PCL, the original CMUCL
 ;; code, and the SBCL port.
 
+;;; Commentary:
+
 ;; - :rt https://www.merl.com/publications/docs/TR91-04.pdf Chapter 1
 ;; - :com.gigamonkeys.test https://github.com/gigamonkey/monkeylib-test-framework
 ;; - :sb-rt https://github.com/sbcl/sbcl/blob/master/contrib/sb-rt/rt.lisp
@@ -15,8 +17,6 @@
 ;; - :try https://github.com/melisgl/try
 ;; - :rove https://github.com/fukamachi/rove
 
-;;; Commentary:
-
 ;;; TODO:
 #|
 
@@ -24,7 +24,7 @@
 
 - [ ] with-test-env
 
-- [ ] is (assertions)
+- [ ] check macros
 
 - [ ] fixtures
 
@@ -39,7 +39,7 @@
 (defpackage :macs.rt
   (:use
    :cl
-   :macs.sym :macs.cond :macs.readtables :macs.fu :sb-aprof
+   :macs.sym :macs.list :macs.cond :macs.readtables :macs.fu :sb-aprof
    #+x86-64 :sb-sprof)
   (:nicknames :rt)
   (:export
@@ -48,6 +48,7 @@
    :*compile-tests*
    :*catch-test-errors*
    :*test-suffix*
+   :*default-test-suite-name*
    :*test-suite*
    :*test-suite-list*
    ;;  TODO 2023-09-04: :*test-profiler-list* not yet
@@ -57,18 +58,22 @@
    :test-debug-timestamp-source
    :dbg!
    :make-test
+   :make-suite
+   :suite-name-eq
+   :suite-name=
    :with-test
    :do-test
    :do-tests
    :continue-testing
    :with-test-env
-   :deftest
-   :suite-name-eq
-   :suite-name=
-   :make-suite
-   :defsuite
    :ensure-suite
    :assure-suite
+   :test-failed
+   :fail!
+   :is
+   :signals
+   :deftest
+   :defsuite
    :in-suite
    :eval-test
    :compile-test
@@ -91,6 +96,8 @@ swank::*current-debug-io*
 
 (in-package :macs.rt)
 (in-readtable *macs-readtable*)
+
+;;;; * Special Vars
 (defvar *compile-tests* '(optimize sb-c::instrument-consing)
   "When nil do not compile tests. With a value of t, tests are compiled
 with default optimizations else the value is used to configure
@@ -98,7 +105,9 @@ compiler optimizations.")
 (defvar *catch-test-errors* t "When non-nil, cause errors in a test to be caught.")
 (defvar *test-suffix* "-test" "A suffix to append to every `test' defined with `deftest'.")
 (defvar *test-suite-list* nil "List of available `test-suite' objects.")
-(defvar *test-suite* nil "A 'test-suite-designator' which identifies the current `test-suite'.")
+(defvar *test-suite* "A 'test-suite-designator' which identifies the current `test-suite'.")
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *default-test-suite-name* "default"))
 (declaim (type (or stream boolean string) *test-input*))
 (defvar *test-input* nil "When non-nil, specifies an input stream or buffer for `*testing*'.")
 (declaim (type (or stream boolean) *test-debug*))
@@ -110,6 +119,7 @@ the debug output wherever you want.")
 is used as the function value of `test-debug-timestamp-source'.")
 (defvar *testing* nil "Testing state var.")
     
+;;;; * Debug
 (declaim (inline test-debug-timestamp-source))
 (defun test-debug-timestamp-source ()
   (format nil "~f" (/ (get-internal-real-time) internal-time-units-per-second)))
@@ -124,11 +134,12 @@ is used as the function value of `test-debug-timestamp-source'.")
        ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
        (map nil (lambda (x) (format ,dbg "~s " x)) ',args))))
 
-(defun make-test (&rest slots)
+;;;; * Utils
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun make-test (&rest slots)
   (apply #'make-instance 'test slots))
-
-(defun make-suite (&rest slots)
-  (apply #'make-instance 'test-suite slots))
+  (defun make-suite (&rest slots)
+  (apply #'make-instance 'test-suite slots)))
 
 (defmacro with-test ((arg test &rest slots) &body body)
   "Do BODY with ARG bound to `test-object' TEST."
@@ -174,13 +185,6 @@ is used as the function value of `test-debug-timestamp-source'.")
     #|(or nil '(t (cons item lst)))|#))
 
 ;; FIX 2023-08-31: spush, replace with `add-test' method.
-(defmacro deftest (name &body body)
-  "Build a test. BODY is wrapped in `with-test-env' and passed to
-`make-test' which returns a value based on the dynamic environment."
-  `(let ((obj (make-test :name ',name :form ',body)))
-     (setf (tests (ensure-suite *test-suite*)) (spush obj (tests *test-suite*)))
-     obj))
-
 (defun normalize-test-name (a)
   "Return the normalized `test-suite-designator' of A."
   (etypecase a
@@ -194,6 +198,86 @@ is used as the function value of `test-debug-timestamp-source'.")
 	(b (normalize-test-name b)))
     (equal a b)))
 
+(declaim (inline assert-suite ensure-suite))
+(defun ensure-suite (name)
+  (if-let ((ok (member name *test-suite-list* :test #'suite-name=)))
+    (car ok)
+    (when (or (eq name t) (null name)) (make-suite :name *default-test-suite-name*)))
+  (defun check-suite-designator (suite) (check-type suite test-suite-designator)))
+
+(defun assert-suite (name)
+  (check-suite-designator name)
+  (assert (ensure-suite name)))
+
+(declaim (inline test-opt-key-p test-opt-valid-p))
+(defun test-opt-key-p (k)
+  "Test if K is a `test-opt-key'."
+  (member k '(:profile :save :stream)))
+(defun test-opt-valid-p (f)
+  "Test if F is a valid `test-opt' form. If so, return F else nil."
+  (when (test-opt-key-p (car f))
+    f))
+
+;;;; * Conditions
+(define-condition test-failed (error)
+  ((reason :accessor fail-reason :initarg :reason :initform "unknown")
+   (name :accessor fail-name :initarg :name)
+   (form :accessor fail-form :initarg :form))
+  (:documentation "Signaled when a test fails.")
+  (:report (lambda (c s)
+	     (format s "The following expression failed: ~S~%~A."
+		     (fail-form c)
+		     (fail-reason c)))))
+
+(defun fail! (form &optional fmt &rest args)
+  (let ((reason (and fmt (apply #'format nil fmt args))))
+    (with-simple-restart (ignore-fail "Continue testing.")
+      (error 'test-failed :reason reason :form form))))
+;;;; * Checks
+;; TODO 2023-09-05: 
+(defmacro is (form)
+  "The DWIM Check -- fiveam.
+
+If FORM returns a truthy value, return `test-pass' otherwise return
+`test-fail', optionally return a second value containing a
+`test-result'."
+  `(progn
+     ',form))
+
+;; TODO 2023-09-05: defenum test-tag
+
+(defmacro signals (condition-spec &body body)
+  "Generates a `test-pass' if BODY signals a condition of type
+CONDITION. BODY is evaluated in a block named NIL, CONDITION is
+not evaluated."
+  (let ((block-name (gensym)))
+    (destructuring-bind (condition &optional reason-control &rest reason-args)
+        (ensure-list condition-spec)
+      `(block ,block-name
+         (handler-bind ((,condition (lambda (c)
+                                      (declare (ignore c))
+                                      ;; ok, body threw condition
+				      ;; TODO 2023-09-05: result collectors
+                                      ;; (add-result 'test-passed
+                                      ;;            :test-expr ',condition)
+                                      (return-from ,block-name t))))
+           (block nil
+             ,@body))
+         (fail!
+          ',condition
+          ,@(if reason-control
+                `(,reason-control ,@reason-args)
+                `("Failed to signal a ~S" ',condition)))
+         (return-from ,block-name nil)))))
+
+;;;; * API
+(defmacro deftest (name &body body)
+  "Build a test. BODY is wrapped in `with-test-env' and passed to
+`make-test' which returns a value based on the dynamic environment."
+  `(let ((obj (make-test :name ',name :form ',body)))
+     (setf (tests (ensure-suite *test-suite*)) (spush obj (tests *test-suite*)))
+     obj))
+
 (defmacro defsuite (suite-name &key opts)
   "Define a `test-suite' with provided OPTS. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
@@ -203,18 +287,6 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API."
        (setf *test-suite-list* (spush obj *test-suite-list* :test #'suite-name=))
        obj)))
 
-(declaim (inline assert-suite ensure-suite))
-(defun ensure-suite (name)
-  (if-let ((ok (member name *test-suite-list* :test #'suite-name=)))
-    (car ok)
-    (when (or (eq name t) (null name)) *default-suite*)))
-
-(defun check-suite-designator (suite) (check-type suite test-suite-designator))
-
-(defun assert-suite (name)
-  (check-suite-designator name)
-  (assert (ensure-suite name)))
-
 (defmacro in-suite (name)
   "Set `*test-suite*' to the `test-suite' referred to by symbol
 NAME. Return the `test-suite'."
@@ -222,6 +294,7 @@ NAME. Return the `test-suite'."
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (setf *test-suite* (ensure-suite ',name))))
 
+;;;; * PROTO
 (defgeneric eval-test (self)
   (:documentation "Eval a `test'."))
 
@@ -256,6 +329,7 @@ NAME. Return the `test-suite'."
   (:documentation
    "Get the value of first cons where car is KEY in :opts slot of SELF."))
 
+;;;; * OBJ
 (defclass test-object ()
   ((name :initarg :name :initform (required-argument) :type string :accessor test-name)
    #+nil (cached :initarg :cache :allocation :class :accessor test-cached-p :type boolean))
@@ -370,15 +444,6 @@ NAME. Return the `test-suite'."
     (when (test-lock-p (car l))
       (push (test-name (car l)) r))))
 
-(defun test-opt-key-p (k)
-  "Test if K is a `test-opt-key'."
-  (member k '(:profile :save :stream)))
-
-(defun test-opt-valid-p (f)
-  "Test if F is a valid `test-opt' form. If so, return F else nil."
-  (when (test-opt-key-p (car f))
-    f))
-
 (defmethod get-test-opt ((self test-suite) key)
   (assoc key (test-opts self)))
 
@@ -438,4 +503,3 @@ NAME. Return the `test-suite'."
       ;; return values (PASS FAIL TOTAL)
       (values (not fails) (not locked) locked))))))
 
-(defvar *default-suite* (defsuite default))

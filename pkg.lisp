@@ -183,3 +183,11 @@
    :u1 :u2 :u3 :u4 :u8 :u16 :u24 :u32 :u64 :u128
    :i2 :i3 :i4 :i8 :i16 :i24 :i32 :i64 :i128
    :f16 :f24 :f32 :f64 :f128))
+
+(defpackage :macs.thread
+  (:use :cl :macs.reexport :macs.alien :sb-thread)
+  (:nicknames :thread)
+  (:export
+   :print-thread-info :print-thread-message-top-level :thread-support-p))
+   
+   
