@@ -118,7 +118,7 @@ the debug output wherever you want.")
 `*debug-tests*' is nil. The value may be a function in which case it
 is used as the function value of `test-debug-timestamp-source'.")
 (defvar *testing* nil "Testing state var.")
-    
+
 ;;;; * Debug
 (declaim (inline test-debug-timestamp-source))
 (defun test-debug-timestamp-source ()
@@ -130,16 +130,16 @@ is used as the function value of `test-debug-timestamp-source'.")
     `(when-let ((,dbg *test-debug*))
        (format ,dbg ":DBG")
        (if *test-debug-timestamp*
-	   (format ,dbg " @ ~a ::~t" (test-debug-timestamp-source)))
+	   (format ,dbg " @ ~A ::~t" (test-debug-timestamp-source)))
        ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
-       (map nil (lambda (x) (format ,dbg "~s " x)) ',args))))
+       (map nil (lambda (x) (format ,dbg "~A " x)) ',args))))
 
 ;;;; * Utils
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun make-test (&rest slots)
-  (apply #'make-instance 'test slots))
+    (apply #'make-instance 'test slots))
   (defun make-suite (&rest slots)
-  (apply #'make-instance 'test-suite slots)))
+    (apply #'make-instance 'test-suite slots)))
 
 (defmacro with-test ((arg test &rest slots) &body body)
   "Do BODY with ARG bound to `test-object' TEST."
@@ -157,7 +157,7 @@ is used as the function value of `test-debug-timestamp-source'.")
   (if-let ((test *testing*))
     (throw '*in-test* test)
     (do-suite *test-suite*)))
-      
+
 (defmacro with-test-env (env &body body)
   "Generate a test closure from ENV and BODY."
   ;; TODO 2023-08-31: test
@@ -272,26 +272,31 @@ not evaluated."
          (return-from ,block-name nil)))))
 
 ;;;; * API
-(defmacro deftest (name &body body)
-  "Build a test. BODY is wrapped in `with-test-env' and passed to
-`make-test' which returns a value based on the dynamic environment."
-  `(let ((obj (make-test :name ',name :form ',body)))
+(defmacro deftest (name lambda-list &body body)
+  "Build a test parameterized by LAMBDA-LIST. BODY is wrapped in
+`with-test-env' and passed to `make-test' which returns a value based
+on the dynamic environment."
+  `(let ((obj (make-test :name ',name :form ',body))
+	 (args ',lambda-list))
+     (when args
+       (when-let ((persist (getf :persist args)))
+	 (setf (test-persist-p obj) persist)))
      (setf (tests (ensure-suite *test-suite*)) (spush obj (tests *test-suite*)))
      obj))
 
-(defmacro defsuite (suite-name ((&key stream)))
+(defmacro defsuite (suite-name &key (stream t))
   "Define a `test-suite' with provided keys. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
   (check-type suite-name symbol)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (let ((obj (make-suite :name ',suite-name ,@(when stream `(:stream ,stream)))))
+     (let ((obj (make-suite :name ',suite-name :stream ,stream)))
        (setf *test-suite-list* (spush obj *test-suite-list* :test #'suite-name=))
        obj)))
 
 (defmacro in-suite (name)
   "Set `*test-suite*' to the `test-suite' referred to by symbol
 NAME. Return the `test-suite'."
-    (assert-suite name)
+  (assert-suite name)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (setf *test-suite* (ensure-suite ',name))))
 
@@ -350,26 +355,26 @@ NAME. Return the `test-suite'."
    (args :type list :accessor test-args :initform nil :initarg :args)
    (form :initarg :form :initform nil :type function-lambda-expression :accessor test-form)
    (lock :initarg :lock :type boolean :accessor test-lock-p)
-   (once :initarg :once :initform nil :type boolean :accessor test-once-p))
+   (persist :initarg :persist :initform nil :type boolean :accessor test-persist-p))
   (:documentation "Test class typically made with `deftest'."))
 
-(declaim (inline make-test-function))
-(defun make-test-function (sym)
-  (symb sym (string-upcase *test-suffix*)))
-
-(defmethod initialize-instance ((self test) &key keys)
-  (dbg! "building test" self keys)
-  (setf (test-function-symbol self) (make-test-function (get keys :name)))
+(defmethod initialize-instance ((self test) &key name)
+  (dbg! "building test" "args:" slots)
+  (setf (test-function-symbol self)
+	(make-symbol
+	 (format nil "~A~A"
+		 name
+		 (gensym *test-suffix*))))
   (setf (test-lock-p self) t)
   (call-next-method))
 
 (defmethod print-object ((self test) stream)
   (print-unreadable-object (self stream :type t :identity t)
-    (format stream "~A ~A :lock ~A :once ~A"
+    (format stream "~A ~A :lock ~A :persist ~A"
 	    (test-name self)
 	    (test-form self)
 	    (test-lock-p self)
-	    (test-once-p self))))
+	    (test-persist-p self))))
 
 ;; TODO 2023-09-01: use sxp?
 ;; (defun validate-form (form))
@@ -393,7 +398,7 @@ NAME. Return the `test-suite'."
       (block bail
 	(setf r
 	      (flet ((%do
-		       ()
+			 ()
 		       (if-let ((opt *compile-tests*))
 			 (multiple-value-list
 			  ;; RESEARCH 2023-08-31: with-compilation-unit?
@@ -409,7 +414,7 @@ NAME. Return the `test-suite'."
 				    (return-from bail nil))))
 		      (%do))
 		    (%do)))))
-      (setf (test-lock-p self) (or bail (not (test-once-p self))))
+      (setf (test-lock-p self) bail)
       r)))
 
 (defclass test-fixture (test-object)
@@ -424,15 +429,16 @@ NAME. Return the `test-suite'."
 	  :documentation "test-suite failures")
    (results :initarg :results :initform nil :type list :accessor test-results
 	    :documentation "test-suite results")
+   (stream :initarg :stream :initform *standard-output* :type stream :accessor test-stream)
    (opts :initarg :opts :initform nil :type list :accessor test-opts))
   (:documentation "A class for collections of related `test' objects."))
 
 (defmethod print-object ((self test-suite) stream)
   (print-unreadable-object (self stream :type t :identity t)
-    (format stream "~A :tests ~A :opts ~A"
+    (format stream "~A :tests ~A :stream ~A"
 	    (test-name self)
 	    (length (tests self))
-	    (test-opts self))))
+	    (test-stream self))))
 
 (deftype test-suite-designator ()
   "Either nil, a symbol, a string, or a `test-suite' object."
@@ -451,55 +457,57 @@ NAME. Return the `test-suite'."
 ;; HACK 2023-09-01: find better method of declaring failures from
 ;; within the body of `deftest'.
 (defmethod do-suite ((self test-suite) &key stream)
-  ;; push opts
-  (when stream (push `(:stream ,stream) (test-opts self)))
-  (with-slots (opts) self
-    (let ((stream (assoc :stream (test-opts self))))
-      (format stream "testing [:~A]~%"
-		(count t (tests self)
-		       :key #'test-lock-p))
-
-	;; loop over each test, calling `do-test' if locked
-	(dolist (i (tests self))
-	  (when (test-lock-p i)
-	    (format stream "~@[~<~%~:;~:@(~S~) ~>~]"
-		    (do-test i))))
-	;; compare locked vs expected
-	(let ((locked (locked-tests self))
-	      ;; TODO - consider test-fn param
-	      (expected (make-hash-table :test #'equal)))
-	  ;; TODO - depends on fail infrastructure
-	  (dolist (ex (test-fails self))
-	    ;; t isn't really a useful value to put here..
-	    ;; RESEARCH 2023-09-02: hashset
-	    (setf (gethash ex expected) t))
-	  ;; process fails
-	  (let ((fails
-		  ;; collect if locked test not expected
-		  (loop for p in locked
-			unless (gethash p expected)
-			  collect p)))
-	    (if (null locked)
-		(format stream "~&No tests failed.")
-		(progn
-		  ;;  RESEARCH 2023-09-04: print fails ??
-		  (format stream "~&~A out of ~A ~
+  ;; early abort
+  (when stream (setf (test-stream self) stream))
+  (with-slots (opts stream) self
+    (format stream "testing [:~A]~%"
+	    (count t (tests self)
+		   :key #'test-lock-p))
+    ;; loop over each test, calling `do-test' if locked
+    (dolist (i (tests self))
+      (when (test-lock-p i)
+	(format stream "~@[~<~%~:;~:@(~S~) ~>~]"
+		(do-test i))))
+    ;; compare locked vs expected
+    (let ((locked (locked-tests self))
+	  ;; TODO - consider test-fn param
+	  (expected (make-hash-table :test #'eq)))
+      ;; TODO - depends on fail infrastructure
+      (dolist (ex (tests self))
+	;; t isn't really a useful value to put here..
+	;; RESEARCH 2023-09-02: hashset
+	(setf (gethash (test-function-symbol ex) expected) t))
+      ;; process fails
+      (let ((fails
+	      ;; collect if locked test not expected
+	      (loop for p in locked
+		    unless (gethash p expected)
+		      collect p)))
+	(if (null locked)
+	    (format stream "~&No tests failed.")
+	    (progn
+	      ;;  RESEARCH 2023-09-04: print fails ??
+	      (format stream "~&~A out of ~A ~
                    total tests failed: ~
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."
-			  (length locked)
-			  (length (tests self))
-			  locked)
-		  (if (null fails)
-		      (format stream "~&No unexpected failures.")
-		      (when (test-fails self)
-			;; print unexpected failures
-			(format stream "~&~A unexpected failures: ~
+		      (length locked)
+		      (length (tests self))
+		      locked)
+	      (if (null fails)
+		  (format stream "~&No unexpected failures.")
+		  (when (test-fails self)
+		    ;; print unexpected failures
+		    (format stream "~&~A unexpected failures: ~
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."
-				(length fails)
-				fails)))))
-      ;; close stream
-      (finish-output stream)
-      ;; return values (PASS FAIL TOTAL)
-      (values (not fails) (not locked) locked))))))
+			    (length fails)
+			    fails)))))
+	;; close stream
+	(finish-output stream)
+	;; reset locks on persistent tests
+	(loop for i in (tests self)
+	      do (when (test-persist-p i)
+		   (setf (test-lock-p i) t)))
+	;; return values (PASSED LOCKED)
+	(values (not fails) locked)))))

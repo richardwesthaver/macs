@@ -243,7 +243,7 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
 (defreadtable *macs-readtable*
-  (:merge :standard)
+  (:merge :modern)
   (:dispatch-macro-char #\# #\" #'|#"-reader|)
   (:dispatch-macro-char #\# #\> #'|#>-reader|)
   #+cl-ppcre (:dispatch-macro-char #\# #\~ #'|#~-reader|)
@@ -888,7 +888,7 @@ Example:
 			  :source-location))
 
 ;;; Named Lambdas
-(reexport-from :sb-int :include '(:make-macro-lambda))
+(reexport-from :sb-int :include '(:make-macro-lambda :parse-lambda-list))
 
 ;;; cl-bench utils
 ;; Destructive merge of two sorted lists.

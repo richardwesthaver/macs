@@ -141,14 +141,16 @@
   (:export))
 
 (defpackage :macs.cli
-  (:use :cl :macs.sym :macs.cond :macs.fu :macs.pan :macs.str)
+  (:use :cl :macs.sym :macs.cond :macs.fu :macs.str)
+  (:import-from :ana :alet)
   (:nicknames :cli)
-  (:import-from :sb-ext :exit)
+  (:shadowing-import-from :sb-ext :exit)
   (:export
+   :*argv*
+   :init-args
+   :cli-arg0
+   :cli-args
    :command-line-args
-   :*cli-arg0*
-   :*cli-args*
-   :*default-cli-opts*
    :*cli-group-separator*
    :exec-path-list
    :cli-flag-p
@@ -159,6 +161,8 @@
    :with-cli
    :make-cli
    :print-help
+   :print-version
+   :print-banner
    :print-usage
    :handle-unknown-argument
    :handle-missing-argument
