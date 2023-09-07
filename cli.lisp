@@ -137,7 +137,6 @@ Note that this macro does not export the defined function and requires
 (defgeneric handle-invalid-argument (self arg)
   (:documentation "Handle an invalid argument."))
 
-(defenum
 (defclass cli-opt ()
   ((name :initarg :name :initform nil :accessor cli-name :type (or null string))
    (val :initarg :val :initform nil :accessor cli-val)
