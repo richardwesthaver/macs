@@ -37,6 +37,7 @@
   (:use :cl)
   (:nicknames :cond)
   (:export
+   #:nyi!
    #:required-argument
    #:ignore-some-conditions
    #:simple-style-warning
@@ -141,7 +142,7 @@
   (:export))
 
 (defpackage :macs.cli
-  (:use :cl :macs.sym :macs.cond :macs.fu :macs.str)
+  (:use :cl :macs.sym :macs.cond :macs.fu :macs.str :macs.ana)
   (:import-from :ana :alet)
   (:nicknames :cli)
   (:shadowing-import-from :sb-ext :exit)
@@ -153,31 +154,32 @@
    :command-line-args
    :*cli-group-separator*
    :exec-path-list
-   :cli-flag-p
-   :make-short-name
+   :arg-p
+   :make-shorty
    :with-cli-handlers
    :defmain
    :main
    :with-cli
    :make-cli
+   :make-opts
+   :make-cmds
+   :parse-args
+   :run-cmd
    :print-help
    :print-version
-   :print-banner
    :print-usage
    :handle-unknown-argument
    :handle-missing-argument
    :handle-invalid-argument
+   :cli-opt
+   :cli-cmd
    :cli
    :cli-name
    :cli-opts
    :cli-cmds
    :cli-help
    :cli-version
-   :cli-usage
-   :cli-opt
-   :cli-cmd
-   :parse-cli-args
-   :parse-args))
+   :cli-usage))
 
 (defpackage :macs.alien
   (:use :cl :macs.reexport :sb-vm :sb-alien :sb-ext :sb-c :macs.str :macs.sym :macs.fu)
