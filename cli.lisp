@@ -93,7 +93,7 @@ Note that this macro does not export the defined function and requires
 (defgeneric print-version (self)
   (:documentation "Print the version of SELF."))
 
-(defgeneric print-version (self)
+(defgeneric print-banner (self)
   (:documentation "Print the banner of SELF."))
 
 (defgeneric print-usage (self)
@@ -135,10 +135,11 @@ Note that this macro does not export the defined function and requires
 	    (cli-version self))))
 
 (defmethod print-help ((self cli))
-  (print (cli-help self) t))
+  (princ (cli-help self) t))
 
 (defmethod print-version ((self cli))
-  (print (cli-version self) t))
+  (princ (cli-version self))
+  (terpri))
 
 (defmethod print-banner ((self cli))
   (princ (cli-banner self) t))
