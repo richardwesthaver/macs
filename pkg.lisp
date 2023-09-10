@@ -59,6 +59,11 @@
    #:invalid-argument-p
    #:unwind-protect-case))
 
+(defpackage :macs.fmt
+  (:use :cl :str)
+  (:nicknames :fmt)
+  (:export :printer-status :fmt-row))
+
 (defpackage :macs.fu
   (:use :cl :sb-c :macs.readtables :macs.reexport :macs.sym :macs.list :macs.cond)
   (:nicknames :fu)
@@ -108,6 +113,11 @@
    #:if-let
    #:if-let*
    :defcmd))
+
+(defpackage :macs.log
+  (:use :cl :str :fmt :sym :fu)
+  (:nicknames :log)
+  (:export :*log-level* :log-timestamp-source :log! :warn! :info! :dbg! :trace!))
 
 (defpackage :macs.ana
   (:use :cl :macs.readtables :macs.reexport :macs.fu)
@@ -196,5 +206,4 @@
   (:nicknames :thread)
   (:export
    :print-thread-info :print-thread-message-top-level :thread-support-p))
-   
-   
+

@@ -39,7 +39,7 @@
 (defpackage :macs.rt
   (:use
    :cl
-   :macs.sym :macs.list :macs.cond :macs.readtables :macs.fu :sb-aprof
+   :sym :list :cond :readtables :fu :log :sb-aprof
    #+x86-64 :sb-sprof)
   (:nicknames :rt)
   (:export
@@ -56,7 +56,6 @@
    :test-suite-designator
    :check-suite-designator
    :test-debug-timestamp-source
-   :dbg!
    :make-test
    :make-suite
    :suite-name-eq
@@ -67,7 +66,6 @@
    :continue-testing
    :with-test-env
    :ensure-suite
-   :assure-suite
    :test-failed
    :fail!
    :is
@@ -92,7 +90,6 @@
    :tests
    :test-fails
    :test-results))
-swank::*current-debug-io*
 
 (in-package :macs.rt)
 (in-readtable *macs-readtable*)
@@ -105,34 +102,17 @@ compiler optimizations.")
 (defvar *catch-test-errors* t "When non-nil, cause errors in a test to be caught.")
 (defvar *test-suffix* "-test" "A suffix to append to every `test' defined with `deftest'.")
 (defvar *test-suite-list* nil "List of available `test-suite' objects.")
-(defvar *test-suite* "A 'test-suite-designator' which identifies the current `test-suite'.")
+(defvar *test-suite* nil "A 'test-suite-designator' which identifies the current `test-suite'.")
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *default-test-suite-name* "default"))
 (declaim (type (or stream boolean string) *test-input*))
 (defvar *test-input* nil "When non-nil, specifies an input stream or buffer for `*testing*'.")
 (declaim (type (or stream boolean) *test-debug*))
-(defvar *test-debug* nil "When non-nil, enable debug-mode for tests defined with `deftest'. The
+(defvar *test-debug* *log-level* "When non-nil, enable debug-mode for tests defined with `deftest'. The
 value is actually treated as a stream-designator - so you can point
 the debug output wherever you want.")
-(defparameter *test-debug-timestamp* t "If non-nil, print a timestamp with debug output. Has no effect when
-`*debug-tests*' is nil. The value may be a function in which case it
-is used as the function value of `test-debug-timestamp-source'.")
+
 (defvar *testing* nil "Testing state var.")
-
-;;;; * Debug
-(declaim (inline test-debug-timestamp-source))
-(defun test-debug-timestamp-source ()
-  (format nil "~f" (/ (get-internal-real-time) internal-time-units-per-second)))
-
-;; TODO 2023-08-31: single format control string
-(defmacro dbg! (&rest args)
-  (with-gensyms (dbg)
-    `(when-let ((,dbg *test-debug*))
-       (format ,dbg ":DBG")
-       (if *test-debug-timestamp*
-	   (format ,dbg " @ ~A ::~t" (test-debug-timestamp-source)))
-       ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
-       (map nil (lambda (x) (format ,dbg "~A " x)) ',args))))
 
 ;;;; * Utils
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -171,7 +151,7 @@ is used as the function value of `test-debug-timestamp-source'.")
 ;; means that if we want to do something else in the event that place
 ;; is unchanged, we run into some friction,
 ;; https://stackoverflow.com/questions/56228832/adapting-common-lisp-pushnew-to-return-success-failure
-(defun spush (item lst &key (test #'eql))
+(defun spush (item lst &key (test #'equal))
   "Substituting `push'"
   (cond
     ((null lst) (push item lst))
@@ -189,8 +169,9 @@ is used as the function value of `test-debug-timestamp-source'.")
   "Return the normalized `test-suite-designator' of A."
   (etypecase a
     (test-suite (test-name a))
-    ((string) (symb (string-upcase a)))
-    (t (symb a))))
+    (string a)
+    (symbol (symbol-name a))
+    (t (format nil "~A" a))))
 
 (defun suite-name= (a b)
   "Return t if A and B are similar `test-suite-designator's."
@@ -276,7 +257,9 @@ not evaluated."
   "Build a test parameterized by LAMBDA-LIST. BODY is wrapped in
 `with-test-env' and passed to `make-test' which returns a value based
 on the dynamic environment."
-  `(let ((obj (make-test :name ',name :form ',body))
+  `(let ((obj (make-test
+	       :name (format nil "~A" ',name)
+	       :form ',body))
 	 (args ',lambda-list))
      (when args
        (when-let ((persist (getf :persist args)))
@@ -287,9 +270,11 @@ on the dynamic environment."
 (defmacro defsuite (suite-name &key (stream t))
   "Define a `test-suite' with provided keys. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
-  (check-type suite-name symbol)
+  (check-type suite-name (or symbol string))
   `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (let ((obj (make-suite :name ',suite-name :stream ,stream)))
+     (let ((obj (make-suite
+		 :name (format nil "~A" ',suite-name)
+		 :stream ,stream)))
        (setf *test-suite-list* (spush obj *test-suite-list* :test #'suite-name=))
        obj)))
 
@@ -297,8 +282,7 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API."
   "Set `*test-suite*' to the `test-suite' referred to by symbol
 NAME. Return the `test-suite'."
   (assert-suite name)
-  `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (setf *test-suite* (ensure-suite ',name))))
+  `(setf *test-suite* (ensure-suite ',name)))
 
 ;;;; * PROTO
 (defgeneric eval-test (self)
@@ -359,7 +343,7 @@ NAME. Return the `test-suite'."
   (:documentation "Test class typically made with `deftest'."))
 
 (defmethod initialize-instance ((self test) &key name)
-  (dbg! "building test" "args:" slots)
+  (dbg! "building test" name)
   (setf (test-function-symbol self)
 	(make-symbol
 	 (format nil "~A~A"
@@ -459,10 +443,11 @@ NAME. Return the `test-suite'."
 (defmethod do-suite ((self test-suite) &key stream)
   ;; early abort
   (when stream (setf (test-stream self) stream))
-  (with-slots (opts stream) self
+  (with-slots (name opts stream) self
     (format stream "testing [:~A]~%"
 	    (count t (tests self)
 		   :key #'test-lock-p))
+    (format stream "in suite ~A~%" name)
     ;; loop over each test, calling `do-test' if locked
     (dolist (i (tests self))
       (when (test-lock-p i)
