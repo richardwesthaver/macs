@@ -177,7 +177,7 @@ the debug output wherever you want.")
   "Return t if A and B are similar `test-suite-designator's."
   (let ((a (normalize-test-name a))
 	(b (normalize-test-name b)))
-    (equal a b)))
+    (string= a b)))
 
 (declaim (inline assert-suite ensure-suite))
 (defun ensure-suite (name)
