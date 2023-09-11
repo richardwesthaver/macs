@@ -60,9 +60,9 @@
    #:unwind-protect-case))
 
 (defpackage :macs.fmt
-  (:use :cl :str)
+  (:use :cl :str :fu)
   (:nicknames :fmt)
-  (:export :printer-status :fmt-row))
+  (:export :printer-status :fmt-row :fmt-sxhash))
 
 (defpackage :macs.fu
   (:use :cl :sb-c :macs.readtables :macs.reexport :macs.sym :macs.list :macs.cond)
