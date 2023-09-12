@@ -10,6 +10,7 @@
 ;; Basic assumptions at runtime:
 ;;   - running in a POSIX-compliant shell
 ;;   - output stream supports UTF-8
+
 ;;; Code:
 (in-package :macs.cli)
 
@@ -100,7 +101,7 @@ Note that this macro does not export the defined function and requires
 	(lambda (x)
 	  (etypecase x
 	    (string (make-cli :opt :name x))
-	    (symbol (make-cli :opt :name (symbol-name x) :global t))
+	    (symbol (make-cli :opt :name (string-downcase (symbol-name x)) :global t))
 	    (list (apply #'make-cli :opt x))))
 	',opts))
 
@@ -109,7 +110,7 @@ Note that this macro does not export the defined function and requires
 	(lambda (x)
 	  (etypecase x
 	    (string (make-cli :cmd :name x))
-	    (symbol (make-cli :cmd :name (symbol-name x)))
+	    (symbol (make-cli :cmd :name (string-downcase (symbol-name x))))
 	    (list (apply #'make-cli :cmd x))))
 	',opts))
 
@@ -138,35 +139,67 @@ Note that this macro does not export the defined function and requires
   (:documentation "Handle an invalid argument."))
 
 (defclass cli-opt ()
+  ;; note that cli-opts can have a nil or unbound name slot
   ((name :initarg :name :initform nil :accessor cli-name :type (or null string))
    (val :initarg :val :initform nil :accessor cli-val)
-   (global :initarg :global :initform nil :accessor global-opt-p))
+   (global :initarg :global :initform nil :accessor global-opt-p)
+   (description :initarg :description :accessor cli-description :type string))
   (:documentation "CLI option"))
 
+(defmethod print-object ((self cli-opt) stream)
+  (print-unreadable-object (self stream :type t)
+    (format stream "~A :global ~A :val ~A"
+            (cli-name self)
+	    (global-opt-p self)
+	    (cli-val self))))
+
+(defmethod print-usage ((self cli-opt))
+  (format nil "~A~A~A"
+	  (cli-name self)
+	  (if (global-opt-p self) "* " "  ")
+	  (if-let ((d (and (slot-boundp self 'description) (cli-description self))))
+	    (format nil ":: ~A" d)
+	    "")))
+
 (defclass cli-cmd ()
+  ;; name slot is required and must be a string
   ((name :initarg :name :initform (required-argument :name) :accessor cli-name :type string)
    (opts :initarg :opts :initform nil :accessor cli-opts :type (or (vector cli-opt) null))
-   (cmds :initarg :cmds :initform nil :accessor cli-cmds :type (or (vector cli-cmd) null)))
+   (cmds :initarg :cmds :initform nil :accessor cli-cmds :type (or (vector cli-cmd) null))
+   (description :initarg :description :accessor cli-description :type string))
   (:documentation "CLI command"))
 
 (defmethod print-object ((self cli-cmd) stream)
   (print-unreadable-object (self stream :type t)
-    (format stream "name=~A opts=~A cmds=~A"
+    (format stream "~A :opts ~A :cmds ~A"
             (cli-name self)
             (length (cli-opts self))
 	    (length (cli-cmds self)))))
 
 (defclass cli (cli-cmd)
-  ((name :initarg :name :initform (package-name *package*) :accessor cli-name :type string)
-   (version :initarg :version :initform "0.1.0" :accessor cli-version :type string)
-   ;; TODO 2023-09-07: separate mixin
-   ;; (banner :initarg :banner :accessor cli-banner :type string)
-   (help :initarg :help :accessor cli-help :type string))
+  ;; name slot defaults to *package*, must be string
+  ((name :initarg :name :initform (string-downcase (package-name *package*)) :accessor cli-name :type string)
+   (version :initarg :version :initform "0.1.0" :accessor cli-version :type string))
   (:documentation "CLI"))
 
-(defmethod print-help ((self cli))
-  (princ (cli-help self) t))
+(defmethod print-usage ((self cli))
+  (iprintln (format nil "usage: ~A [global] <command> [<arg>]~%" (cli-name self))))
 
 (defmethod print-version ((self cli))
-  (princ (cli-version self))
-  (terpri))
+  (println (cli-version self)))
+
+(defmethod print-help ((self cli))
+  (println (format nil "~A v~A" (cli-name self) (cli-version self)))
+  (print-usage self)
+  (iprintln (cli-description self))
+  (terpri)
+  (iprintln "options:")
+  (with-slots (opts cmds) self
+    (unless (null opts)
+      (loop for o across opts
+	    do (iprintln (print-usage o) 4)))
+    (terpri)
+    (iprintln "commands:")
+    (unless (null cmds)
+      (loop for c across cmds
+	    do (iprintln c 4)))))

@@ -3,7 +3,8 @@
 ;;; Code:
 (in-package :macs.fmt)
 
-(reexport-from :uiop :include '(println writeln))
+(defun iprintln (x &optional (n 2) (stream *standard-output*))
+  (println (format nil "~A~A" (make-string n :initial-element #\Space) x) stream))
 
 (defun printer-status ()
   (format t ";;           *print-array* = ~a~%" *print-array*)

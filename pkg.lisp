@@ -6,7 +6,7 @@
   (:export :reexport-from :reexports))
 
 (defpackage :macs.str
-  (:use :cl :uiop)
+  (:use :cl :uiop/driver)
   (:nicknames :str)
   (:import-from :macs.reexport :reexports)
   (:export
@@ -60,7 +60,7 @@
    #:unwind-protect-case))
 
 (defpackage :macs.fu
-  (:use :cl :sb-c :macs.readtables :macs.reexport :macs.sym :macs.list :macs.cond)
+  (:use :cl :sb-mop :sb-c :macs.readtables :macs.reexport :macs.sym :macs.list :macs.cond)
   (:nicknames :fu)
   (:export
    #:*macs-readtable*
@@ -105,12 +105,15 @@
    #:when-let*
    #:if-let
    #:if-let*
-   :defcmd))
-
+   :defcmd
+   :merge! :sort!
+   :list-slot-values-using-class :list-class-methods :list-class-slots :list-indirect-slot-methods))
+   
 (defpackage :macs.fmt
   (:use :cl :reexport :str :fu)
+  (:import-from :uiop :println)
   (:nicknames :fmt)
-  (:export :printer-status :fmt-row :fmt-sxhash))
+  (:export :printer-status :fmt-row :fmt-sxhash :iprintln))
 
 (defpackage :macs.log
   (:use :cl :str :fmt :sym :fu)
@@ -150,8 +153,9 @@
   (:export))
 
 (defpackage :macs.cli
-  (:use :cl :macs.sym :macs.cond :macs.fu :macs.str :macs.ana)
+  (:use :cl :sym :cond :fu :str :ana :fmt)
   (:import-from :ana :alet)
+  (:import-from :uiop :println)
   (:nicknames :cli)
   (:shadowing-import-from :sb-ext :exit)
   (:export
@@ -185,7 +189,7 @@
    :cli-name
    :cli-opts
    :cli-cmds
-   :cli-help
+   :cli-description
    :cli-version
    :cli-usage))
 
@@ -204,4 +208,3 @@
   (:nicknames :thread)
   (:export
    :print-thread-info :print-thread-message-top-level :thread-support-p))
-

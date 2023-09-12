@@ -19,9 +19,7 @@ or a character."
 		    #:confusable-p #:hex-digit-p #:mirrored-p #:alphabetic-p #:math-p
 		    #:decimal-value #:digit-value
 		    #:unicode< #:unicode> #:unicode= #:unicode-equal
-		    #:unicode<= #:unicode>=))
- (:uiop
-  :include (#:strcat #:stripln #:string-suffix-p #:string-enclosed-p #:split-string)))
+		    #:unicode<= #:unicode>=)))
 
 ;;;  TODO 2023-08-27: camel snake kebab
 
