@@ -16,7 +16,7 @@
   :description "macros for the macro-programmer"
   :bug-tracker "https://lab.rwest.io/ellis/macs/issues"
   :source-control (:hg "https://lab.rwest.io/ellis/macs")
-  :depends-on (:uiop :macs/readtables)
+  :depends-on (:asdf :macs/readtables)
   :in-order-to ((test-op (test-op "macs/tests")))
   :components ((:file "pkg")
                (:file "reexport")

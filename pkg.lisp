@@ -13,7 +13,7 @@
    #:string-designator))
 
 (defpackage :macs.sym
-  (:use :cl :macs.reexport :macs.str :sb-int)
+  (:use :cl :reexport :str :sb-int)
   (:nicknames :sym)
   (:export
    #:ensure-symbol
@@ -59,11 +59,6 @@
    #:invalid-argument-p
    #:unwind-protect-case))
 
-(defpackage :macs.fmt
-  (:use :cl :reexport :str :fu)
-  (:nicknames :fmt)
-  (:export :printer-status :fmt-row :fmt-sxhash))
-
 (defpackage :macs.fu
   (:use :cl :sb-c :macs.readtables :macs.reexport :macs.sym :macs.list :macs.cond)
   (:nicknames :fu)
@@ -103,8 +98,6 @@
    #:if-match
    #:when-match
    #:once-only
-   #:parse-body
-   #:parse-ordinary-lambda-list
    #:destructuring-case
    #:destructuring-ccase
    #:destructuring-ecase
@@ -113,6 +106,11 @@
    #:if-let
    #:if-let*
    :defcmd))
+
+(defpackage :macs.fmt
+  (:use :cl :reexport :str :fu)
+  (:nicknames :fmt)
+  (:export :printer-status :fmt-row :fmt-sxhash))
 
 (defpackage :macs.log
   (:use :cl :str :fmt :sym :fu)
