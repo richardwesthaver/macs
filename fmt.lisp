@@ -3,6 +3,8 @@
 ;;; Code:
 (in-package :macs.fmt)
 
+(reexport-from :uiop/stream :include '(println writeln))
+
 (defun printer-status ()
   (format t ";;           *print-array* = ~a~%" *print-array*)
   (format t ";;            *print-base* = ~a~%" *print-base*)
