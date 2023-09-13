@@ -176,7 +176,7 @@
    :make-opts
    :make-cmds
    :parse-args
-   :run-cmd
+   :do-cmd
    :print-help
    :print-version
    :print-usage
@@ -189,6 +189,7 @@
    :cli-name
    :cli-opts
    :cli-cmds
+   :cli-thunk
    :cli-description
    :cli-version
    :cli-usage))

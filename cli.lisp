@@ -120,7 +120,7 @@ Note that this macro does not export the defined function and requires
 (defgeneric parse-args (self args)
   (:documentation "Parse ARGS using SELF."))
 
-(defgeneric run-cmd (self)
+(defgeneric do-cmd (self)
   (:documentation "Run the command SELF."))
 
 (defgeneric print-help (self)
@@ -171,6 +171,7 @@ Note that this macro does not export the defined function and requires
   ((name :initarg :name :initform (required-argument :name) :accessor cli-name :type string)
    (opts :initarg :opts :initform nil :accessor cli-opts :type (or (vector cli-opt) null))
    (cmds :initarg :cmds :initform nil :accessor cli-cmds :type (or (vector cli-cmd) null))
+   (thunk :initarg :thunk :accessor cli-thunk :type lambda)
    (description :initarg :description :accessor cli-description :type string))
   (:documentation "CLI command"))
 
@@ -231,8 +232,13 @@ Note that this macro does not export the defined function and requires
        r)
       r)))
 
-(defmethod run-cmd ((self cli-cmd)))
-
+;; warning: make sure to fill in the opt and cmd slots with values
+;; from the top-level args before doing a command.
+(defmethod do-cmd ((self cli-cmd))
+  (if (slot-boundp self 'thunk)
+      ;; TODO 2023-09-12: handle args/env
+      (funcall (cli-thunk self))
+      (error 'slot-unbound 'thunk)))
 
 (defclass cli (cli-cmd)
   ;; name slot defaults to *package*, must be string
