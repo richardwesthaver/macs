@@ -166,7 +166,7 @@
    :command-line-args
    :*cli-group-separator*
    :exec-path-list
-   :arg-p
+   :argp
    :make-shorty
    :with-cli-handlers
    :defmain

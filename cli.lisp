@@ -32,10 +32,10 @@
 
 ;; uiop:command-line-arguments
 
-(defmacro arg-p (arg)
-  "Test for presence of ARG in `*cli-args*'. Return the tail of
-`*cli-args*' starting from the position of FLAG."
-  `(member ,arg (cli-args) :test #'string=))
+(defmacro argp (arg &optional (args (cli-args)))
+  "Test for presence of ARG in ARGS. Return the tail of
+ARGS starting from the position of ARG."
+  `(member ,arg ,args :test #'string=))
 
 (defmacro make-shorty (name)
   "Return the first char of symbol or string NAME."
@@ -96,23 +96,26 @@ Note that this macro does not export the defined function and requires
      (t 'cli))
     slots))
 
-(defmacro make-opts (&rest opts)
-  `(map 'vector
-	(lambda (x)
-	  (etypecase x
-	    (string (make-cli :opt :name x))
-	    (symbol (make-cli :opt :name (string-downcase (symbol-name x)) :global t))
-	    (list (apply #'make-cli :opt x))))
-	',opts))
+;; RESEARCH 2023-09-12: closed over hash-table with short/long flags
+;; to avoid conflicts. if not, need something like a flag-function
+;; slot at class allocation.
+(defun make-opts (&rest opts)
+  (map 'vector
+       (lambda (x)
+	 (etypecase x
+	   (string (make-cli :opt :name x))
+	   (symbol (make-cli :opt :name (string-downcase (symbol-name x)) :global t))
+	   (list (apply #'make-cli :opt x))))
+       opts))
 
-(defmacro make-cmds (&rest opts)
-  `(map 'vector
+(defun make-cmds (&rest opts)
+  (map 'vector
 	(lambda (x)
 	  (etypecase x
 	    (string (make-cli :cmd :name x))
 	    (symbol (make-cli :cmd :name (string-downcase (symbol-name x))))
 	    (list (apply #'make-cli :cmd x))))
-	',opts))
+	opts))
 
 (defgeneric parse-args (self args)
   (:documentation "Parse ARGS using SELF."))
@@ -154,11 +157,13 @@ Note that this macro does not export the defined function and requires
 	    (cli-val self))))
 
 (defmethod print-usage ((self cli-opt))
-  (format nil "~A~A~A"
-	  (cli-name self)
+  (format nil " -~(~{~A~^/~}~)~A~A"
+	  (if-let ((n (cli-name self)))
+	    (list (make-shorty n) n)
+	    'dyn)
 	  (if (global-opt-p self) "* " "  ")
 	  (if-let ((d (and (slot-boundp self 'description) (cli-description self))))
-	    (format nil ":: ~A" d)
+	    (format nil ":  ~A" d)
 	    "")))
 
 (defclass cli-cmd ()
@@ -172,9 +177,48 @@ Note that this macro does not export the defined function and requires
 (defmethod print-object ((self cli-cmd) stream)
   (print-unreadable-object (self stream :type t)
     (format stream "~A :opts ~A :cmds ~A"
-            (cli-name self)
-            (length (cli-opts self))
-	    (length (cli-cmds self)))))
+	  (cli-name self)
+          (length (cli-opts self))
+	  (length (cli-cmds self)))))
+
+(defmethod print-usage ((self cli-cmd))
+  (with-slots (opts cmds) self
+    (format nil "~(~A~)  ~A~A~A"
+	    (cli-name self)
+	    (if-let ((d (and (slot-boundp self 'description) (cli-description self))))
+	      (format nil ":  ~A" d)
+	      "")
+	    (if (null opts)
+		""
+		(format nil "~%    ~{~A~}" (loop for o across opts collect (print-usage o))))
+	    (if (null cmds)
+		""
+		(format nil "~%    ~{!  ~A~}" (loop for c across cmds collect (print-usage c)))))))
+
+;; typically when starting from a top-level `cli', the global
+;; `cli-opts' will be parsed first, followed by the first command
+;; found. If a command is found, the tail of the list is passed as
+;; arguments to this function, which can pass additonal arguments to
+;; nested commands.
+
+;;  TODO 2023-09-12: Parsing restarts at the `*cli-group-separator*'
+;; if present, or stops as EOI.
+(defmethod parse-args ((self cli-cmd) args)
+  (with-slots (opts cmds) self
+    (loop 
+      for i from 0
+      for a in (cdr args)
+      for c across cmds
+      for o across opts
+      if (string= a (cli-name c))
+	;;  TODO 2023-09-12: better parsing strat
+	do (parse-args c (nthcdr i args))
+      if (string= a (cli-name o))
+	do (setf (cli-val o) (nth (1+ i) args))
+	)))
+
+(defmethod run-cmd ((self cli-cmd)))
+
 
 (defclass cli (cli-cmd)
   ;; name slot defaults to *package*, must be string
@@ -202,4 +246,4 @@ Note that this macro does not export the defined function and requires
     (iprintln "commands:")
     (unless (null cmds)
       (loop for c across cmds
-	    do (iprintln c 4)))))
+	    do (iprintln (print-usage c) 4)))))
