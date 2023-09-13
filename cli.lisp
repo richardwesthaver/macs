@@ -157,7 +157,7 @@ Note that this macro does not export the defined function and requires
 	    (cli-val self))))
 
 (defmethod print-usage ((self cli-opt))
-  (format nil " -~(~{~A~^/~}~)~A~A"
+  (format nil " -~(~{~A~^/--~}~)~A~A"
 	  (if-let ((n (cli-name self)))
 	    (list (make-shorty n) n)
 	    'dyn)
@@ -190,7 +190,7 @@ Note that this macro does not export the defined function and requires
 	      "")
 	    (if (null opts)
 		""
-		(format nil "~%    ~{~A~}" (loop for o across opts collect (print-usage o))))
+		(format nil "~{~%    ~A~^~}" (loop for o across opts collect (print-usage o))))
 	    (if (null cmds)
 		""
 		(format nil "~%    ~{!  ~A~}" (loop for c across cmds collect (print-usage c)))))))
@@ -205,17 +205,31 @@ Note that this macro does not export the defined function and requires
 ;; if present, or stops as EOI.
 (defmethod parse-args ((self cli-cmd) args)
   (with-slots (opts cmds) self
-    (loop 
-      for i from 0
-      for a in (cdr args)
-      for c across cmds
-      for o across opts
-      if (string= a (cli-name c))
-	;;  TODO 2023-09-12: better parsing strat
-	do (parse-args c (nthcdr i args))
-      if (string= a (cli-name o))
-	do (setf (cli-val o) (nth (1+ i) args))
-	)))
+    (let ((args (cdr args))
+	  r)
+      (push 
+       (loop 
+	 for i from 0
+	 for a in (cdr args)
+	 for c across cmds
+	 if (string= a (cli-name c))
+	   ;;  TODO 2023-09-12: better parsing strat
+	   collect (parse-args c (nthcdr i args)))
+	 r)
+      (push
+       (loop
+	 for i from 0
+	 for a in args
+	 for o across opts
+	 if (and 
+	     (print a t)
+	     (char-equal (aref a 0) #\-) 
+	     (let ((%i (string-trim "-" a)))
+	       (or (string= %i (cli-name o)) 
+		   (string= %i (make-shorty (cli-name o))))))
+	   collect (nth (1+ i) args))
+       r)
+      r)))
 
 (defmethod run-cmd ((self cli-cmd)))
 
