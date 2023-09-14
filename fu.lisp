@@ -796,12 +796,17 @@ non-nil, also include indirect (parent) methods."
 	 (car (member s (specializer-direct-generic-functions class) :key #'generic-function-name)))
        methods)))
 
-(defun list-class-slots (class slots)
+;; FIX 2023-09-13: need exclude param
+(defun list-class-slots (class slots &optional exclude)
   ;; should probably convert slot-definition-name here
   (let ((cs (remove-if
-	     (lambda (s) (or
-			  (null s)
-			  (eq (slot-definition-name s) 'ast)))
+	     (lambda (s)
+	       (or
+		(null s)
+		(member t (mapcar
+			   (lambda (x)
+			     (string= (slot-definition-name s) x))
+			   exclude))))
 	     (class-slots class))))
     (if (eq slots t)
 	cs
@@ -823,8 +828,8 @@ non-nil, also include indirect (parent) methods."
 	  (if (slot-boundp-using-class class obj s)
 	      (let ((v (slot-value-using-class class obj s)))
 		(if nullp
-		    (cons ns v)
+		    `(,ns ,v)
 		    (unless (null v)
-		      (cons ns v))))
+		      `(,ns ,v))))
 	      (when unboundp (list ns))))))
     slots)))

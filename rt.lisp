@@ -44,7 +44,6 @@
   (:nicknames :rt)
   (:export
    :*test-debug*
-   :*test-debug-timestamp*
    :*compile-tests*
    :*catch-test-errors*
    :*test-suffix*
@@ -55,7 +54,6 @@
    :*testing*
    :test-suite-designator
    :check-suite-designator
-   :test-debug-timestamp-source
    :make-test
    :make-suite
    :suite-name-eq
