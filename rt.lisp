@@ -56,7 +56,6 @@
    :check-suite-designator
    :make-test
    :make-suite
-   :suite-name-eq
    :test-name=
    :with-test
    :do-test
@@ -176,14 +175,13 @@ the debug output wherever you want.")
   (etypecase a
     (string a)
     (symbol (symbol-name a))
+    (test-object (test-name a))
     (t (format nil "~A" a))))
 
 (defun test-name= (a b)
   "Return t if A and B are similar `test-suite-designator's."
   (let ((a (normalize-test-name a))
 	(b (normalize-test-name b)))
-    (princ a)
-    (princ b)
     (string= a b)))
 
 (declaim (inline assert-suite ensure-suite))
@@ -372,10 +370,10 @@ from TESTS."))
 (defstruct (test-result (:constructor %make-test-result)
 			(:conc-name  tr-))
   (tag nil :type result-tag :read-only t)
-  (result nil :type sxp:form))
+  (form nil :type sxp:form))
 
-(defun make-test-result (tag &optional result)
-  (%make-test-result :tag tag :result result))
+(defun make-test-result (tag &optional form)
+  (%make-test-result :tag tag :form form))
 
 (defmethod test-pass-p ((res test-result))
   (when (eq :pass (tr-tag res)) t))
@@ -509,48 +507,41 @@ from TESTS."))
 
 ;; TODO 2023-09-05: 
 (defmacro is (test &rest args)
-  "The DWIM Check -- fiveam.
+  "The DWIM Check.
 
-If FORM returns a truthy value, return `pass' otherwise return
-`fail', optionally return a second value containing a
-`test-result'."
+(is (= 1 1) :test 100) ;=> #S(TEST-RESULT :TAG :PASS :TEST (= 1 1))
+If TEST returns a truthy value, return a PASS test-result, else return
+a FAIL. The TEST is parameterized by ARGS which is a plist or nil.
+
+If ARGS is nil, TEST is bound to to the RESULT slot of the test-result
+and evaluated 'as-is'.
+
+(nyi!)
+ARGS may contain the following keywords followed by a corresponding
+value:
+
+:EXPECTED
+
+:TIMEOUT
+
+:THEN
+
+All other values are treated as let bindings.
+"
   (assert (formp test)
 	  (test)
 	  "TEST must be a form, not ~S" test)
-  (let (binds eft)
-    (with-gensyms (e a)
-      (flet ((%proc (pred exp act &optional flip)
-	       (let ((forms))
-		 (if (and (consp exp)
-			  (eq (car exp) 'values))
-		     (progn
-		       (setf exp (copy-list exp))
-		       (setf forms (loop for c = (cdr exp) then (cdr c)
-					 for i from 0
-					 while c
-					 when (eq (car c) '*)
-					   collect `(setf (elt ,a ,i) nil)
-					   and do (setf (car c) nil)))
-		       (setf binds (list (list e `(list ,@(cdr exp)))
-					 (list a `(multiple-value-list ,act)))))
-		     (setf binds (list (list e exp)
-				       (list a act))))
-		 (setf eft `(progn
-			      ,@forms
-			      ,(if flip
-				   `(not (,pred ,e ,a))
-				   `(,pred ,e ,a)))))))
-	;;  TODO 2023-09-16: need to do some JIT predicate compilation here
-	(cond
-	  ((null test) (setq binds nil
-			     eft nil))
-	  ((listp test) (%proc (car test) (cadr test) (cddr test)))
-	  (t (setq eft test))))
-
-      `(let ,binds
-	 (if ,eft
-	     (make-test-result :pass ',test)
-	     (make-test-result :fail (aif (getf ',args :if-error) (list it ',test) ',test)))))))
+  (flet ((%test (test)
+	   (if test
+	       `(make-test-result :pass ',test)
+	       `(make-test-result :fail ',test))))
+    (if (null args)
+	`,(%test test)
+	(let* ((%ll (mapcar (lambda (x) `(,(symb (car x)) ,@(cdr x)))
+			    (group args 2)))
+	       (%form (list 'let %ll test)))
+	  (print %ll)
+	  `,(%test %form)))))
 
 (defmacro signals (condition-spec &body body)
   "Generates a passing TEST-RESULT if body signals a condition of type
@@ -577,7 +568,7 @@ is not evaluated."
          (return-from ,block-name nil)))))
 
 ;;; Macros
-(macrolet ((%parse (lambda-list &body body)
+(flet ((%parse (lambda-list body)
 	     (multiple-value-bind (forms decls doc)
 		 ;; parse body with docstring allowed
 		 (sb-int:parse-body
@@ -594,8 +585,9 @@ is not evaluated."
 on the dynamic environment."
     (multiple-value-bind (ll doc guts decls)
 	(%parse lambda-list body)
-      (declare (ignore doc))
+      (declare (ignore decls))
       (multiple-value-bind (llks required optional rest keys) ll
+	(declare (ignore llks required optional rest keys)) 
 	`(let ((obj (make-test
 		     :name (format nil "~A" ',name)
 		     :form ,guts

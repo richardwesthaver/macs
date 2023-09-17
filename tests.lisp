@@ -19,9 +19,9 @@
    :macs.rt)
   (:export :run-tests))
 (in-package :macs.tests)
-(defsuite :macs)
 (in-package :macs.rt)
-(rt::check-suite-designator "macs")
+
+(defsuite :macs)
 (in-suite :macs)
 
 (deftest rt-results ()
