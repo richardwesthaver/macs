@@ -32,6 +32,7 @@
 
 ;; uiop:command-line-arguments
 
+;;; Macros
 (defmacro argp (arg &optional (args (cli-args)))
   "Test for presence of ARG in ARGS. Return the tail of
 ARGS starting from the position of ARG."
@@ -60,6 +61,72 @@ evaluation of FORM."
        (format *error-output* "~&~A~&" c)
        (exit :code 1))))
 
+(defun init-args () (setq *argv* (cons (cli-arg0) (cli-args))))
+
+(defmacro with-cli (slots cli &body body)
+  "Like with-slots with some extra bindings."
+  ;;  `(with-pandoric nil nil
+  `(progn
+     (init-args)
+     (with-slots ,slots ,cli
+       ,@body)))
+
+(defun completing-read (prompt collection
+			&key (history nil) (default nil)
+			  (key nil) (test nil))
+
+  "A simplified COMPLETING-READ for common-lisp.
+
+The Emacs completion framework includes a function called
+`completing-read' which prompts the user for input from the
+mini-buffer. It is a very flexible interface which can be used to read
+user input programatically. This is incredibly useful for building
+data entry interfaces -- for example see the `make-prompt!' macro.
+
+Obviously writing a completion framework is out-of-scope, but we can
+simulate one by embedding a DSL in our prompters if we choose. For
+example, perhaps we treat a single '?' character as a request from the
+user to list valid options while continue waiting for input."
+  (princ prompt)
+  (let ((r (if collection
+	       (find (read-line) collection :key key :test test)
+	       (or (read-line) default))))
+    (prog1 
+	r
+      (push r (symbol-value history)))))
+
+(defmacro! make-prompt! (o!var &optional o!prompt)
+  "Generate a 'prompter' from list or variable VAR and optional
+PROMPT string.
+
+This isn't an ideal solution as it does in fact expose a dynamic
+variable (VAR-prompt-history). We should generate accessors and
+keep the variables within lexical scope of the generated
+closure."
+  `(let ((,g!s (cond ;; prefix symbol
+                ((listp ',o!var) ,o!var)
+                ((boundp ',o!var) (symbol-value ,o!var))
+		((symbolp ',o!var) nil)
+                (t (error 'invalid-argument
+			  :reason "first arg must be a bound symbol or a list."
+			  :item ',o!var))))
+         (,g!p ,(when (stringp o!prompt) o!prompt)) ;; prompt string
+         (,g!h ',(symb o!var '-prompt-history))) ;; history symbol
+     (with-compilation-unit (:policy '(optimize))
+       ;;1 we use defvar for the implicit bindp check
+       (defvar ,(symb o!var '-prompt-history) nil)
+       ;;2 our new SYM-prompt function
+       (declaim (inline ,(symb o!var '-prompt)))
+       (defun ,(symb o!var '-prompt) (&optional default)
+	 ,(format nil "Prompt for a value from `~A', use DEFAULT if non-nil
+and no value is provided by user, otherwise fallback to the `car'
+of `~A-PROMPT-HISTORY'." o!var o!var)
+	 (completing-read
+          (format nil "~A [~A]: "
+		  ,g!p
+		  (car (symbol-value ,g!h)))
+	  ,g!s :history ,g!h :default (car (symbol-value ,g!h)))))))
+
 (defmacro defmain (ret &body body)
   "Define a main function in the current package which returns RET.
 
@@ -73,17 +140,8 @@ Note that this macro does not export the defined function and requires
 	 (with-cli-handlers
 	     (progn ,@body ,ret))))))
 
+;;; Utils
 (defvar *argv*)
-
-(defun init-args () (setq *argv* (cons (cli-arg0) (cli-args))))
-
-(defmacro with-cli (slots cli &body body)
-  "Like with-slots with some extra bindings."
-  ;;  `(with-pandoric nil nil
-  `(progn
-     (init-args)
-     (with-slots ,slots ,cli
-       ,@body)))
 
 (defun make-cli (kind &rest slots)
   "Creates a new CLI object of the given kind."
@@ -117,6 +175,7 @@ Note that this macro does not export the defined function and requires
 	    (list (apply #'make-cli :cmd x))))
 	opts))
 
+;;; Protocol
 (defgeneric parse-args (self args)
   (:documentation "Parse ARGS using SELF."))
 
@@ -141,6 +200,7 @@ Note that this macro does not export the defined function and requires
 (defgeneric handle-invalid-argument (self arg)
   (:documentation "Handle an invalid argument."))
 
+;;; Objects
 (defclass cli-opt ()
   ;; note that cli-opts can have a nil or unbound name slot
   ((name :initarg :name :initform nil :accessor cli-name :type (or null string))

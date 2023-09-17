@@ -340,9 +340,8 @@ from TESTS."))
 	      (flet ((%do
 			 ()
 		       (if-let ((opt *compile-tests*))
-;;			 (multiple-value-list
-			  ;; RESEARCH 2023-08-31: with-compilation-unit?
-			  (funcall (compile-test self :declare opt))
+			 ;; RESEARCH 2023-08-31: with-compilation-unit?
+			 (make-test-result :pass (funcall (compile-test self :declare opt)))
 			 (make-test-result
 			  :pass
 			  (eval-test self)))))

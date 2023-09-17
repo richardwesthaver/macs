@@ -170,6 +170,8 @@
    :argp
    :make-shorty
    :with-cli-handlers
+   :completing-read
+   :make-prompt!
    :defmain
    :main
    :with-cli
