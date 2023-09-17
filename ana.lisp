@@ -48,3 +48,20 @@
      ,@(butlast body)
      (lambda (&rest params)
        (apply this params))))
+
+;; swiped from fiveam. This is just like acond except it assumes that
+;; the TEST in each element of CLAUSES returns two values as opposed
+;; to one.
+(defmacro acond2 (&rest clauses)
+  (if (null clauses)
+      nil
+      (with-gensyms (val foundp)
+        (destructuring-bind ((test &rest progn) &rest others)
+            clauses
+          `(multiple-value-bind (,val ,foundp)
+               ,test
+             (if (or ,val ,foundp)
+                 (let ((it ,val))
+                   (declare (ignorable it))
+                   ,@progn)
+                 (acond2 ,@others)))))))

@@ -109,7 +109,7 @@ a default value for required keyword arguments."
     :reader invalid-argument-reason
     :documentation "The reason why this argument is invalid"))
   (:report (lambda (condition stream)
-             (format stream "Invalid argument: ~A" (invalid-argument-reason condition))))
+             (format stream "Invalid argument: ~A~%Reason: ~A" (invalid-argument-item condition) (invalid-argument-reason condition))))
   (:documentation "A condition which is signalled when an argument is identified as invalid."))
 
 (defmacro ignore-some-conditions ((&rest conditions) &body body)

@@ -38,8 +38,8 @@
 
 (defpackage :macs.rt
   (:use
-   :cl
-   :sym :list :cond :readtables :fu :log :sb-aprof
+   :cl :sxp
+   :sym :list :cond :readtables :fu :fmt :log :ana :sb-aprof
    #+x86-64 :sb-sprof)
   (:nicknames :rt)
   (:export
@@ -57,13 +57,16 @@
    :make-test
    :make-suite
    :suite-name-eq
-   :suite-name=
+   :test-name=
    :with-test
    :do-test
    :do-tests
    :continue-testing
    :with-test-env
    :ensure-suite
+   :test-pass-p
+   :test-fail-p
+   :test-skip-p
    :test-failed
    :fail!
    :is
@@ -92,7 +95,7 @@
 (in-package :macs.rt)
 (in-readtable *macs-readtable*)
 
-;;;; * Special Vars
+;;; Vars
 (defvar *compile-tests* '(optimize sb-c::instrument-consing)
   "When nil do not compile tests. With a value of t, tests are compiled
 with default optimizations else the value is used to configure
@@ -102,7 +105,7 @@ compiler optimizations.")
 (defvar *test-suite-list* nil "List of available `test-suite' objects.")
 (defvar *test-suite* nil "A 'test-suite-designator' which identifies the current `test-suite'.")
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *default-test-suite-name* "default"))
+    (defvar *default-test-suite-name* "default"))
 (declaim (type (or stream boolean string) *test-input*))
 (defvar *test-input* nil "When non-nil, specifies an input stream or buffer for `*testing*'.")
 (declaim (type (or stream boolean) *test-debug*))
@@ -112,7 +115,7 @@ the debug output wherever you want.")
 
 (defvar *testing* nil "Testing state var.")
 
-;;;; * Utils
+;;; Utils
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun make-test (&rest slots)
     (apply #'make-instance 'test slots))
@@ -125,15 +128,17 @@ the debug output wherever you want.")
      (with-slots ',slots ,test ,@body)))
 
 ;; TODO 2023-09-04: optimize
-(defun do-tests (&optional (s *standard-output*))
-  (if (streamp s)
-      (do-suite *test-suite* :stream s)
-      (with-open-file (stream s :direction :output)
-	(do-suite *test-suite* :stream stream))))
+(defun do-tests (&optional (suite *test-suite*) (output *standard-output*))
+  (if (stringp output)
+      (with-open-file (stream output :direction :output)
+	(do-suite (ensure-suite suite) :stream stream))
+      (do-suite (ensure-suite suite) :stream output)))
 
+;; this assumes that *test-suite* is re-initialized correctly to the
+;; correct test-suite object.
 (defun continue-testing ()
   (if-let ((test *testing*))
-    (throw '*in-test* test)
+    (throw '%in-test test)
     (do-suite *test-suite*)))
 
 (defmacro with-test-env (env &body body)
@@ -151,6 +156,7 @@ the debug output wherever you want.")
 ;; https://stackoverflow.com/questions/56228832/adapting-common-lisp-pushnew-to-return-success-failure
 (defun spush (item lst &key (test #'equal))
   "Substituting `push'"
+  (declare (type function test))
   (cond
     ((null lst) (push item lst))
     ((list lst)
@@ -163,6 +169,7 @@ the debug output wherever you want.")
     #|(or nil '(t (cons item lst)))|#))
 
 ;; FIX 2023-08-31: spush, replace with `add-test' method.
+(declaim (inline normalize-test-name))
 (defun normalize-test-name (a)
   "Return the normalized `test-suite-designator' of A."
   (etypecase a
@@ -171,15 +178,15 @@ the debug output wherever you want.")
     (symbol (symbol-name a))
     (t (format nil "~A" a))))
 
-(defun suite-name= (a b)
+(defun test-name= (a b)
   "Return t if A and B are similar `test-suite-designator's."
   (let ((a (normalize-test-name a))
 	(b (normalize-test-name b)))
-    (string= a b)))
+    (string-equal a b)))
 
 (declaim (inline assert-suite ensure-suite))
 (defun ensure-suite (name)
-  (if-let ((ok (member name *test-suite-list* :test #'suite-name=)))
+  (if-let ((ok (member name *test-suite-list* :test #'test-name=)))
     (car ok)
     (when (or (eq name t) (null name)) (make-suite :name *default-test-suite-name*))))
 
@@ -193,12 +200,13 @@ the debug output wherever you want.")
 (defun test-opt-key-p (k)
   "Test if K is a `test-opt-key'."
   (member k '(:profile :save :stream)))
+
 (defun test-opt-valid-p (f)
   "Test if F is a valid `test-opt' form. If so, return F else nil."
   (when (test-opt-key-p (car f))
     f))
 
-;;;; * Conditions
+;;; Conditions
 (define-condition test-failed (error)
   ((reason :accessor fail-reason :initarg :reason :initform "unknown")
    (name :accessor fail-name :initarg :name)
@@ -213,68 +221,43 @@ the debug output wherever you want.")
   (let ((reason (and fmt (apply #'format nil fmt args))))
     (with-simple-restart (ignore-fail "Continue testing.")
       (error 'test-failed :reason reason :form form))))
-;;;; * Checks
-;; TODO 2023-09-05: 
-(defmacro is (form)
-  "The DWIM Check -- fiveam.
 
-If FORM returns a truthy value, return `test-pass' otherwise return
-`test-fail', optionally return a second value containing a
-`test-result'."
-  `(progn
-     ',form))
+;;; Macros
+(macrolet ((%parse (lambda-list &body body)
+	     (multiple-value-bind (forms decls doc)
+		 (sb-int:parse-body
+		  (if (listp body) body t) t)
+	       (declare (ignore decls))
+	       `(multiple-value-bind (llks required optional rest keys aux env whole)
+		    (parse-lambda-list ,lambda-list)
+		  (declare (ignore whole env aux))
+		  (list (list llks required optional rest keys)
+			,doc guts)))))
 
-;; TODO 2023-09-05: defenum test-tag
-
-(defmacro signals (condition-spec &body body)
-  "Generates a `test-pass' if BODY signals a condition of type
-CONDITION. BODY is evaluated in a block named NIL, CONDITION is
-not evaluated."
-  (let ((block-name (gensym)))
-    (destructuring-bind (condition &optional reason-control &rest reason-args)
-        (ensure-list condition-spec)
-      `(block ,block-name
-         (handler-bind ((,condition (lambda (c)
-                                      (declare (ignore c))
-                                      ;; ok, body threw condition
-				      ;; TODO 2023-09-05: result collectors
-                                      ;; (add-result 'test-passed
-                                      ;;            :test-expr ',condition)
-                                      (return-from ,block-name t))))
-           (block nil
-             ,@body))
-         (fail!
-          ',condition
-          ,@(if reason-control
-                `(,reason-control ,@reason-args)
-                `("Failed to signal a ~S" ',condition)))
-         (return-from ,block-name nil)))))
-
-;;;; * API
-(defmacro deftest (name lambda-list &body body)
-  "Build a test parameterized by LAMBDA-LIST. BODY is wrapped in
+  (defmacro deftest (name lambda-list &body body)
+    "Build a test parameterized by LAMBDA-LIST. BODY is wrapped in
 `with-test-env' and passed to `make-test' which returns a value based
 on the dynamic environment."
-  `(let ((obj (make-test
-	       :name (format nil "~A" ',name)
-	       :form ',body))
-	 (args ',lambda-list))
-     (when args
-       (when-let ((persist (getf :persist args)))
-	 (setf (test-persist-p obj) persist)))
-     (setf (tests (ensure-suite *test-suite*)) (spush obj (tests *test-suite*)))
-     obj))
+    (multiple-value-bind (ll doc guts)
+	(%parse lambda-list body)
+      (declare (ignore ll doc))
+      (multiple-value-bind (llks required optional rest keys) ll
+	`(let ((obj (make-test
+		     :name (format nil "~A" ',name)
+		     :form ,guts)))
+	   (push-test obj *test-suite*)
+	   obj))))
 
-(defmacro defsuite (suite-name &key (stream t))
-  "Define a `test-suite' with provided keys. The object returned can be
+  (defmacro defsuite (suite-name &key (stream t))
+    "Define a `test-suite' with provided keys. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
-  (check-type suite-name (or symbol string))
-  `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (let ((obj (make-suite
-		 :name (format nil "~A" ',suite-name)
-		 :stream ,stream)))
-       (setf *test-suite-list* (spush obj *test-suite-list* :test #'suite-name=))
-       obj)))
+    (check-type suite-name (or symbol string))
+    `(eval-when (:compile-toplevel :load-toplevel :execute)
+       (let ((obj (make-suite
+		   :name (format nil "~A" ',suite-name)
+		   :stream ,stream)))
+	 (setf *test-suite-list* (spush obj *test-suite-list* :test #'test-name=))
+	 obj))))
 
 (defmacro in-suite (name)
   "Set `*test-suite*' to the `test-suite' referred to by symbol
@@ -282,7 +265,7 @@ NAME. Return the `test-suite'."
   (assert-suite name)
   `(setf *test-suite* (ensure-suite ',name)))
 
-;;;; * PROTO
+;;; Protocol
 (defgeneric eval-test (self)
   (:documentation "Eval a `test'."))
 
@@ -300,14 +283,28 @@ NAME. Return the `test-suite'."
   (:documentation
    "Pop the first `test' from the slot-value of ':tests' in `test-suite' object SELF."))
 
+(defgeneric push-result (self place)
+  (:documentation
+   "Push object SELF to the value of slot ':results' in object PLACE."))
+
+(defgeneric pop-result (self)
+  (:documentation
+   "Pop the first `test-result' from the slot-value of ':tests' from object SELF."))
+
 (defgeneric delete-test (self &key &allow-other-keys)
   (:documentation "Delete `test' object specified by `test-object' SELF and optional keys."))
 
-(defgeneric find-test (self &key &allow-other-keys)
-  (:documentation "Find `test' object specified by `test-object' SELF and optional keys."))
+(defgeneric find-test (self name &key &allow-other-keys)
+  (:documentation "Find `test' object specified by name and optional keys."))
 
-(defgeneric do-test (self)
-  (:documentation "Run `test' SELF, printing results to `*standard-output*'."))
+(defgeneric do-test (self &optional test)
+  (:documentation
+   "Run `test' SELF, printing results to `*standard-output*'. The second
+argument is an optional fixture.
+
+SELF can also be a `test-suite', in which case the TESTS slot is
+queried for the value of TEST. If TEST is not provided, pops the car
+from TESTS."))
 
 (defgeneric do-suite (self &key &allow-other-keys)
   (:documentation
@@ -317,7 +314,7 @@ NAME. Return the `test-suite'."
   (:documentation
    "Get the value of first cons where car is KEY in :opts slot of SELF."))
 
-;;;; * OBJ
+;;; Objects
 (defclass test-object ()
   ((name :initarg :name :initform (required-argument) :type string :accessor test-name)
    #+nil (cached :initarg :cache :allocation :class :accessor test-cached-p :type boolean))
@@ -329,6 +326,7 @@ NAME. Return the `test-suite'."
     (format stream "~A"
 	    (test-name self))))
 
+;;;; Tests
 ;; HACK 2023-08-31: inherit sxp?
 
 (defclass test (test-object)
@@ -358,6 +356,7 @@ NAME. Return the `test-suite'."
 	    (test-lock-p self)
 	    (test-persist-p self))))
 
+
 ;; TODO 2023-09-01: use sxp?
 ;; (defun validate-form (form))
 
@@ -365,14 +364,15 @@ NAME. Return the `test-suite'."
   (eval (read (test-form self))))
 
 (defmethod compile-test ((self test) &key declare &allow-other-keys)
-  (compile
-   nil
-   `(lambda ()
-      (declare ,declare)
-      ,@(test-form self))))
+   (compile
+    (test-function-symbol self)
+    `(lambda ()
+       (declare ,declare)
+       ,@(test-form self))))
 
-(defmethod do-test ((self test))
-  (catch '*in-test* ;; for `continue-testing' restart
+(defmethod do-test ((self test) &optional fix)
+  (declare (ignorable fix))
+  (catch '%in-test ;; for `continue-testing' restart
     (setf (test-lock-p self) t)
     (let* ((*testing* (test-name self))
 	   (bail nil)
@@ -382,28 +382,51 @@ NAME. Return the `test-suite'."
 	      (flet ((%do
 			 ()
 		       (if-let ((opt *compile-tests*))
-			 (multiple-value-list
+;;			 (multiple-value-list
 			  ;; RESEARCH 2023-08-31: with-compilation-unit?
-			  (funcall (compile-test self :declare opt)))
-			 (multiple-value-list
+			  (funcall (the function (compile-test self :declare opt)))
+;;)
+			 (make-test-result
+			  :pass
 			  (eval-test self)))))
 		(if *catch-test-errors*
 		    (handler-bind
 			((style-warning #'muffle-warning)
 			 (error #'(lambda (c)
 				    (setf bail t)
-				    (setf r (list c))
+				    (setf r (make-test-result :fail c))
 				    (return-from bail nil))))
 		      (%do))
 		    (%do)))))
       (setf (test-lock-p self) bail)
       r)))
 
-(defclass test-fixture (test-object)
-  ()
-  (:documentation "A generic wrapper around test fixtures. Our test
-  fixtures are lexical environments which specialize on a `test-suite'."))
+;;;; Fixtures
+(defstruct test-fixture)
 
+;;;; Results
+(deftype result-tag ()
+  '(or (member :pass :fail :skip) null))
+
+(declaim (inline %make-test-result))
+(defstruct (test-result (:constructor %make-test-result)
+			(:conc-name  tr-))
+  (tag nil :type result-tag :read-only t)
+  (result nil :type sxp:form))
+
+(defun make-test-result (tag &optional result)
+  (%make-test-result :tag tag :result result))
+
+(defmethod test-pass-p ((res test-result))
+  (when (eq :pass (tr-tag res)) t))
+
+(defmethod test-fail-p ((res test-result))
+  (when (eq :fail (tr-tag res)) t))
+
+(defmethod test-skip-p ((res test-result))
+  (when (eq :skip (tr-tag res)) t))
+
+;;;; Suites
 (defclass test-suite (test-object)
   ((tests :initarg :set :initform nil :type list :accessor tests
 	  :documentation "test-suite tests")
@@ -419,7 +442,7 @@ NAME. Return the `test-suite'."
   (print-unreadable-object (self stream :type t :identity t)
     (format stream "~A :tests ~A :stream ~A"
 	    (test-name self)
-	    (length (tests self))
+	    (length (the list (tests self)))
 	    (test-stream self))))
 
 (deftype test-suite-designator ()
@@ -434,18 +457,42 @@ NAME. Return the `test-suite'."
       (push (test-name (car l)) r))))
 
 (defmethod get-test-opt ((self test-suite) key)
+  (declare (type keyword key))
   (assoc key (test-opts self)))
 
+(defmethod push-test ((self test) (place test-suite))
+  (push self (tests place)))
+
+(defmethod pop-test ((self test-suite))
+  (pop (tests self)))
+
+(defmethod push-result ((self test-result) (place test-suite))
+  (push self (test-results place)))
+
+(defmethod pop-result ((self test-suite))
+  (pop (test-results self)))
+
+(defmethod find-test ((self test-suite) name &key (test #'test-name=))
+  (declare (type (or string symbol) name)
+	   (type function test))
+  (find name (the list (tests self)) :test test))
+
+(defmethod do-test ((self test-suite) &optional test)
+  (if test
+      (do-test (find-test self test))
+      (push-result (do-test (pop-test self)) self)))
+  
 ;; HACK 2023-09-01: find better method of declaring failures from
 ;; within the body of `deftest'.
 (defmethod do-suite ((self test-suite) &key stream)
   ;; early abort
   (when stream (setf (test-stream self) stream))
   (with-slots (name opts stream) self
-    (format stream "testing [:~A]~%"
+    (format stream "in suite ~x with ~A/~A tests:~%"
+	    name
 	    (count t (tests self)
-		   :key #'test-lock-p))
-    (format stream "in suite ~A~%" name)
+		   :key #'test-lock-p)
+	    (length (tests self)))
     ;; loop over each test, calling `do-test' if locked
     (dolist (i (tests self))
       (when (test-lock-p i)
@@ -467,7 +514,7 @@ NAME. Return the `test-suite'."
 		    unless (gethash p expected)
 		      collect p)))
 	(if (null locked)
-	    (format stream "~&No tests failed.")
+	    (format stream "~&No tests failed.~%")
 	    (progn
 	      ;;  RESEARCH 2023-09-04: print fails ??
 	      (format stream "~&~A out of ~A ~
@@ -494,3 +541,75 @@ NAME. Return the `test-suite'."
 		   (setf (test-lock-p i) t)))
 	;; return values (PASSED LOCKED)
 	(values (not fails) locked)))))
+
+;;; Checks
+
+;; TODO 2023-09-05: 
+(defmacro is (test &rest args)
+  "The DWIM Check -- fiveam.
+
+If FORM returns a truthy value, return `pass' otherwise return
+`fail', optionally return a second value containing a
+`test-result'."
+  (assert (listp test)
+	  (test)
+	  "TEST must be a list, not ~S" test)
+  (let (binds eft)
+    (with-gensyms (e a)
+      (flet ((%proc (pred exp act &optional flip)
+	       (let ((forms))
+		 (if (and (consp exp)
+			  (eq (car exp) 'values))
+		     (progn
+		       (setf exp (copy-list exp))
+		       (setf forms (loop for c = (cdr exp) then (cdr c)
+					 for i from 0
+					 while c
+					 when (eq (car c) '*)
+					   collect `(setf (elt ,a ,i) nil)
+					   and do (setf (car c) nil)))
+		       (setf binds (list (list e `(list ,@(cdr exp)))
+					 (list a `(multiple-value-list ,act)))))
+		     (setf binds (list (list e exp)
+				       (list a act))))
+		 (setf eft `(progn
+			      ,@forms
+			      ,(if flip
+				   `(not (,pred ,e ,a))
+				   `(,pred ,e ,a)))))))
+	;;  TODO 2023-09-16: need to do some JIT predicate compilation here
+	(cond
+	  ((null test) (setq binds nil
+			     eft `,test))
+	  (test (setq eft `,test))
+	  ;; fixme
+	  ((listp test) (%proc (car test) (cadr test) (cddr test)))))
+
+      `(let ,binds
+	 (if ,eft
+	     (make-test-result :pass ',test)
+	     (make-test-result :fail (aif (getf ',args :if-error) (list it ',test) ',test)))))))
+
+(defmacro signals (condition-spec &body body)
+  "Generates a passing TEST-RESULT if body signals a condition of type
+CONDITION-SPEC. BODY is evaluated in a block named NIL, CONDITION-SPEC
+is not evaluated."
+  (let ((block-name (gensym)))
+    (destructuring-bind (condition &optional reason-control &rest reason-args)
+        (ensure-list condition-spec)
+      `(block ,block-name
+         (handler-bind ((,condition (lambda (c)
+                                      (declare (ignore c))
+                                      ;; ok, body threw condition
+				      ;; TODO 2023-09-05: result collectors
+                                      ;; (add-result 'test-passed
+                                      ;;            :test-expr ',condition)
+                                      (return-from ,block-name t))))
+           (block nil
+             ,@body))
+         (fail!
+          ',condition
+          ,@(if reason-control
+                `(,reason-control ,@reason-args)
+                `("Failed to signal a ~S" ',condition)))
+         (return-from ,block-name nil)))))

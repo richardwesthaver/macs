@@ -41,7 +41,7 @@
   :description "regression test framework"
   :bug-tracker "https://lab.rwest.io/ellis/macs/issues"
   :source-control (:hg "https://lab.rwest.io/ellis/macs")
-  :depends-on (:macs)
+  :depends-on (:macs :sxp)
   :in-order-to ((test-op (test-op "macs/tests")))
   :components ((:file "rt")))
 
@@ -52,5 +52,6 @@
   :bug-tracker "https://lab.rwest.io/ellis/macs/issues"
   :source-control (:hg "https://lab.rwest.io/ellis/macs")
   :depends-on (:macs/readtables :macs :macs/rt)
-  :components ((:file "tests")))
+  :components ((:file "tests"))
+  :perform (test-op (o c) (symbol-call :rt :do-tests :macs)))
   

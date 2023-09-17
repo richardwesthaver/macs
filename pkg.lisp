@@ -128,6 +128,7 @@
    #:nlet-tail
    #:alet%
    #:alet
+   #:acond2
    #:it
    #:aif
    #:this
