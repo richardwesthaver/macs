@@ -128,8 +128,9 @@ the debug output wherever you want.")
      (with-slots ',slots ,test ,@body)))
 
 ;; TODO 2023-09-04: optimize
+(declaim (inline do-tests))
 (defun do-tests (&optional (suite *test-suite*) (output *standard-output*))
-  (if (stringp output)
+  (if (pathnamep output)
       (with-open-file (stream output :direction :output)
 	(do-suite (ensure-suite suite) :stream stream))
       (do-suite (ensure-suite suite) :stream output)))
@@ -173,7 +174,6 @@ the debug output wherever you want.")
 (defun normalize-test-name (a)
   "Return the normalized `test-suite-designator' of A."
   (etypecase a
-    (test-suite (test-name a))
     (string a)
     (symbol (symbol-name a))
     (t (format nil "~A" a))))
@@ -182,7 +182,9 @@ the debug output wherever you want.")
   "Return t if A and B are similar `test-suite-designator's."
   (let ((a (normalize-test-name a))
 	(b (normalize-test-name b)))
-    (string-equal a b)))
+    (princ a)
+    (princ b)
+    (string= a b)))
 
 (declaim (inline assert-suite ensure-suite))
 (defun ensure-suite (name)
@@ -221,49 +223,6 @@ the debug output wherever you want.")
   (let ((reason (and fmt (apply #'format nil fmt args))))
     (with-simple-restart (ignore-fail "Continue testing.")
       (error 'test-failed :reason reason :form form))))
-
-;;; Macros
-(macrolet ((%parse (lambda-list &body body)
-	     (multiple-value-bind (forms decls doc)
-		 (sb-int:parse-body
-		  (if (listp body) body t) t)
-	       (declare (ignore decls))
-	       `(multiple-value-bind (llks required optional rest keys aux env whole)
-		    (parse-lambda-list ,lambda-list)
-		  (declare (ignore whole env aux))
-		  (list (list llks required optional rest keys)
-			,doc guts)))))
-
-  (defmacro deftest (name lambda-list &body body)
-    "Build a test parameterized by LAMBDA-LIST. BODY is wrapped in
-`with-test-env' and passed to `make-test' which returns a value based
-on the dynamic environment."
-    (multiple-value-bind (ll doc guts)
-	(%parse lambda-list body)
-      (declare (ignore ll doc))
-      (multiple-value-bind (llks required optional rest keys) ll
-	`(let ((obj (make-test
-		     :name (format nil "~A" ',name)
-		     :form ,guts)))
-	   (push-test obj *test-suite*)
-	   obj))))
-
-  (defmacro defsuite (suite-name &key (stream t))
-    "Define a `test-suite' with provided keys. The object returned can be
-enabled using the `in-suite' macro, similiar to the `defpackage' API."
-    (check-type suite-name (or symbol string))
-    `(eval-when (:compile-toplevel :load-toplevel :execute)
-       (let ((obj (make-suite
-		   :name (format nil "~A" ',suite-name)
-		   :stream ,stream)))
-	 (setf *test-suite-list* (spush obj *test-suite-list* :test #'test-name=))
-	 obj))))
-
-(defmacro in-suite (name)
-  "Set `*test-suite*' to the `test-suite' referred to by symbol
-NAME. Return the `test-suite'."
-  (assert-suite name)
-  `(setf *test-suite* (ensure-suite ',name)))
 
 ;;; Protocol
 (defgeneric eval-test (self)
@@ -334,6 +293,7 @@ from TESTS."))
   ((function-symbol :type symbol :accessor test-function-symbol)
    (args :type list :accessor test-args :initform nil :initarg :args)
    (form :initarg :form :initform nil :type function-lambda-expression :accessor test-form)
+   (doc :initarg :doc :type string :accessor test-doc)
    (lock :initarg :lock :type boolean :accessor test-lock-p)
    (persist :initarg :persist :initform nil :type boolean :accessor test-persist-p))
   (:documentation "Test class typically made with `deftest'."))
@@ -447,7 +407,7 @@ from TESTS."))
 
 (deftype test-suite-designator ()
   "Either nil, a symbol, a string, or a `test-suite' object."
-  '(or null symbol string test-suite))
+  '(or null symbol string test-suite test keyword))
 
 (defmethod locked-tests ((self test-suite))
   (do ((l (tests self) (cdr l))
@@ -478,9 +438,11 @@ from TESTS."))
   (find name (the list (tests self)) :test test))
 
 (defmethod do-test ((self test-suite) &optional test)
-  (if test
-      (do-test (find-test self test))
-      (push-result (do-test (pop-test self)) self)))
+  (push-result 
+   (if test
+       (do-test (find-test self (test-name test)))
+       (do-test (pop-test self)))
+   self))
   
 ;; HACK 2023-09-01: find better method of declaring failures from
 ;; within the body of `deftest'.
@@ -497,7 +459,9 @@ from TESTS."))
     (dolist (i (tests self))
       (when (test-lock-p i)
 	(format stream "~@[~<~%~:;~:@(~S~) ~>~]"
-		(do-test i))))
+		;; very important that we call do-test with this type
+		;; signature (see method definition above).
+		(do-test self i))))
     ;; compare locked vs expected
     (let ((locked (locked-tests self))
 	  ;; TODO - consider test-fn param
@@ -524,15 +488,14 @@ from TESTS."))
 		      (length locked)
 		      (length (tests self))
 		      locked)
-	      (if (null fails)
-		  (format stream "~&No unexpected failures.")
-		  (when (test-fails self)
-		    ;; print unexpected failures
-		    (format stream "~&~A unexpected failures: ~
+	      (unless (null fails)
+		(when (test-fails self)
+		  ;; print unexpected failures
+		  (format stream "~&~A unexpected failures: ~
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."
-			    (length fails)
-			    fails)))))
+			  (length fails)
+			  fails)))))
 	;; close stream
 	(finish-output stream)
 	;; reset locks on persistent tests
@@ -551,9 +514,9 @@ from TESTS."))
 If FORM returns a truthy value, return `pass' otherwise return
 `fail', optionally return a second value containing a
 `test-result'."
-  (assert (listp test)
+  (assert (formp test)
 	  (test)
-	  "TEST must be a list, not ~S" test)
+	  "TEST must be a form, not ~S" test)
   (let (binds eft)
     (with-gensyms (e a)
       (flet ((%proc (pred exp act &optional flip)
@@ -580,10 +543,9 @@ If FORM returns a truthy value, return `pass' otherwise return
 	;;  TODO 2023-09-16: need to do some JIT predicate compilation here
 	(cond
 	  ((null test) (setq binds nil
-			     eft `,test))
-	  (test (setq eft `,test))
-	  ;; fixme
-	  ((listp test) (%proc (car test) (cadr test) (cddr test)))))
+			     eft nil))
+	  ((listp test) (%proc (car test) (cadr test) (cddr test)))
+	  (t (setq eft test))))
 
       `(let ,binds
 	 (if ,eft
@@ -613,3 +575,47 @@ is not evaluated."
                 `(,reason-control ,@reason-args)
                 `("Failed to signal a ~S" ',condition)))
          (return-from ,block-name nil)))))
+
+;;; Macros
+(macrolet ((%parse (lambda-list &body body)
+	     (multiple-value-bind (forms decls doc)
+		 ;; parse body with docstring allowed
+		 (sb-int:parse-body
+		  (if (listp body) body t) t)
+	       `(multiple-value-bind (llks required optional rest keys aux env whole)
+		    (parse-lambda-list ,lambda-list)
+		  (declare (ignore whole env aux))
+		  (list (list llks required optional rest keys)
+			,doc ,forms ,decls)))))
+
+  (defmacro deftest (name lambda-list &body body)
+    "Build a test parameterized by LAMBDA-LIST. BODY is wrapped in
+`with-test-env' and passed to `make-test' which returns a value based
+on the dynamic environment."
+    (multiple-value-bind (ll doc guts decls)
+	(%parse lambda-list body)
+      (declare (ignore doc))
+      (multiple-value-bind (llks required optional rest keys) ll
+	`(let ((obj (make-test
+		     :name (format nil "~A" ',name)
+		     :form ,guts
+		     :doc ,doc)))
+	   (push-test obj *test-suite*)
+	   obj))))
+
+  (defmacro defsuite (suite-name &key (stream t))
+    "Define a `test-suite' with provided keys. The object returned can be
+enabled using the `in-suite' macro, similiar to the `defpackage' API."
+    (check-type suite-name (or symbol string))
+    `(eval-when (:compile-toplevel :load-toplevel :execute)
+       (let ((obj (make-suite
+		   :name (format nil "~A" ',suite-name)
+		   :stream ,stream)))
+	 (setf *test-suite-list* (spush obj *test-suite-list* :test #'test-name=))
+	 obj))))
+
+(defmacro in-suite (name)
+  "Set `*test-suite*' to the `test-suite' referred to by symbol
+NAME. Return the `test-suite'."
+  (assert-suite name)
+  `(setf *test-suite* (ensure-suite ',name)))
