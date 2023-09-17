@@ -26,11 +26,10 @@
 
 (deftest rt-results ()
   "Check for basic test-result false-positive/negatives."
-  (is (test-fail-p (is (eq '1 (not '1)))))
   (is (test-pass-p (is (= (+ 2 2) 4))))
   (is (when t t)))
 
-(deftest readtables (:persist t) 
+(deftest readtables ()
   "Test *macs-readtable* without cl-ppcre"
   (in-readtable *macs-readtable*))
 

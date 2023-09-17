@@ -319,7 +319,7 @@ from TESTS."))
 ;; (defun validate-form (form))
 
 (defmethod eval-test ((self test))
-  (eval (read (test-form self))))
+  (funcall (lambda () (test-form self))))
 
 (defmethod compile-test ((self test) &key declare &allow-other-keys)
    (compile
@@ -342,8 +342,7 @@ from TESTS."))
 		       (if-let ((opt *compile-tests*))
 ;;			 (multiple-value-list
 			  ;; RESEARCH 2023-08-31: with-compilation-unit?
-			  (funcall (the function (compile-test self :declare opt)))
-;;)
+			  (funcall (compile-test self :declare opt))
 			 (make-test-result
 			  :pass
 			  (eval-test self)))))
@@ -353,10 +352,10 @@ from TESTS."))
 			 (error #'(lambda (c)
 				    (setf bail t)
 				    (setf r (make-test-result :fail c))
-				    (return-from bail nil))))
+				    (return-from bail nil)))))
 		      (%do))
-		    (%do)))))
-      (setf (test-lock-p self) bail)
+		    (%do)))
+      (setf (test-lock-p self) bail))
       r)))
 
 ;;;; Fixtures
@@ -457,51 +456,39 @@ from TESTS."))
     (dolist (i (tests self))
       (when (test-lock-p i)
 	(format stream "~@[~<~%~:;~:@(~S~) ~>~]"
-		;; very important that we call do-test with this type
-		;; signature (see method definition above).
-		(do-test self i))))
+		(do-test i))))
     ;; compare locked vs expected
     (let ((locked (locked-tests self))
-	  ;; TODO - consider test-fn param
-	  (expected (make-hash-table :test #'eq)))
-      ;; TODO - depends on fail infrastructure
-      (dolist (ex (tests self))
-	;; t isn't really a useful value to put here..
-	;; RESEARCH 2023-09-02: hashset
-	(setf (gethash (test-function-symbol ex) expected) t))
-      ;; process fails
-      (let ((fails
-	      ;; collect if locked test not expected
-	      (loop for p in locked
-		    unless (gethash p expected)
-		      collect p)))
-	(if (null locked)
-	    (format stream "~&No tests failed.~%")
-	    (progn
-	      ;;  RESEARCH 2023-09-04: print fails ??
-	      (format stream "~&~A out of ~A ~
+	  (fails
+	    ;; collect if locked test not expected
+	    (loop for r in (test-results self)
+		  unless (test-pass-p r)
+		    collect r)))
+      (if (null locked)
+	  (format stream "~&No tests failed.~%")
+	  (progn
+	    ;;  RESEARCH 2023-09-04: print fails ??
+	    (format stream "~&~A out of ~A ~
                    total tests failed: ~
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."
-		      (length locked)
-		      (length (tests self))
-		      locked)
-	      (unless (null fails)
-		(when (test-fails self)
-		  ;; print unexpected failures
-		  (format stream "~&~A unexpected failures: ~
+		    (length locked)
+		    (length (tests self))
+		    locked)
+	    (unless (null fails)
+	      (format stream "~&~A unexpected failures: ~
                    ~:@(~{~<~%   ~1:;~S~>~
                          ~^, ~}~)."
-			  (length fails)
-			  fails)))))
-	;; close stream
-	(finish-output stream)
-	;; reset locks on persistent tests
-	(loop for i in (tests self)
-	      do (when (test-persist-p i)
-		   (setf (test-lock-p i) t)))
-	;; return values (PASSED LOCKED)
-	(values (not fails) locked)))))
+		      (length fails)
+		      fails))))
+    ;; close stream
+    (finish-output stream)
+    ;; reset locks on persistent tests
+    (loop for i in (tests self)
+	  do (when (test-persist-p i)
+	       (setf (test-lock-p i) t)))
+      ;; return values (PASS? LOCKED)
+      (values (not fails) locked))))
 
 ;;; Checks
 
