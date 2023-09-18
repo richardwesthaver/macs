@@ -202,11 +202,30 @@ Pandoric macros.
 *** macs.cli
 This package provides an API for building CLI apps. It is highly
 opinionated and loosely derived from [[https://github.com/dnaeon/clingon][clingon]] and uiop.
+
+- [2023-09-17 Sun] :: =completing-read= and =make-prompt!= added for
+  CLI-based data entry
 *** macs.alien
 Foreign alien types, utils, and helpers.
 ** macs/rt
 *** macs.rt
 regression testing framework.
 ** macs/tests
+You can run the tests with asdf:
+#+begin_src lisp :results replace
+  (asdf:test-system "macs")
+#+end_src
+#+RESULTS:
+: T
+
+Or interactively:
+#+begin_src lisp :results replace
+  (ql:quickload :macs/tests)
+  (in-suite :macs)
+  (do-tests)
+#+end_src
+#+RESULTS:
+: T
+
 *** macs.tests
 macs System tests.

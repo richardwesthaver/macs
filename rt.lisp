@@ -88,7 +88,6 @@
    :test-suite
    :test-name
    :tests
-   :test-fails
    :test-results))
 
 (in-package :macs.rt)
@@ -217,11 +216,6 @@ the debug output wherever you want.")
 		     (fail-form c)
 		     (fail-reason c)))))
 
-(defun fail! (form &optional fmt &rest args)
-  (let ((reason (and fmt (apply #'format nil fmt args))))
-    (with-simple-restart (ignore-fail "Continue testing.")
-      (error 'test-failed :reason reason :form form))))
-
 ;;; Protocol
 (defgeneric eval-test (self)
   (:documentation "Eval a `test'."))
@@ -328,6 +322,11 @@ from TESTS."))
        (declare ,declare)
        ,@(test-form self))))
 
+(defun fail! (form &optional fmt &rest args)
+  (let ((reason (and fmt (apply #'format nil fmt args))))
+    (with-simple-restart (ignore-fail "Continue testing.")
+      (error 'test-failed :reason reason :form form))))
+  
 (defmethod do-test ((self test) &optional fix)
   (declare (ignorable fix))
   (catch '%in-test ;; for `continue-testing' restart
@@ -348,13 +347,14 @@ from TESTS."))
 		(if *catch-test-errors*
 		    (handler-bind
 			((style-warning #'muffle-warning)
-			 (error #'(lambda (c)
-				    (setf bail t)
-				    (setf r (make-test-result :fail c))
-				    (return-from bail nil)))))
-		      (%do))
-		    (%do)))
-      (setf (test-lock-p self) bail))
+			 (error 
+			   #'(lambda (c)
+			       (setf bail t)
+			       (setf r (make-test-result :fail c))
+			       (return-from bail nil)))))
+		    (%do))
+		(%do)))
+	(setf (test-lock-p self) bail))
       r)))
 
 ;;;; Fixtures
@@ -386,8 +386,6 @@ from TESTS."))
 (defclass test-suite (test-object)
   ((tests :initarg :set :initform nil :type list :accessor tests
 	  :documentation "test-suite tests")
-   (fails :initarg :fails :initform nil :type list :accessor test-fails
-	  :documentation "test-suite failures")
    (results :initarg :results :initform nil :type list :accessor test-results
 	    :documentation "test-suite results")
    (stream :initarg :stream :initform *standard-output* :type stream :accessor test-stream)
@@ -439,7 +437,7 @@ from TESTS."))
        (do-test (find-test self (test-name test)))
        (do-test (pop-test self)))
    self))
-  
+
 ;; HACK 2023-09-01: find better method of declaring failures from
 ;; within the body of `deftest'.
 (defmethod do-suite ((self test-suite) &key stream)
@@ -554,43 +552,41 @@ is not evaluated."
          (return-from ,block-name nil)))))
 
 ;;; Macros
-(flet ((%parse (lambda-list body)
-	     (multiple-value-bind (forms decls doc)
-		 ;; parse body with docstring allowed
-		 (sb-int:parse-body
-		  (if (listp body) body t) t)
-	       `(multiple-value-bind (llks required optional rest keys aux env whole)
-		    (parse-lambda-list ,lambda-list)
-		  (declare (ignore whole env aux))
-		  (list (list llks required optional rest keys)
-			,doc ,forms ,decls)))))
-
+(flet ((%p (ll body)
+	 (multiple-value-bind (forms decls doc)
+	     ;; parse body with docstring allowed
+	     (sb-int:parse-body
+	      (if (listp body) body t) t)
+	   `(list ,(multiple-value-list (parse-lambda-list ll))
+		  ,doc ,forms ,decls))))
   (defmacro deftest (name lambda-list &body body)
     "Build a test parameterized by LAMBDA-LIST. BODY is wrapped in
 `with-test-env' and passed to `make-test' which returns a value based
 on the dynamic environment."
     (multiple-value-bind (ll doc guts decls)
-	(%parse lambda-list body)
+	(%p lambda-list body)
       (declare (ignore decls))
       (multiple-value-bind (llks required optional rest keys) ll
-	(declare (ignore llks required optional rest keys)) 
+	(declare (ignore llks required optional rest keys))
 	`(let ((obj (make-test
 		     :name (format nil "~A" ',name)
 		     :form ,guts
 		     :doc ,doc)))
 	   (push-test obj *test-suite*)
-	   obj))))
+	   obj)))))
 
-  (defmacro defsuite (suite-name &key (stream t))
+  (defmacro defsuite (suite-name &key (stream '*standard-output*) (opts nil))
     "Define a `test-suite' with provided keys. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
     (check-type suite-name (or symbol string))
-    `(eval-when (:compile-toplevel :load-toplevel :execute)
-       (let ((obj (make-suite
-		   :name (format nil "~A" ',suite-name)
-		   :stream ,stream)))
-	 (setf *test-suite-list* (spush obj *test-suite-list* :test #'test-name=))
-	 obj))))
+      `(eval-when (:compile-toplevel :load-toplevel :execute)
+	 (let ((obj (make-suite
+		     :name (format nil "~A" ',suite-name)
+		     :stream ,stream
+		     :opts ',opts)))
+	   ;; TODO 2023-09-17: shouldn't need setf
+	   (setq *test-suite-list* (spush obj *test-suite-list* :test #'test-name=))
+	   obj)))
 
 (defmacro in-suite (name)
   "Set `*test-suite*' to the `test-suite' referred to by symbol
