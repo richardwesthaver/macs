@@ -1,4 +1,3 @@
-;;; readme --- macs -*- mode:org -*- 
 #+TITLE: macs
 #+FILETAGS: core
 * Overview
@@ -263,19 +262,46 @@ regression testing framework.
 #+end_example
 ** macs/tests
 You can run the tests with asdf:
-#+begin_src lisp :results raw replace
-  (asdf:test-system "macs")
+#+begin_src shell :results output silent
+  sbcl --noinform --eval '(progn (asdf:load-system :macs/tests) (asdf:test-system "macs"))'
 #+end_src
-#+RESULTS:
-T
 
 Or interactively:
-#+begin_src lisp :results raw replace
-  (ql:quickload :macs/tests)
+#+begin_src lisp :results output replace :wrap src lisp
+  (load "tests.lisp")
   (multiple-value-list (rt:do-tests :macs))
 #+end_src
+
 #+RESULTS:
-(T NIL)
+#+begin_src lisp
+in suite MACS with 5/5 tests:
+testing:  [foobar]: nothing: 
+#S(MACS.RT::TEST-RESULT
+   :TAG :PASS
+   :FORM #S(MACS.RT::TEST-RESULT
+            :TAG :PASS
+            :FORM (AND MACS.RT::%OPTS MACS.RT::%CMDS))) 
+#S(MACS.RT::TEST-RESULT
+   :TAG :PASS
+   :FORM #S(MACS.RT::TEST-RESULT
+            :TAG :PASS
+            :FORM (EQ (MACS.SYM:MAKE-KEYWORD 'MACS.RT::FIZZ) :FIZZ))) 
+#S(MACS.RT::TEST-RESULT
+   :TAG :PASS
+   :FORM #S(MACS.RT::TEST-RESULT :TAG :PASS :FORM (= 1 1))) 
+#S(MACS.RT::TEST-RESULT
+   :TAG :PASS
+   :FORM #<NAMED-READTABLE MACS.FU:*MACS-READTABLE* {1005D36013}>) 
+#S(MACS.RT::TEST-RESULT
+   :TAG :PASS
+   :FORM #S(MACS.RT::TEST-RESULT
+            :TAG :PASS
+            :FORM (MACS.RT:TEST-PASS-P
+                   (MACS.RT:SIGNALS (ERROR T)
+                     (MACS.RT::TEST-FORM
+                      (MAKE-INSTANCE 'MACS.RT::TEST-RESULT)))))) 
+No tests failed.
+#+end_src
 
 *** macs.tests
 macs System tests.

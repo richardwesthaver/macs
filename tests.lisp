@@ -56,17 +56,17 @@
   (is (eq 'macs.tests::foo (format-symbol :macs.tests "~A" 'foo)))
   (is (eq (make-keyword 'fizz) :fizz)))
 
+(compile (cli:make-prompt! test "testing: "))
+
 (deftest cli ()
   "Test MACS.CLI"
   ;; prompts 
   (let ((*standard-input* (make-string-input-stream (format nil "~A~%~A~%" "foobar" "foobar"))))
-    (cli:make-prompt! test "testing: ")
     (is (string= (test-prompt) "foobar"))
+    (defvar tcoll nil)
+    (defvar thist nil)
     (is (string= "foobar"
-		 (progn
-		   (defvar tcoll nil)
-		   (defvar thist nil)
-		   (cli:completing-read "nothing: " tcoll :history 'thist :default "foobar")))))
+		 (cli:completing-read "nothing: " tcoll :history 'thist :default "foobar"))))
   ;; args
   (is (eq (cli:make-shorty "test") #\t))
   (defvar %opts (cli:make-opts '(:name foo :global t :description "bar")

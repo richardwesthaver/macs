@@ -112,11 +112,10 @@ closure."
 			  :item ',o!var))))
          (,g!p ,(when (stringp o!prompt) o!prompt)) ;; prompt string
          (,g!h ',(symb o!var '-prompt-history))) ;; history symbol
-     (with-compilation-unit (:policy '(optimize))
        ;;1 we use defvar for the implicit bindp check
        (defvar ,(symb o!var '-prompt-history) nil)
        ;;2 our new SYM-prompt function
-       (declaim (inline ,(symb o!var '-prompt)))
+       ;; (declaim (inline ,(symb o!var '-prompt)))
        (defun ,(symb o!var '-prompt) (&optional default)
 	 ,(format nil "Prompt for a value from `~A', use DEFAULT if non-nil
 and no value is provided by user, otherwise fallback to the `car'
@@ -125,7 +124,7 @@ of `~A-PROMPT-HISTORY'." o!var o!var)
           (format nil "~A [~A]: "
 		  ,g!p
 		  (car (symbol-value ,g!h)))
-	  ,g!s :history ,g!h :default (car (symbol-value ,g!h)))))))
+	  ,g!s :history ,g!h :default (car (symbol-value ,g!h))))))
 
 (defmacro defmain (ret &body body)
   "Define a main function in the current package which returns RET.

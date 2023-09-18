@@ -320,7 +320,7 @@ from TESTS."))
    (compile
     (test-fn self)
     `(lambda ()
-       (declare ,declare)
+       ,@(when declare `((declare ,declare)))
        ,@(test-form self))))
 
 (defun fail! (form &optional fmt &rest args)
@@ -399,6 +399,8 @@ from TESTS."))
 	    (test-name self)
 	    (length (the list (tests self)))
 	    (test-stream self))))
+
+;; (defmethod reinitialize-instance ((self test-suite) &rest initargs &key &allow-other-keys))
 
 (deftype test-suite-designator ()
   "Either nil, a symbol, a string, or a `test-suite' object."
@@ -556,19 +558,19 @@ is not evaluated."
 `with-test-env' and passed to `make-test' which returns a value based
 on the dynamic environment."
   (destructuring-bind (pr doc dec fn)
-      (multiple-value-bind (forms decls doc)
+      (multiple-value-bind (forms dec doc)
 	  ;; parse body with docstring allowed
 	  (sb-int:parse-body
 	   (if (listp body) body t) t)
-	`(',props ,doc ,decls ,forms))
+	`(',props ,doc ,dec ,forms))
     (declare (ignore pr))
     `(let ((obj (make-test
 		 :name (format nil "~A" ',name)
 		 ;; note: we could leave these unbound if we want,
 		 ;; personal preference
 		 :form ',fn
-		 :doc ,doc
-		 :decl ,dec)))
+		 ,@(when doc `(:doc ,doc))
+		 ,@(when dec `(:decl ,dec)))))
        (push-test obj *test-suite*)
        obj)))
 
