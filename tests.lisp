@@ -40,10 +40,35 @@
 
 (deftest syms ()
   "Test MACS.SYM"
+  ;; gensyms
   (with-gensyms (a b c)
     (let ((a 1) (b 1) (c 2))
       (is (and (= a b) (not (= c a))
-	       (= (+ a b) (* c b)) )))))
+	       (= (+ a b) (* c b))))))
+  (is (not (equalp (make-gensym 'a) (make-gensym 'a))))
+
+  (is (eq (ensure-symbol 'tests :macs.tests) 'tests))
+  (is (eq 'macs.tests::foo (format-symbol :macs.tests "~A" 'foo)))
+  (is (eq (make-keyword 'fizz) :fizz)))
+
+(deftest cli ()
+  "Test MACS.CLI"
+  ;; prompts 
+  (let ((*standard-input* (make-string-input-stream (format nil "~A~%~A~%" "foobar" "foobar"))))
+    (cli:make-prompt! test "testing: ")
+    (is (string= (test-prompt) "foobar"))
+    (is (string= "foobar"
+		 (progn
+		   (defvar tcoll nil)
+		   (defvar thist nil)
+		   (cli:completing-read "nothing: " tcoll :history 'thist :default "foobar")))))
+  ;; args
+  (is (eq (cli:make-shorty "test") #\t))
+  (defvar %opts (cli:make-opts '(:name foo :global t :description "bar")
+			       '(:name bar :description "foo")))
+  (defvar %cmds (cli:make-cmds `(:name baz :description "baz"
+				      :opts ,%opts)))
+  (is (and %opts %cmds)))
 
 #+nil (test-results *test-suite*)
 #+nil (do-tests :macs)

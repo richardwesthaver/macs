@@ -516,16 +516,16 @@ All other values are treated as let bindings.
 	  (test)
 	  "TEST must be a form, not ~S" test)
   (flet ((%test (test)
-	   (if test
-	       `(make-test-result :pass ',test)
-	       `(make-test-result :fail ',test))))
-    (if (null args)
-	`,(%test test)
-	(let* ((%ll (mapcar (lambda (x) `(,(symb (car x)) ,@(cdr x)))
-			    (group args 2)))
-	       (%form (list 'let %ll test)))
-	  (print %ll)
-	  `,(%test %form)))))
+	   `(if ,test
+	       (make-test-result :pass ',test)
+	       (make-test-result :fail ',test))))
+    `(if (null ,args)
+	 ,(%test test)
+	 (let* ((%ll ,(mapcar (lambda (x) `(,(symb (car x)) ,@(cdr x)))
+			      (group args 2)))
+		(%form (list 'let %ll ,test)))
+	   (print %ll t)
+	   (funcall ,#'%test %form)))))
 
 (defmacro signals (condition-spec &body body)
   "Generates a passing TEST-RESULT if body signals a condition of type
