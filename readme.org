@@ -13,7 +13,7 @@ you're unsure.
 - requires :: =sbcl 2.3.7+=
 
 #+name: macs-collect-symbols
-#+begin_src lisp :results silent :exports both
+#+begin_src lisp :results output replace :wrap src lisp :exports both
   ;; hg clone https://lab.rwest.io/ellis/macs && cd macs && sbcl
   (asdf:load-asd "macs.asd")
   (ql:quickload :macs)
@@ -31,8 +31,27 @@ you're unsure.
   (defmacro p (x) `(cdr (assoc (funcall (%m) ,x) (s))))
 #+end_src
 
+#+RESULTS: macs-collect-symbols
+#+begin_src lisp
+To load "macs":
+  Load 1 ASDF system:
+    macs
+; Loading "macs"
+
+To load "macs/rt":
+  Load 1 ASDF system:
+    macs/rt
+; Loading "macs/rt"
+
+To load "macs/tests":
+  Load 1 ASDF system:
+    macs/tests
+; Loading "macs/tests"
+
+#+end_src
+
 #+name: p
-#+begin_src lisp :package macs-user :results output replace :var pkg='_ :exports both
+#+begin_src lisp :package macs-user :results output replace :var pkg='_ :exports both :wrap src lisp
   (print (p pkg))
 #+end_src
 
@@ -122,12 +141,14 @@ you're unsure.
 Named Readtable support. See the [[https://github.com/melisgl/named-readtables][official named-readtables repo]] for details.
 #+CALL: p('readtables)
 #+RESULTS:
-: 
-: (READTABLE-ERROR UNREGISTER-READTABLE READER-MACRO-CONFLICT ENSURE-READTABLE
-:  COPY-NAMED-READTABLE PARSE-BODY DEFREADTABLE REGISTER-READTABLE
-:  LIST-ALL-NAMED-READTABLES IN-READTABLE RENAME-READTABLE
-:  NAMED-READTABLE-DESIGNATOR FIND-READTABLE READTABLE-DOES-ALREADY-EXIST
-:  READTABLE-DOES-NOT-EXIST MAKE-READTABLE READTABLE-NAME MERGE-READTABLES-INTO) 
+#+begin_src lisp
+
+(READTABLE-ERROR UNREGISTER-READTABLE READER-MACRO-CONFLICT ENSURE-READTABLE
+ COPY-NAMED-READTABLE PARSE-BODY DEFREADTABLE REGISTER-READTABLE
+ LIST-ALL-NAMED-READTABLES IN-READTABLE RENAME-READTABLE
+ NAMED-READTABLE-DESIGNATOR FIND-READTABLE READTABLE-DOES-ALREADY-EXIST
+ READTABLE-DOES-NOT-EXIST MAKE-READTABLE READTABLE-NAME MERGE-READTABLES-INTO) 
+#+end_src
 ** macs
 *** macs
 Wrapper package. Rexports =macs.*= including =macs.readtables=.
@@ -138,57 +159,67 @@ prototype symbols can be defined.
 Symbol reexport support. See the [[https://github.com/takagi/cl-reexport/tree/master][cl-reexport repo]].
 #+CALL: p('reexport)
 #+RESULTS:
-: 
-: (REEXPORT-FROM REEXPORTS) 
+#+begin_src lisp
+
+(REEXPORT-FROM REEXPORTS) 
+#+end_src
 *** macs.str
 String utilities. Re-exports from =sb-unicode=.
 #+CALL: p('str)
 #+RESULTS:
-: 
-: (UNICODE> UNICODE< STRING-DESIGNATOR GRAPHEMES LINES BIDI-CLASS
-:           DEFAULT-IGNORABLE-P ALPHABETIC-P DECIMAL-VALUE CHAR-BLOCK LOWERCASE
-:           SENTENCE-BREAK-CLASS UNICODE-EQUAL DIGIT-VALUE CASEFOLD
-:           LINE-BREAK-CLASS NORMALIZED-P UPPERCASE-P GRAPHEME-BREAK-CLASS
-:           SENTENCES UPPERCASE UNICODE= HEX-DIGIT-P CASED-P UNICODE<= MATH-P
-:           UNICODE>= TITLECASE WORDS BIDI-MIRRORING-GLYPH NORMALIZE-STRING
-:           LOWERCASE-P MIRRORED-P CONFUSABLE-P WORD-BREAK-CLASS WHITESPACE-P) 
+#+begin_src lisp
+
+(UNICODE> UNICODE< STRING-DESIGNATOR GRAPHEMES LINES BIDI-CLASS
+          DEFAULT-IGNORABLE-P ALPHABETIC-P DECIMAL-VALUE CHAR-BLOCK LOWERCASE
+          SENTENCE-BREAK-CLASS UNICODE-EQUAL DIGIT-VALUE CASEFOLD
+          LINE-BREAK-CLASS NORMALIZED-P UPPERCASE-P GRAPHEME-BREAK-CLASS
+          SENTENCES UPPERCASE UNICODE= HEX-DIGIT-P CASED-P UNICODE<= MATH-P
+          UNICODE>= TITLECASE WORDS BIDI-MIRRORING-GLYPH NORMALIZE-STRING
+          LOWERCASE-P MIRRORED-P CONFUSABLE-P WORD-BREAK-CLASS WHITESPACE-P) 
+#+end_src
 *** macs.sym
 Symbol utilities.
 #+CALL: p('sym)
 #+RESULTS:
-: 
-: (MAKE-SLOT-NAME ENSURE-SYMBOL KEYWORDICATE SYMBOLICATE PACKAGE-SYMBOLICATE
-:                 FORMAT-SYMBOL GENSYMIFY* MAKE-KEYWORD MAKE-GENSYM
-:                 WITH-UNIQUE-NAMES WITH-GENSYMS MAKE-GENSYM-LIST) 
+#+begin_src lisp
+
+(MAKE-SLOT-NAME ENSURE-SYMBOL KEYWORDICATE SYMBOLICATE PACKAGE-SYMBOLICATE
+                FORMAT-SYMBOL GENSYMIFY* MAKE-KEYWORD MAKE-GENSYM
+                WITH-UNIQUE-NAMES WITH-GENSYMS MAKE-GENSYM-LIST) 
+#+end_src
 *** macs.list
 List utilities.
 #+CALL: p('list)
 #+RESULTS:
-: 
-: (PROPER-LIST-P ENSURE-LIST ASSQ MEMQ ENSURE-CAR RECONS PROPER-LIST-OF-LENGTH-P
-:                SINGLETON-P ENSURE-CONS) 
+#+begin_src lisp
+
+(PROPER-LIST-P ENSURE-LIST ASSQ MEMQ ENSURE-CAR RECONS PROPER-LIST-OF-LENGTH-P
+               SINGLETON-P ENSURE-CONS) 
+#+end_src
 *** macs.cond
 Various conditions, restarts, errors, and other utilities for
 exception handling. See [[https://gigamonkeys.com/book/beyond-exception-handling-conditions-and-restarts.html][PCL]] for an introduction to conditions and
 restarts.
 #+CALL: p('cond)
 #+RESULTS:
-: 
-: (SIMPLE-PROGRAM-ERROR SIMPLE-READER-ERROR INVALID-ARGUMENT-ITEM
-:                       UNKNOWN-ARGUMENT-P INVALID-ARGUMENT SIMPLE-STYLE-WARNING
-:                       UNKNOWN-ARGUMENT-NAME IGNORE-SOME-CONDITIONS
-:                       MISSING-ARGUMENT-P INVALID-ARGUMENT-REASON
-:                       INVALID-ARGUMENT-P MISSING-ARGUMENT UNKNOWN-ARGUMENT
-:                       UNWIND-PROTECT-CASE CIRCULAR-DEPENDENCY-ITEMS NYI!
-:                       CIRCULAR-DEPENDENCY SIMPLE-PARSE-ERROR REQUIRED-ARGUMENT
-:                       MISSING-ARGUMENT-COMMAND UNKNOWN-ARGUMENT-KIND) 
+#+begin_src lisp
+
+(SIMPLE-PROGRAM-ERROR SIMPLE-READER-ERROR INVALID-ARGUMENT-ITEM
+                      UNKNOWN-ARGUMENT-P INVALID-ARGUMENT SIMPLE-STYLE-WARNING
+                      UNKNOWN-ARGUMENT-NAME IGNORE-SOME-CONDITIONS
+                      MISSING-ARGUMENT-P INVALID-ARGUMENT-REASON
+                      INVALID-ARGUMENT-P MISSING-ARGUMENT UNKNOWN-ARGUMENT
+                      UNWIND-PROTECT-CASE CIRCULAR-DEPENDENCY-ITEMS NYI!
+                      CIRCULAR-DEPENDENCY SIMPLE-PARSE-ERROR REQUIRED-ARGUMENT
+                      MISSING-ARGUMENT-COMMAND UNKNOWN-ARGUMENT-KIND) 
+#+end_src
 *** macs.fu
 The =fu= extension package. Includes macro utility functions from LOL,
 alexandria, PCL, PG, custom readers, and a named-readtable called
 =*macs-readtable*=.
 #+CALL: p('fu)
 #+RESULTS:
-#+begin_example
+#+begin_src lisp
 
 (LIST-INDIRECT-SLOT-METHODS LIST-CLASS-METHODS WHEN-LET* DEFMACRO! CHOOSE
  ONCE-ONLY WHEN-LET SYMB |#f-reader| DESTRUCTURING-CASE
@@ -203,20 +234,24 @@ alexandria, PCL, PG, custom readers, and a named-readtable called
  ALLOCATION-INFORMATION MERGE! MATCH-MODE-PPCRE-LAMBDA-FORM TLIST-UPDATE
  TLIST-EMPTY-P DOLLAR-SYMBOL-P DEFTYPE-LAMBDA-LIST TLIST-RIGHT IF-LET
  FUNCTION-TYPE FLATTEN G!-SYMBOL-P WHO-SPECIALIZES-DIRECTLY GROUP) 
-#+end_example
+#+end_src
 *** macs.ana
 Anaphoric macros.
 #+CALL: p('ana)
 #+RESULTS:
-: 
-: (ALET NLET-TAIL ACOND2 SELF IT THIS AWHEN AIF ALET% ACOND ALAMBDA) 
+#+begin_src lisp
+
+(ALET NLET-TAIL ACOND2 SELF IT THIS AWHEN AIF ALET% ACOND ALAMBDA) 
+#+end_src
 *** macs.pan
 Pandoric macros.
 #+CALL: p('pan)
 #+RESULTS:
-: 
-: (PANDORICLET-GET PANDORIC-RECODE WITH-PANDORIC PLAMBDA PANDORICLET
-:                  PANDORIC-EVAL PANDORICLET-SET PANDORIC-HOTPATCH GET-PANDORIC) 
+#+begin_src lisp
+
+(PANDORICLET-GET PANDORIC-RECODE WITH-PANDORIC PLAMBDA PANDORICLET
+                 PANDORIC-EVAL PANDORICLET-SET PANDORIC-HOTPATCH GET-PANDORIC) 
+#+end_src
 *** macs.cli
 This package provides an API for building CLI apps. It is highly
 opinionated and loosely derived from [[https://github.com/dnaeon/clingon][clingon]] and uiop.
@@ -226,29 +261,32 @@ opinionated and loosely derived from [[https://github.com/dnaeon/clingon][clingo
 
 #+CALL: p('cli)
 #+RESULTS:
-: 
-: (CLI-USAGE CLI-CMDS INIT-ARGS PRINT-USAGE WITH-CLI CLI-CMD PARSE-ARGS
-:  MAKE-PROMPT! MAKE-OPTS *ARGV* CLI-ARGS PRINT-HELP WITH-CLI-HANDLERS CLI-OPT
-:  COMPLETING-READ DO-CMD MAKE-SHORTY HANDLE-UNKNOWN-ARGUMENT
-:  HANDLE-MISSING-ARGUMENT COMMAND-LINE-ARGS CLI-VERSION CLI-NAME
-:  HANDLE-INVALID-ARGUMENT MAKE-CLI CLI DEFMAIN MAKE-CMDS EXEC-PATH-LIST CLI-OPTS
-:  PRINT-VERSION CLI-THUNK CLI-ARG0 ARGP *CLI-GROUP-SEPARATOR* MAIN
-:  CLI-DESCRIPTION) 
+#+begin_src lisp
+
+(CLI-USAGE CLI-CMDS INIT-ARGS PRINT-USAGE WITH-CLI CLI-CMD PARSE-ARGS
+ MAKE-PROMPT! MAKE-OPTS *ARGV* CLI-ARGS PRINT-HELP WITH-CLI-HANDLERS CLI-OPT
+ COMPLETING-READ DO-CMD MAKE-SHORTY HANDLE-UNKNOWN-ARGUMENT
+ HANDLE-MISSING-ARGUMENT COMMAND-LINE-ARGS CLI-VERSION CLI-NAME
+ HANDLE-INVALID-ARGUMENT MAKE-CLI CLI DEFMAIN MAKE-CMDS EXEC-PATH-LIST CLI-OPTS
+ PRINT-VERSION CLI-THUNK CLI-ARG0 ARGP *CLI-GROUP-SEPARATOR* MAIN
+ CLI-DESCRIPTION) 
+#+end_src
 *** macs.alien
 Foreign alien types, utils, and helpers.
 #+CALL: p('alien)
 #+RESULTS:
-:results:
+#+begin_src lisp
+
 (F24 BOOL-TO-FOREIGN-INT I4 U128 U2 U4 U64 U32 SANCTIFY-FOR-EXECUTION U3 U24
  I64 I32 DEFBYTES I128 I2 F64 F32 FOREIGN-INT-TO-INTEGER I8 FOREIGN-INT-TO-BOOL
- I3 I16 U8 I24 U1 F16 U16 F128)
-:end:
+ I3 I16 U8 I24 U1 F16 U16 F128) 
+#+end_src
 ** macs/rt
 *** macs.rt
 regression testing framework.
 #+CALL: p('rt)
 #+RESULTS:
-#+begin_example
+#+begin_src lisp
 
 (DO-SUITE TEST-SUITE TEST-NAME= TEST-FAILED DELETE-TEST TEST-SUITE-DESIGNATOR
           IS FIND-TEST TEST-OBJECT PUSH-TEST *CATCH-TEST-ERRORS*
@@ -259,7 +297,7 @@ regression testing framework.
           EVAL-TEST MAKE-TEST TEST-NAME COMPILE-TEST DO-TEST *TEST-SUITE-LIST*
           POP-TEST GET-TEST-OPT TESTS DEFSUITE DEFTEST IN-SUITE *TEST-SUITE*
           TEST-FIXTURE TEST-SKIP-P TEST) 
-#+end_example
+#+end_src
 ** macs/tests
 You can run the tests with asdf:
 #+begin_src shell :results output silent
@@ -307,5 +345,7 @@ No tests failed.
 macs System tests.
 #+CALL: p('tests)
 #+RESULTS:
-: 
-: (RUN-TESTS) 
+#+begin_src lisp
+
+(RUN-TESTS) 
+#+end_src
