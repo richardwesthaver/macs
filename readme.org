@@ -32,22 +32,9 @@ you're unsure.
 #+end_src
 
 #+name: p
-#+begin_src lisp :package macs-user :results drawer replace :var pkg='rt
+#+begin_src lisp :package macs-user :results drawer replace :var pkg='rt :exports both
 (p pkg)
 #+end_src
-
-#+RESULTS: p
-:results:
-(DO-SUITE TEST-SUITE TEST-NAME= TEST-FAILED DELETE-TEST TEST-SUITE-DESIGNATOR
-          IS FIND-TEST TEST-OBJECT PUSH-TEST *CATCH-TEST-ERRORS*
-          CONTINUE-TESTING ENSURE-SUITE LOCKED-TESTS TEST-PASS-P *TESTING*
-          TEST-FAIL-P WITH-TEST *DEFAULT-TEST-SUITE-NAME*
-          CHECK-SUITE-DESIGNATOR WITH-TEST-ENV DO-TESTS *TEST-SUFFIX* FAIL!
-          *TEST-DEBUG* *COMPILE-TESTS* MAKE-SUITE SIGNALS TEST-RESULTS
-          EVAL-TEST MAKE-TEST TEST-NAME COMPILE-TEST DO-TEST *TEST-SUITE-LIST*
-          POP-TEST GET-TEST-OPT TESTS DEFSUITE DEFTEST IN-SUITE *TEST-SUITE*
-          TEST-FIXTURE TEST-SKIP-P TEST)
-:end:
 
 ** Resources
   - [[https://alexandria.common-lisp.dev/][alexandria]]
@@ -142,7 +129,6 @@ Named Readtable support. See the [[https://github.com/melisgl/named-readtables][
  NAMED-READTABLE-DESIGNATOR FIND-READTABLE READTABLE-DOES-ALREADY-EXIST
  READTABLE-DOES-NOT-EXIST MAKE-READTABLE READTABLE-NAME MERGE-READTABLES-INTO)
 :end:
-
 ** macs
 *** macs
 Wrapper package. Rexports =macs.*= including =macs.readtables=.
