@@ -22,12 +22,17 @@
 (in-package :macs.rt)
 
 (defsuite :macs)
+(defsuite :macs.readtables)
+(defsuite :macs.rt)
 (in-suite :macs)
 
 (deftest rt-results ()
   "Check for basic test-result false-positive/negatives."
-  (is (test-pass-p (is (= (+ 2 2) 4))))
-  (is (when t t)))
+  (is (test-pass-p 
+       (is (= (+ 2 2) 4))))
+  (is (when t t))
+  (is (test-pass-p 
+       (signals (error t) (test-form (make-instance 'test-result))))))
 
 (deftest readtables ()
   "Test *macs-readtable* without cl-ppcre"
@@ -36,7 +41,7 @@
 #+cl-ppcre
 (deftest ppcre-readtables (:persist t)
   "Test *macs-readtable* with cl-ppcre"
-  (is = 1 1))
+  (is (= 1 1)))
 
 (deftest syms ()
   "Test MACS.SYM"

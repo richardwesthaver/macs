@@ -282,8 +282,9 @@ from TESTS."))
 
 (defclass test (test-object)
   ;; RESEARCH 2023-09-02: should this be a string?
-  ((function-symbol :type symbol :accessor test-function-symbol)
+  ((fn :type symbol :accessor test-fn)
    (args :type list :accessor test-args :initform nil :initarg :args)
+   (decl :type list :accessor test-decl :initform nil :initarg :decl)
    (form :initarg :form :initform nil :type function-lambda-expression :accessor test-form)
    (doc :initarg :doc :type string :accessor test-doc)
    (lock :initarg :lock :type boolean :accessor test-lock-p)
@@ -292,7 +293,7 @@ from TESTS."))
 
 (defmethod initialize-instance ((self test) &key name)
   (dbg! "building test" name)
-  (setf (test-function-symbol self)
+  (setf (test-fn self)
 	(make-symbol
 	 (format nil "~A~A"
 		 name
@@ -317,7 +318,7 @@ from TESTS."))
 
 (defmethod compile-test ((self test) &key declare &allow-other-keys)
    (compile
-    (test-function-symbol self)
+    (test-fn self)
     `(lambda ()
        (declare ,declare)
        ,@(test-form self))))
@@ -488,7 +489,6 @@ from TESTS."))
       (values (not fails) locked))))
 
 ;;; Checks
-
 ;; TODO 2023-09-05: 
 (defmacro is (test &rest args)
   "The DWIM Check.
@@ -536,12 +536,11 @@ is not evaluated."
         (ensure-list condition-spec)
       `(block ,block-name
          (handler-bind ((,condition (lambda (c)
-                                      (declare (ignore c))
                                       ;; ok, body threw condition
 				      ;; TODO 2023-09-05: result collectors
                                       ;; (add-result 'test-passed
                                       ;;            :test-expr ',condition)
-                                      (return-from ,block-name t))))
+                                      (return-from ,block-name (make-test-result :pass ',body)))))
            (block nil
              ,@body))
          (fail!
@@ -552,41 +551,39 @@ is not evaluated."
          (return-from ,block-name nil)))))
 
 ;;; Macros
-(flet ((%p (ll body)
-	 (multiple-value-bind (forms decls doc)
-	     ;; parse body with docstring allowed
-	     (sb-int:parse-body
-	      (if (listp body) body t) t)
-	   `(list ,(multiple-value-list (parse-lambda-list ll))
-		  ,doc ,forms ,decls))))
-  (defmacro deftest (name lambda-list &body body)
-    "Build a test parameterized by LAMBDA-LIST. BODY is wrapped in
+(defmacro deftest (name props &body body)
+  "Build a test parameterized by LAMBDA-LIST. BODY is wrapped in
 `with-test-env' and passed to `make-test' which returns a value based
 on the dynamic environment."
-    (multiple-value-bind (ll doc guts decls)
-	(%p lambda-list body)
-      (declare (ignore decls))
-      (multiple-value-bind (llks required optional rest keys) ll
-	(declare (ignore llks required optional rest keys))
-	`(let ((obj (make-test
-		     :name (format nil "~A" ',name)
-		     :form ,guts
-		     :doc ,doc)))
-	   (push-test obj *test-suite*)
-	   obj)))))
+  (destructuring-bind (pr doc dec fn)
+      (multiple-value-bind (forms decls doc)
+	  ;; parse body with docstring allowed
+	  (sb-int:parse-body
+	   (if (listp body) body t) t)
+	`(',props ,doc ,decls ,forms))
+    (declare (ignore pr))
+    `(let ((obj (make-test
+		 :name (format nil "~A" ',name)
+		 ;; note: we could leave these unbound if we want,
+		 ;; personal preference
+		 :form ',fn
+		 :doc ,doc
+		 :decl ,dec)))
+       (push-test obj *test-suite*)
+       obj)))
 
-  (defmacro defsuite (suite-name &key (stream '*standard-output*) (opts nil))
+(defmacro defsuite (suite-name &key (stream '*standard-output*) (opts nil))
     "Define a `test-suite' with provided keys. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
-    (check-type suite-name (or symbol string))
-      `(eval-when (:compile-toplevel :load-toplevel :execute)
-	 (let ((obj (make-suite
-		     :name (format nil "~A" ',suite-name)
-		     :stream ,stream
-		     :opts ',opts)))
-	   ;; TODO 2023-09-17: shouldn't need setf
-	   (setq *test-suite-list* (spush obj *test-suite-list* :test #'test-name=))
-	   obj)))
+  (check-type suite-name (or symbol string))
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (let ((obj (make-suite
+		 :name (format nil "~A" ',suite-name)
+		 :stream ,stream
+		 :opts ',opts)))
+       ;; TODO 2023-09-17: shouldn't need setf
+       (setq *test-suite-list* (spush obj *test-suite-list* :test #'test-name=))
+       obj)))
 
 (defmacro in-suite (name)
   "Set `*test-suite*' to the `test-suite' referred to by symbol
