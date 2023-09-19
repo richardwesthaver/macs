@@ -53,5 +53,5 @@
   :source-control (:hg "https://lab.rwest.io/ellis/macs")
   :depends-on (:macs/readtables :macs :macs/rt)
   :components ((:file "tests"))
-  :perform (test-op (o c) (symbol-call :rt :do-tests :macs)))
+  :perform (test-op (o c) (symbol-call :macs.rt :do-tests :macs)))
   

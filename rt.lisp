@@ -283,7 +283,6 @@ from TESTS."))
 ;; HACK 2023-08-31: inherit sxp?
 
 (defclass test (test-object)
-  ;; RESEARCH 2023-09-02: should this be a string?
   ((fn :type symbol :accessor test-fn)
    (args :type list :accessor test-args :initform nil :initarg :args)
    (decl :type list :accessor test-decl :initform nil :initarg :decl)
@@ -311,7 +310,6 @@ from TESTS."))
 	    (test-lock-p self)
 	    (test-persist-p self))))
 
-
 ;; TODO 2023-09-01: use sxp?
 ;; (defun validate-form (form))
 
@@ -338,28 +336,27 @@ from TESTS."))
 	   (bail nil)
 	   r)
       (block bail
-	  (setf r
-		(flet ((%do ()
-			 (if-let ((opt *compile-tests*))
-			   ;; RESEARCH 2023-08-31: with-compilation-unit?
-			   (progn 
-			     (when (eq opt t) (setq opt *default-test-opts*)) 
-			     (funcall (compile-test self :declare opt))
-			     (make-test-result :pass (format nil "#'~A" (test-fn self))))
-			   (progn
-			     (eval-test self)
-			     (make-test-result :pass (test-form self))))))
-		  (if *catch-test-errors*
-		      (handler-bind
-			  ((style-warning #'muffle-warning)
-			   (error 
-			     #'(lambda (c)
-				 (setf bail t)
-				 (setf r (make-test-result :fail c))
-				 (return-from bail nil)))))
-		      (%do))
-		  (%do)))
-	  (setf (test-lock-p self) bail))
+	(flet ((%do ()
+		 (if-let ((opt *compile-tests*))
+		   ;; RESEARCH 2023-08-31: with-compilation-unit?
+		   (progn 
+		     (when (eq opt t) (setq opt *default-test-opts*)) 
+		     (funcall (compile-test self :declare opt))
+		     (setf r(make-test-result :pass (format nil "#'~(~A~)" (test-fn self)))))
+		   (progn
+		     (eval-test self)
+		     (setf r (make-test-result :pass (test-form self)))))))
+	  (if *catch-test-errors*
+	      (handler-bind
+		  ((style-warning #'muffle-warning)
+		   (error 
+		     #'(lambda (c)
+			 (setf bail t)
+			 (setf r (make-test-result :fail c))
+			 (return-from bail nil))))
+		(%do))
+	      (%do)))
+      (setf (test-lock-p self) bail))
       r)))
 
 ;;;; Fixtures
@@ -405,10 +402,12 @@ from TESTS."))
 
 (defmethod print-object ((self test-suite) stream)
   (print-unreadable-object (self stream :type t :identity t)
-    (format stream "~A :tests ~A :stream ~A"
+    (format stream "~A [~d:~d:~d:~d]"
 	    (test-name self)
-	    (length (the list (tests self)))
-	    (test-stream self))))
+	    (length (tests self))
+	    (count t (map-tests self #'test-lock-p))
+	    (count t (map-tests self #'test-persist-p))
+	    (length (test-results self)))))
 
 ;; (defmethod reinitialize-instance ((self test-suite) &rest initargs &key &allow-other-keys))
 
@@ -416,11 +415,14 @@ from TESTS."))
   "Either nil, a symbol, a string, or a `test-suite' object."
   '(or null symbol string test-suite test keyword))
 
-(defmethod locked-tests ((self test-suite))
+(defmethod map-tests ((self test-suite) function)
+  (mapcar function (tests self)))
+
+(defmethod persistent-tests ((self test-suite))
   (do ((l (tests self) (cdr l))
        (r nil))
       ((null l) (nreverse r))
-    (when (test-lock-p (car l))
+    (when (test-persist-p (car l))
       (push (test-name (car l)) r))))
 
 (defmethod get-test-opt ((self test-suite) key)
@@ -468,12 +470,13 @@ from TESTS."))
 	(format stream "~@[~<~%~:;~:@(~S~) ~>~]"
 		(push-result (do-test i) self))))
     ;; compare locked vs expected
-    (let ((locked (locked-tests self))
+    (let ((locked (remove-if #'null (map-tests self (lambda (x) (when (test-lock-p x) x)))))
 	  (fails
 	    ;; collect if locked test not expected
 	    (loop for r in (test-results self)
 		  unless (test-pass-p r)
 		    collect r)))
+      (print locked)
       (if (null locked)
 	  (format stream "~&No tests failed.~%")
 	  (progn
@@ -525,8 +528,8 @@ All other values are treated as let bindings.
 	  "TEST must be a form, not ~S" test)
   (flet ((%test (test)
 	   `(if-let ((ok ,test))
-	      (make-test-result :pass ok)
-	      (make-test-result :fail ok))))
+	      (make-test-result :pass ',test)
+	      (make-test-result :fail ',test))))
     `(if (null ,args)
 	 ,(%test test)
 	 (let* ((%ll ,(mapcar (lambda (x) `(,(symb (car x)) ,@(cdr x)))
