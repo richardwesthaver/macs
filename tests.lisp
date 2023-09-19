@@ -56,11 +56,11 @@
   (is (eq 'macs.tests::foo (format-symbol :macs.tests "~A" 'foo)))
   (is (eq (make-keyword 'fizz) :fizz)))
 
-(compile (cli:make-prompt! test "testing: "))
-
 (deftest cli ()
   "Test MACS.CLI"
   ;; prompts 
+  (defvar tpfoo nil)
+  (make-prompt! tpfoo "testing: ")
   (let ((*standard-input* (make-string-input-stream (format nil "~A~%~A~%" "foobar" "foobar"))))
     (is (string= (test-prompt) "foobar"))
     (defvar tcoll nil)

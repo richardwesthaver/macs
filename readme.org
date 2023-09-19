@@ -31,7 +31,7 @@ you're unsure.
   (defmacro p (x) `(cdr (assoc (funcall (%m) ,x) (s))))
 #+end_src
 
-#+RESULTS: macs-collect-symbols
+#+RESULTS: macs-collect-symbols 
 #+begin_src lisp
 To load "macs":
   Load 1 ASDF system:
@@ -300,12 +300,12 @@ regression testing framework.
 #+end_src
 ** macs/tests
 You can run the tests with asdf:
-#+begin_src shell :results output silent
+#+begin_src shell :results output silent :exports both
   sbcl --noinform --eval '(progn (asdf:load-system :macs/tests) (asdf:test-system "macs"))'
 #+end_src
 
 Or interactively:
-#+begin_src lisp :results output replace :wrap src lisp
+#+begin_src lisp :results output replace :wrap src lisp :exports both
   (load "tests.lisp")
   (multiple-value-list (rt:do-tests :macs))
 #+end_src
