@@ -312,7 +312,7 @@ Or interactively:
   ;; enable test compilation - this will replace the tr-form value with
   ;; a compiled function symbol. Set this to nil to eval only and show
   ;; the full un-evaluated form in tr-form.
-  (setq *compile-tests* t)
+  (setq *compile-tests* nil)
   (load "tests.lisp")
   (list (multiple-value-list (rt:do-tests :macs)) (test-results rt:*test-suite*))
 #+end_src
@@ -320,8 +320,35 @@ Or interactively:
 #+RESULTS:
 #+begin_src lisp
 ((T NIL)
- (#<PASS #'rt-results-test552> #<PASS #'readtables-test553>
-  #<PASS #'syms-test554> #<PASS #'cli-test560>))
+ (#<PASS ((IS (TEST-PASS-P (IS (= (+ 2 2) 4)))) (IS (WHEN T T))
+          (IS
+           (TEST-PASS-P
+            (SIGNALS (ERROR T)
+              (TEST-FORM (MAKE-INSTANCE 'TEST-RESULT))))))>
+  #<PASS ((IN-READTABLE *MACS-READTABLE*))>
+  #<PASS ((WITH-GENSYMS (A B C)
+            (LET ((A 1) (B 1) (C 2))
+              (IS (AND (= A B) (NOT (= C A)) (= (+ A B) (* C B)))))
+            (IS (NOT (EQUALP (MAKE-GENSYM 'A) (MAKE-GENSYM 'A))))
+            (IS (EQ (ENSURE-SYMBOL 'TESTS MACS.TESTS) 'TESTS))
+            (IS (EQ 'FOO (FORMAT-SYMBOL MACS.TESTS ~A 'FOO)))
+            (IS (EQ (MAKE-KEYWORD 'FIZZ) FIZZ))))>
+  #<PASS ((LET ((*STANDARD-INPUT*
+                 (MAKE-STRING-INPUT-STREAM
+                  (FORMAT NIL ~A~%~A~% foobar foobar))))
+            (IS (STRING= (TPFOO-PROMPT) foobar))
+            (DEFVAR TCOLL NIL)
+            (DEFVAR THIST NIL)
+            (IS
+             (STRING= foobar
+                      (COMPLETING-READ nothing:  TCOLL HISTORY 'THIST DEFAULT
+                                       foobar))))
+          (IS (EQ (MAKE-SHORTY test) t))
+          (DEFVAR %OPTS
+            (MAKE-OPTS '(NAME FOO GLOBAL T DESCRIPTION bar)
+                       '(NAME BAR DESCRIPTION foo)))
+          (DEFVAR %CMDS (MAKE-CMDS `(NAME BAZ DESCRIPTION baz OPTS ,%OPTS)))
+          (IS (AND %OPTS %CMDS)))>))
 #+end_src
 
 *** macs.tests
