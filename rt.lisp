@@ -43,6 +43,7 @@
    #+x86-64 :sb-sprof)
   (:nicknames :rt)
   (:export
+   :*default-test-opts*
    :*test-debug*
    :*compile-tests*
    :*catch-test-errors*
@@ -94,7 +95,8 @@
 (in-readtable *macs-readtable*)
 
 ;;; Vars
-(defvar *compile-tests* '(optimize sb-c::instrument-consing)
+(defvar *default-test-opts* '(optimize sb-c::instrument-consing))
+(defvar *compile-tests* t
   "When nil do not compile tests. With a value of t, tests are compiled
 with default optimizations else the value is used to configure
 compiler optimizations.")
@@ -336,26 +338,28 @@ from TESTS."))
 	   (bail nil)
 	   r)
       (block bail
-	(setf r
-	      (flet ((%do
-			 ()
-		       (if-let ((opt *compile-tests*))
-			 ;; RESEARCH 2023-08-31: with-compilation-unit?
-			 (make-test-result :pass (funcall (compile-test self :declare opt)))
-			 (make-test-result
-			  :pass
-			  (eval-test self)))))
-		(if *catch-test-errors*
-		    (handler-bind
-			((style-warning #'muffle-warning)
-			 (error 
-			   #'(lambda (c)
-			       (setf bail t)
-			       (setf r (make-test-result :fail c))
-			       (return-from bail nil)))))
-		    (%do))
-		(%do)))
-	(setf (test-lock-p self) bail))
+	  (setf r
+		(flet ((%do ()
+			 (if-let ((opt *compile-tests*))
+			   ;; RESEARCH 2023-08-31: with-compilation-unit?
+			   (progn 
+			     (when (eq opt t) (setq opt *default-test-opts*)) 
+			     (funcall (compile-test self :declare opt))
+			     (make-test-result :pass (format nil "#'~A" (test-fn self))))
+			   (progn
+			     (eval-test self)
+			     (make-test-result :pass (test-form self))))))
+		  (if *catch-test-errors*
+		      (handler-bind
+			  ((style-warning #'muffle-warning)
+			   (error 
+			     #'(lambda (c)
+				 (setf bail t)
+				 (setf r (make-test-result :fail c))
+				 (return-from bail nil)))))
+		      (%do))
+		  (%do)))
+	  (setf (test-lock-p self) bail))
       r)))
 
 ;;;; Fixtures
@@ -382,6 +386,12 @@ from TESTS."))
 
 (defmethod test-skip-p ((res test-result))
   (when (eq :skip (tr-tag res)) t))
+
+(defmethod print-object ((self test-result) stream)
+  (print-unreadable-object (self stream)
+    (format stream "~A ~A"
+	    (tr-tag self)
+	    (tr-form self))))
 
 ;;;; Suites
 (defclass test-suite (test-object)
@@ -424,7 +434,8 @@ from TESTS."))
   (pop (tests self)))
 
 (defmethod push-result ((self test-result) (place test-suite))
-  (push self (test-results place)))
+  (with-slots (results) place
+    (push self results)))
 
 (defmethod pop-result ((self test-suite))
   (pop (test-results self)))
@@ -444,7 +455,6 @@ from TESTS."))
 ;; HACK 2023-09-01: find better method of declaring failures from
 ;; within the body of `deftest'.
 (defmethod do-suite ((self test-suite) &key stream)
-  ;; early abort
   (when stream (setf (test-stream self) stream))
   (with-slots (name opts stream) self
     (format stream "in suite ~x with ~A/~A tests:~%"
@@ -452,11 +462,11 @@ from TESTS."))
 	    (count t (tests self)
 		   :key #'test-lock-p)
 	    (length (tests self)))
-    ;; loop over each test, calling `do-test' if locked
+    ;; loop over each test, calling `do-test' if locked or persistent
     (dolist (i (tests self))
-      (when (test-lock-p i)
+      (when (or (test-lock-p i) (test-persist-p i))
 	(format stream "~@[~<~%~:;~:@(~S~) ~>~]"
-		(do-test i))))
+		(push-result (do-test i) self))))
     ;; compare locked vs expected
     (let ((locked (locked-tests self))
 	  (fails
@@ -483,10 +493,6 @@ from TESTS."))
 		      fails))))
     ;; close stream
     (finish-output stream)
-    ;; reset locks on persistent tests
-    (loop for i in (tests self)
-	  do (when (test-persist-p i)
-	       (setf (test-lock-p i) t)))
       ;; return values (PASS? LOCKED)
       (values (not fails) locked))))
 
@@ -518,15 +524,14 @@ All other values are treated as let bindings.
 	  (test)
 	  "TEST must be a form, not ~S" test)
   (flet ((%test (test)
-	   `(if ,test
-	       (make-test-result :pass ',test)
-	       (make-test-result :fail ',test))))
+	   `(if-let ((ok ,test))
+	      (make-test-result :pass ok)
+	      (make-test-result :fail ok))))
     `(if (null ,args)
 	 ,(%test test)
 	 (let* ((%ll ,(mapcar (lambda (x) `(,(symb (car x)) ,@(cdr x)))
 			      (group args 2)))
 		(%form (list 'let %ll ,test)))
-	   (print %ll t)
 	   (funcall ,#'%test %form)))))
 
 (defmacro signals (condition-spec &body body)

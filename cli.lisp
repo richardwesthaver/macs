@@ -96,7 +96,7 @@ user to list valid options while continue waiting for input."
       (push r (symbol-value history)))))
 
 (defmacro! make-prompt! (o!var &optional o!prompt)
-  "Generate a 'prompter' from list or variable VAR and optional
+  "Generate a 'prompter' from list or variable VAR and optionalo
 PROMPT string.
 
 This isn't an ideal solution as it does in fact expose a dynamic

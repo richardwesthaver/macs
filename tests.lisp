@@ -19,7 +19,6 @@
    :macs.rt)
   (:export :run-tests))
 (in-package :macs.tests)
-(in-package :macs.rt)
 
 (defsuite :macs)
 (defsuite :macs.readtables)
@@ -49,20 +48,24 @@
   (with-gensyms (a b c)
     (let ((a 1) (b 1) (c 2))
       (is (and (= a b) (not (= c a))
-	       (= (+ a b) (* c b))))))
+	       (= (+ a b) (* c b)))))
   (is (not (equalp (make-gensym 'a) (make-gensym 'a))))
 
   (is (eq (ensure-symbol 'tests :macs.tests) 'tests))
   (is (eq 'macs.tests::foo (format-symbol :macs.tests "~A" 'foo)))
-  (is (eq (make-keyword 'fizz) :fizz)))
+  (is (eq (make-keyword 'fizz) :fizz))))
+
+;; we should be able to call this from the body of the test, but we
+;; get an undefined-function error for 'MACS.RT::MAKE-PROMPT!' -
+;; package namespacing issue.
+(defvar tpfoo nil)
+(make-prompt! tpfoo "testing: ")
 
 (deftest cli ()
   "Test MACS.CLI"
   ;; prompts 
-  (defvar tpfoo nil)
-  (make-prompt! tpfoo "testing: ")
   (let ((*standard-input* (make-string-input-stream (format nil "~A~%~A~%" "foobar" "foobar"))))
-    (is (string= (test-prompt) "foobar"))
+    (is (string= (tpfoo-prompt) "foobar"))
     (defvar tcoll nil)
     (defvar thist nil)
     (is (string= "foobar"
