@@ -25,6 +25,12 @@
 (defsuite :macs.rt)
 (in-suite :macs)
 
+(deftest rt-fixtures ()
+  (is (typep (make-fixture-prototype :empty nil)  'fixture-prototype))
+  (is (typep (make-fixture tfix () () t) 'function))
+  (let ((fx1 (make-fixture fx1 () (a b c) (setq a 1 b 2 c 3))))
+    (is (with-fixture (a b c) fx1 (not (member 'nil (mapcar #'= (list 1 2 3) `(,a ,b ,c))))))))
+
 (deftest rt-results ()
   "Check for basic test-result false-positive/negatives."
   (is (test-pass-p 
@@ -35,14 +41,14 @@
 
 (deftest readtables ()
   "Test *macs-readtable* without cl-ppcre"
-  (in-readtable *macs-readtable*))
+  (is (progn (in-readtable *macs-readtable*) (typep #`(,a1 ,a1 ',a1 ,@a1) 'function))))
 
 #+cl-ppcre
 (deftest ppcre-readtables (:persist t)
   "Test *macs-readtable* with cl-ppcre"
   (is (= 1 1)))
 
-(deftest syms ()
+(deftest sym ()
   "Test MACS.SYM"
   ;; gensyms
   (with-gensyms (a b c)
@@ -50,10 +56,43 @@
       (is (and (= a b) (not (= c a))
 	       (= (+ a b) (* c b)))))
   (is (not (equalp (make-gensym 'a) (make-gensym 'a))))
-
   (is (eq (ensure-symbol 'tests :macs.tests) 'tests))
   (is (eq 'macs.tests::foo (format-symbol :macs.tests "~A" 'foo)))
   (is (eq (make-keyword 'fizz) :fizz))))
+
+;;; TODO
+(deftest str (:disable t)
+  "Test MACS.STR")
+
+(deftest list (:disable t)
+  "Test MACS.STR")
+
+(deftest log (:disable t)
+  "Test MACS.STR")
+
+(deftest cond (:disable t)
+  "Test MACS.STR")
+
+(deftest reexport (:disable t)
+  "Test MACS.STR")
+
+(deftest thread (:disable t)
+  "Test MACS.STR")
+
+(deftest alien (:disable t)
+  "Test MACS.STR")
+
+(deftest fmt (:disable t)
+  "Test MACS.STR")
+
+(deftest fu (:disable t)
+  "Test MACS.STR")
+
+(deftest ana (:disable t)
+  "Test MACS.STR")
+
+(deftest pan (:disable t)
+  "Test MACS.STR")
 
 ;; we should be able to call this from the body of the test, but we
 ;; get an undefined-function error for 'MACS.RT::MAKE-PROMPT!' -

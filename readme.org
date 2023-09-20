@@ -306,7 +306,6 @@ You can run the tests with asdf:
 
 Or interactively:
 #+begin_src lisp :results replace :wrap src lisp :exports both
-  (ql:quickload :macs/rt)
   (ql:quickload :macs/tests)
   (in-package :macs.tests)
   ;; enable test compilation - this will replace the tr-form value with
@@ -314,18 +313,40 @@ Or interactively:
   ;; the full un-evaluated form in tr-form.
   (setq *compile-tests* nil)
   (load "tests.lisp")
-  (list (multiple-value-list (rt:do-tests :macs)) (test-results rt:*test-suite*))
+  (list (multiple-value-list (macs.rt:do-tests :macs)) (test-results macs.rt:*test-suite*))
 #+end_src
 
 #+RESULTS:
 #+begin_src lisp
 ((T NIL)
- (#<PASS ((IS (TEST-PASS-P (IS (= (+ 2 2) 4)))) (IS (WHEN T T))
+ (#<PASS ((IS (TYPEP (MAKE-FIXTURE-PROTOTYPE EMPTY NIL) 'FIXTURE-PROTOTYPE))
+          (IS
+           (TYPEP
+            (MAKE-FIXTURE TFIX
+                NIL
+                NIL
+              T)
+            'FUNCTION))
+          (LET ((FX1
+                 (MAKE-FIXTURE FX1
+                     NIL
+                     (A B C)
+                   (SETQ A 1
+                         B 2
+                         C 3))))
+            (IS
+             (WITH-FIXTURE (A B C)
+                 FX1
+               (NOT (MEMBER 'NIL (MAPCAR #'= (LIST 1 2 3) `(,A ,B ,C))))))))>
+  #<PASS ((IS (TEST-PASS-P (IS (= (+ 2 2) 4)))) (IS (WHEN T T))
           (IS
            (TEST-PASS-P
             (SIGNALS (ERROR T)
               (TEST-FORM (MAKE-INSTANCE 'TEST-RESULT))))))>
-  #<PASS ((IN-READTABLE *MACS-READTABLE*))>
+  #<PASS ((IS
+           (PROGN
+            (IN-READTABLE *MACS-READTABLE*)
+            (TYPEP (LAMBDA (A1) `(,A1 ,A1 ',A1 ,@A1)) 'FUNCTION))))>
   #<PASS ((WITH-GENSYMS (A B C)
             (LET ((A 1) (B 1) (C 2))
               (IS (AND (= A B) (NOT (= C A)) (= (+ A B) (* C B)))))
@@ -333,6 +354,10 @@ Or interactively:
             (IS (EQ (ENSURE-SYMBOL 'TESTS MACS.TESTS) 'TESTS))
             (IS (EQ 'FOO (FORMAT-SYMBOL MACS.TESTS ~A 'FOO)))
             (IS (EQ (MAKE-KEYWORD 'FIZZ) FIZZ))))>
+  #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)>
+  #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)>
+  #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)>
+  #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)>
   #<PASS ((LET ((*STANDARD-INPUT*
                  (MAKE-STRING-INPUT-STREAM
                   (FORMAT NIL ~A~%~A~% foobar foobar))))

@@ -378,17 +378,17 @@ from TESTS."))
 (declaim (inline %make-fixture-prototype))
 (defstruct (fixture-prototype (:constructor %make-fixture-prototype)
 			      (:conc-name fxp))
-  (kind 'empty :type symbol)
+  (kind :empty :type keyword)
   (form nil :type form))
 
 (defun make-fixture-prototype (kind form)
   (%make-fixture-prototype :kind kind :form form))
 
 (defmacro make-fixture (name largs pargs &body body)
-  `(defun ,name () (plambda ,largs ,pargs ,@body)))
+  `(plambda ,largs ,pargs (cons ,@body ',name)))
 
 (defmacro with-fixture (pargs fx &body body)
-  `(with-pandoric ',pargs ,fx ,@body))
+  `(with-pandoric ,pargs ,fx ,@body))
 
 ;;;; Results
 (deftype result-tag ()
@@ -446,13 +446,6 @@ from TESTS."))
 (defmethod map-tests ((self test-suite) function)
   (mapcar function (tests self)))
 
-(defmethod persistent-tests ((self test-suite))
-  (do ((l (tests self) (cdr l))
-       (r nil))
-      ((null l) (nreverse r))
-    (when (test-persist-p (car l))
-      (push (test-name (car l)) r))))
-
 (defmethod get-test-opt ((self test-suite) key)
   (declare (type keyword key))
   (assoc key (test-opts self)))
@@ -493,10 +486,11 @@ from TESTS."))
 		   :key #'test-lock-p)
 	    (length (tests self)))
     ;; loop over each test, calling `do-test' if locked or persistent
-    (dolist (i (tests self))
-      (when (or (test-lock-p i) (test-persist-p i))
-	(format stream "~@[~<~%~:;~:@(~S~) ~>~]"
-		(push-result (do-test i) self))))
+    (map-tests self 
+	       (lambda (x)
+		 (when (or (test-lock-p x) (test-persist-p x))
+		   (format stream "~@[~<~%~:;~:@(~S~) ~>~]"
+			   (push-result (do-test x) self)))))
     ;; compare locked vs expected
     (let ((locked (remove-if #'null (map-tests self (lambda (x) (when (test-lock-p x) x)))))
 	  (fails
