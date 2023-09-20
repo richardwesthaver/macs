@@ -39,7 +39,7 @@
 (defpackage :macs.rt
   (:use
    :cl :sxp
-   :sym :list :cond :readtables :fu :fmt :log :ana :sb-aprof
+   :sym :list :cond :readtables :fu :fmt :log :ana :pan :sb-aprof
    #+x86-64 :sb-sprof)
   (:nicknames :rt)
   (:export
@@ -64,6 +64,12 @@
    :continue-testing
    :with-test-env
    :ensure-suite
+   :test-fixture
+   :fixture-prototype
+   :make-fixture-prototype
+   :make-fixture
+   :with-fixture
+   :test-result
    :test-pass-p
    :test-fail-p
    :test-skip-p
@@ -328,8 +334,8 @@ from TESTS."))
     (with-simple-restart (ignore-fail "Continue testing.")
       (error 'test-failed :reason reason :form form))))
   
-(defmethod do-test ((self test) &optional fix)
-  (declare (ignorable fix))
+(defmethod do-test ((self test) &optional fx)
+  (declare (ignorable fx))
   (catch '%in-test ;; for `continue-testing' restart
     (setf (test-lock-p self) t)
     (let* ((*testing* (test-name self))
@@ -360,7 +366,29 @@ from TESTS."))
       r)))
 
 ;;;; Fixtures
-(defstruct test-fixture)
+
+;; Our fixtures are just closures - with a pandoric environment. You
+;; might call it a domain-specific object protocol.
+
+;; You can build fixtures inside a test or use the push/pop-fixture
+;; methods on a `test-suite' object to use it from multiple.
+
+(deftype fixture () 'form)
+
+(declaim (inline %make-fixture-prototype))
+(defstruct (fixture-prototype (:constructor %make-fixture-prototype)
+			      (:conc-name fxp))
+  (kind 'empty :type symbol)
+  (form nil :type form))
+
+(defun make-fixture-prototype (kind form)
+  (%make-fixture-prototype :kind kind :form form))
+
+(defmacro make-fixture (name largs pargs &body body)
+  `(defun ,name () (plambda ,largs ,pargs ,@body)))
+
+(defmacro with-fixture (pargs fx &body body)
+  `(with-pandoric ',pargs ,fx ,@body))
 
 ;;;; Results
 (deftype result-tag ()
@@ -370,7 +398,7 @@ from TESTS."))
 (defstruct (test-result (:constructor %make-test-result)
 			(:conc-name  tr-))
   (tag nil :type result-tag :read-only t)
-  (form nil :type sxp:form))
+  (form nil :type form))
 
 (defun make-test-result (tag &optional form)
   (%make-test-result :tag tag :form form))
