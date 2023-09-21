@@ -311,7 +311,7 @@ Or interactively:
   ;; enable test compilation - this will replace the tr-form value with
   ;; a compiled function symbol. Set this to nil to eval only and show
   ;; the full un-evaluated form in tr-form.
-  (setq *compile-tests* nil)
+  (setq *compile-tests* t)
   (load "tests.lisp")
   (list (multiple-value-list (macs.rt:do-tests :macs)) (test-results macs.rt:*test-suite*))
 #+end_src
@@ -319,61 +319,11 @@ Or interactively:
 #+RESULTS:
 #+begin_src lisp
 ((T NIL)
- (#<PASS ((IS (TYPEP (MAKE-FIXTURE-PROTOTYPE EMPTY NIL) 'FIXTURE-PROTOTYPE))
-          (IS
-           (TYPEP
-            (MAKE-FIXTURE TFIX
-                NIL
-                NIL
-              T)
-            'FUNCTION))
-          (LET ((FX1
-                 (MAKE-FIXTURE FX1
-                     NIL
-                     (A B C)
-                   (SETQ A 1
-                         B 2
-                         C 3))))
-            (IS
-             (WITH-FIXTURE (A B C)
-                 FX1
-               (NOT (MEMBER 'NIL (MAPCAR #'= (LIST 1 2 3) `(,A ,B ,C))))))))>
-  #<PASS ((IS (TEST-PASS-P (IS (= (+ 2 2) 4)))) (IS (WHEN T T))
-          (IS
-           (TEST-PASS-P
-            (SIGNALS (ERROR T)
-              (TEST-FORM (MAKE-INSTANCE 'TEST-RESULT))))))>
-  #<PASS ((IS
-           (PROGN
-            (IN-READTABLE *MACS-READTABLE*)
-            (TYPEP (LAMBDA (A1) `(,A1 ,A1 ',A1 ,@A1)) 'FUNCTION))))>
-  #<PASS ((WITH-GENSYMS (A B C)
-            (LET ((A 1) (B 1) (C 2))
-              (IS (AND (= A B) (NOT (= C A)) (= (+ A B) (* C B)))))
-            (IS (NOT (EQUALP (MAKE-GENSYM 'A) (MAKE-GENSYM 'A))))
-            (IS (EQ (ENSURE-SYMBOL 'TESTS MACS.TESTS) 'TESTS))
-            (IS (EQ 'FOO (FORMAT-SYMBOL MACS.TESTS ~A 'FOO)))
-            (IS (EQ (MAKE-KEYWORD 'FIZZ) FIZZ))))>
-  #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)>
-  #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)>
-  #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)>
-  #<PASS (Test MACS.STR)> #<PASS (Test MACS.STR)>
-  #<PASS ((LET ((*STANDARD-INPUT*
-                 (MAKE-STRING-INPUT-STREAM
-                  (FORMAT NIL ~A~%~A~% foobar foobar))))
-            (IS (STRING= (TPFOO-PROMPT) foobar))
-            (DEFVAR TCOLL NIL)
-            (DEFVAR THIST NIL)
-            (IS
-             (STRING= foobar
-                      (COMPLETING-READ nothing:  TCOLL HISTORY 'THIST DEFAULT
-                                       foobar))))
-          (IS (EQ (MAKE-SHORTY test) t))
-          (DEFVAR %OPTS
-            (MAKE-OPTS '(NAME FOO GLOBAL T DESCRIPTION bar)
-                       '(NAME BAR DESCRIPTION foo)))
-          (DEFVAR %CMDS (MAKE-CMDS `(NAME BAZ DESCRIPTION baz OPTS ,%OPTS)))
-          (IS (AND %OPTS %CMDS)))>))
+ (#<PASS #'rt-test731> #<PASS #'readtables-test732> #<PASS #'sym-test733>
+  #<PASS #'str-test734> #<PASS #'list-test735> #<PASS #'log-test736>
+  #<PASS #'cond-test737> #<PASS #'reexport-test738> #<PASS #'thread-test739>
+  #<PASS #'alien-test740> #<PASS #'fmt-test741> #<PASS #'fu-test742>
+  #<PASS #'ana-test743> #<PASS #'pan-test744> #<PASS #'cli-test750>))
 #+end_src
 
 *** macs.tests

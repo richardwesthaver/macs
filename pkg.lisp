@@ -118,7 +118,7 @@
 (defpackage :macs.log
   (:use :cl :str :fmt :sym :fu)
   (:nicknames :log)
-  (:export :*log-level* :log-timestamp-source :log! :warn! :info! :dbg! :trace!))
+  (:export :*log-level* :log-timestamp-source :log! :warn! :info! :debug! :trace!))
 
 (defpackage :macs.ana
   (:use :cl :macs.readtables :macs.reexport :macs.fu)

@@ -5,30 +5,64 @@
 
 ;;; Commentary:
 
-;; Use `*log-level*' to set the current level of logging.
+;; Use `*log-level*' to set the current level of logging. Value is
+;; either a bool or one of the following keywords: :warn :debug :info
+;; :trace.
 
-;; print macros: log! warn! info! dbg! trace!
+;; top-level macros: info! trace! warn! debug!
+
+;; inspired by rust-lang/log https://crates.io/crates/log
+
+;; I intend to keep things simple for a while and then work out a DSL
+;; for configuring logging. The DSL will be embedded in skelfiles.
+
+;;; Code:
 (in-package :macs.log)
 
+(deftype log-level-indicator () '(member :warn :debug :info :trace))
+(declaim (type (or boolean log-level-indicator) *log-level*))
 (defparameter *log-level* nil)
-
-;; TODO 2023-09-09: 
-(defparameter *log-timestamp* t "If non-nil, print a timestamp with log output. The value may be a
+(defparameter *logger* nil)
+(defparameter *log-router* nil)
+(declaim (type (or boolean function) *log-timestamp*))
+(defparameter *log-timestamp* t 
+  "If non-nil, print a timestamp with log output. The value may be a
 function in which case it is used as the function value of
 `log-timestamp-source'.")
 
-(declaim (inline log-timestamp-source))
+;; TODO 2023-09-20: (declaim (inline log-timestamp-source)) ;; this
+;; probably shouldn't be inlined.. bench it
 (defun log-timestamp-source ()
-  (format nil "~f" (/ (get-internal-real-time) internal-time-units-per-second)))
+  (if (functionp *log-timestamp*)
+      (funcall *log-timestamp*)
+      (format nil "~f" (/ (get-internal-real-time) internal-time-units-per-second))))
 
-(defmacro log! (opts &rest args))
+;; the purpose of this struct is to route log messages to the
+;; appropriate output stream. It should be configured and bound to
+;; *LOG-ROUTER*.
+(defstruct log-router
+  info error debug trace)
+
+;; TODO 2023-09-20: make-synonym-stream, make-synonym-stream-symbol 
+(defvar *default-log-router* 
+  (make-log-router :info *terminal-io* 
+		   :error *error-output* 
+		   :debug *debug-io*
+		   :trace *trace-output*))
+
+(defstruct logger
+  (active nil :type boolean)
+  (timestamp *log-timestamp* :type (or boolean function))
+  (router *default-log-router* :type log-router))
+   
+(defmacro info! (opts &rest args))
+
+(defmacro trace! (opts &rest args))
 
 (defmacro warn! (opts &rest args))
 
-(defmacro info! (opts &rest args))
-
 ;; TODO 2023-08-31: single format control string
-(defmacro dbg! (&rest args)
+(defmacro debug! (&rest args)
   (with-gensyms (dbg)
     `(when-let ((,dbg *log-level*))
        (format ,dbg ":DBG")
@@ -36,5 +70,3 @@ function in which case it is used as the function value of
 	   (format ,dbg " @ ~A ::~t" (log-timestamp-source)))
        ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
        (map nil (lambda (x) (format ,dbg "~A " x)) ',args))))
-
-(defmacro trace! (opts &rest args))

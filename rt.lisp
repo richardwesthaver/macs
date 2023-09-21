@@ -299,7 +299,7 @@ from TESTS."))
   (:documentation "Test class typically made with `deftest'."))
 
 (defmethod initialize-instance ((self test) &key name)
-  (dbg! "building test" name)
+  ;; (debug! "building test" name)
   (setf (test-fn self)
 	(make-symbol
 	 (format nil "~A~A"
