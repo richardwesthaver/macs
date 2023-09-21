@@ -34,6 +34,7 @@
 (in-readtable *macs-readtable*)
 
 (deftest rt ()
+  (fail! nil)
   (is (typep (make-fixture-prototype :empty nil)  'fixture-prototype))
   (is (typep (make-fixture tfix () () t) 'function))
   (let ((fx1 (make-fixture fx1 () (a b c) (setq a 1 b 2 c 3))))
@@ -86,8 +87,8 @@
 
 (deftest log (:disable t)
   "Test MACS.STR"
-  (let ((*log-level* t))
-    (debug! "test")))
+  (let ((*log-level* :debug))
+    (debug! "test" *log-level*)))
 
 (deftest cond (:disable t)
   "Test MACS.STR")

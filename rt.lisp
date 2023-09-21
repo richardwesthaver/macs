@@ -20,13 +20,7 @@
 ;;; TODO:
 #|
 
-- [ ] with-test
-
 - [ ] with-test-env
-
-- [ ] check macros
-
-- [ ] fixtures
 
 - [ ] sxp formatter
 
@@ -44,7 +38,6 @@
   (:nicknames :rt)
   (:export
    :*default-test-opts*
-   :*test-debug*
    :*compile-tests*
    :*catch-test-errors*
    :*test-suffix*
@@ -58,7 +51,6 @@
    :make-test
    :make-suite
    :test-name=
-   :with-test
    :do-test
    :do-tests
    :continue-testing
@@ -114,10 +106,6 @@ compiler optimizations.")
     (defvar *default-test-suite-name* "default"))
 (declaim (type (or stream boolean string) *test-input*))
 (defvar *test-input* nil "When non-nil, specifies an input stream or buffer for `*testing*'.")
-(declaim (type (or stream boolean) *test-debug*))
-(defvar *test-debug* *log-level* "When non-nil, enable debug-mode for tests defined with `deftest'. The
-value is actually treated as a stream-designator - so you can point
-the debug output wherever you want.")
 
 (defvar *testing* nil "Testing state var.")
 
@@ -127,11 +115,6 @@ the debug output wherever you want.")
     (apply #'make-instance 'test slots))
   (defun make-suite (&rest slots)
     (apply #'make-instance 'test-suite slots)))
-
-(defmacro with-test ((arg test &rest slots) &body body)
-  "Do BODY with ARG bound to `test-object' TEST."
-  `(let ((,arg ,test)) ;; TODO: CoW?
-     (with-slots ',slots ,test ,@body)))
 
 ;; TODO 2023-09-04: optimize
 (declaim (inline do-tests))
@@ -310,17 +293,17 @@ from TESTS."))
 
 (defmethod print-object ((self test) stream)
   (print-unreadable-object (self stream :type t :identity t)
-    (format stream "~A ~A :lock ~A :persist ~A"
+    (format stream "~A :fn ~A :args ~A :persist ~A"
 	    (test-name self)
-	    (test-form self)
-	    (test-lock-p self)
+	    (test-fn self)
+	    (test-args self)
 	    (test-persist-p self))))
 
 ;; TODO 2023-09-01: use sxp?
 ;; (defun validate-form (form))
 
 (defmethod eval-test ((self test))
-  (funcall (lambda () (test-form self))))
+  (eval `(lambda () ,@(test-form self))))
 
 (defmethod compile-test ((self test) &key declare &allow-other-keys)
    (compile
@@ -341,17 +324,19 @@ from TESTS."))
     (let* ((*testing* (test-name self))
 	   (bail nil)
 	   r)
+      (debug! "running test: " *testing*)
       (block bail
 	(flet ((%do ()
 		 (if-let ((opt *compile-tests*))
 		   ;; RESEARCH 2023-08-31: with-compilation-unit?
 		   (progn 
-		     (when (eq opt t) (setq opt *default-test-opts*)) 
+		     (when (eq opt t) (setq opt *default-test-opts*))
+		     ;; TODO 2023-09-21: handle failures here
 		     (funcall (compile-test self :declare opt))
-		     (setf r(make-test-result :pass (format nil "#'~(~A~)" (test-fn self)))))
+		     (setf r (make-test-result :pass (test-fn self))))
 		   (progn
 		     (eval-test self)
-		     (setf r (make-test-result :pass (test-form self)))))))
+		     (setf r (make-test-result :pass (test-name self)))))))
 	  (if *catch-test-errors*
 	      (handler-bind
 		  ((style-warning #'muffle-warning)
@@ -359,7 +344,7 @@ from TESTS."))
 		     #'(lambda (c)
 			 (setf bail t)
 			 (setf r (make-test-result :fail c))
-			 (return-from bail nil))))
+			 (return-from bail r))))
 		(%do))
 	      (%do)))
       (setf (test-lock-p self) bail))
@@ -489,8 +474,9 @@ from TESTS."))
     (map-tests self 
 	       (lambda (x)
 		 (when (or (test-lock-p x) (test-persist-p x))
-		   (format stream "~@[~<~%~:;~:@(~S~) ~>~]"
-			   (push-result (do-test x) self)))))
+		   (let ((res (do-test x)))
+		     (push-result res self)
+		     (format stream "~@[~<~%~:;~:@(~S~) ~>~]~%" res)))))
     ;; compare locked vs expected
     (let ((locked (remove-if #'null (map-tests self (lambda (x) (when (test-lock-p x) x)))))
 	  (fails
@@ -498,7 +484,6 @@ from TESTS."))
 	    (loop for r in (test-results self)
 		  unless (test-pass-p r)
 		    collect r)))
-      (print locked)
       (if (null locked)
 	  (format stream "~&No tests failed.~%")
 	  (progn
@@ -591,8 +576,9 @@ on the dynamic environment."
       (multiple-value-bind (forms dec doc)
 	  ;; parse body with docstring allowed
 	  (sb-int:parse-body
-	   (if (listp body) body t) t)
+	   (when (listp body) body nil) t)
 	`(',props ,doc ,dec ,forms))
+    ;; TODO 2023-09-21: parse plist
     (declare (ignore pr))
     `(let ((obj (make-test
 		 :name (format nil "~A" ',name)

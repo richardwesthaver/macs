@@ -305,12 +305,16 @@ You can run the tests with asdf:
 #+end_src
 
 Or interactively:
-#+begin_src lisp :results replace :wrap src lisp :exports both
+#+begin_src lisp :results output :wrap src lisp :exports both
+  (ql:quickload :macs)
+  (ql:quickload :macs/rt)
   (ql:quickload :macs/tests)
   (in-package :macs.tests)
   ;; enable test compilation - this will replace the tr-form value with
   ;; a compiled function symbol. Set this to nil to eval only and show
   ;; the full un-evaluated form in tr-form.
+  (setq log:*log-level* :debug)
+  (setq *catch-test-errors* t)
   (setq *compile-tests* t)
   (load "tests.lisp")
   (list (multiple-value-list (macs.rt:do-tests :macs)) (test-results macs.rt:*test-suite*))
@@ -318,12 +322,38 @@ Or interactively:
 
 #+RESULTS:
 #+begin_src lisp
-((T NIL)
- (#<PASS #'rt-test731> #<PASS #'readtables-test732> #<PASS #'sym-test733>
-  #<PASS #'str-test734> #<PASS #'list-test735> #<PASS #'log-test736>
-  #<PASS #'cond-test737> #<PASS #'reexport-test738> #<PASS #'thread-test739>
-  #<PASS #'alien-test740> #<PASS #'fmt-test741> #<PASS #'fu-test742>
-  #<PASS #'ana-test743> #<PASS #'pan-test744> #<PASS #'cli-test750>))
+To load "macs":
+  Load 1 ASDF system:
+    macs
+; Loading "macs"
+
+To load "macs/rt":
+  Load 1 ASDF system:
+    macs/rt
+; Loading "macs/rt"
+
+To load "macs/tests":
+  Load 1 ASDF system:
+    macs/tests
+; Loading "macs/tests"
+
+in suite MACS with 15/15 tests:
+:DEBUG @ 818.95667 :: running test:  CLI #<PASS CLI-TEST845> 
+:DEBUG @ 818.95667 :: running test:  PAN #<PASS PAN-TEST839> 
+:DEBUG @ 818.95667 :: running test:  ANA #<PASS ANA-TEST838> 
+:DEBUG @ 818.95667 :: running test:  FU #<PASS FU-TEST837> 
+:DEBUG @ 818.95667 :: running test:  FMT #<PASS FMT-TEST836> 
+:DEBUG @ 818.95667 :: running test:  ALIEN #<PASS ALIEN-TEST835> 
+:DEBUG @ 818.96 :: running test:  THREAD #<PASS THREAD-TEST834> 
+:DEBUG @ 818.96 :: running test:  REEXPORT #<PASS REEXPORT-TEST833> 
+:DEBUG @ 818.96 :: running test:  COND #<PASS COND-TEST832> 
+:DEBUG @ 818.96 :: running test:  LOG #<PASS LOG-TEST831> 
+:DEBUG @ 818.96 :: running test:  LIST #<PASS LIST-TEST830> 
+:DEBUG @ 818.96 :: running test:  STR #<PASS STR-TEST829> 
+:DEBUG @ 818.96 :: running test:  SYM #<PASS SYM-TEST828> 
+:DEBUG @ 818.96 :: running test:  READTABLES #<PASS READTABLES-TEST827> 
+:DEBUG @ 818.96 :: running test:  RT #<PASS RT-TEST826> 
+No tests failed.
 #+end_src
 
 *** macs.tests
