@@ -278,7 +278,8 @@ from TESTS."))
    (form :initarg :form :initform nil :type function-lambda-expression :accessor test-form)
    (doc :initarg :doc :type string :accessor test-doc)
    (lock :initarg :lock :type boolean :accessor test-lock-p)
-   (persist :initarg :persist :initform nil :type boolean :accessor test-persist-p))
+   (persist :initarg :persist :initform nil :type boolean :accessor test-persist-p)
+   (results :initarg :results :type (array test-result) :accessor test-results))
   (:documentation "Test class typically made with `deftest'."))
 
 (defmethod initialize-instance ((self test) &key name)
@@ -289,6 +290,9 @@ from TESTS."))
 		 name
 		 (gensym *test-suffix*))))
   (setf (test-lock-p self) t)
+  ;; TODO 2023-09-21: we should count how many checks are in the :form
+  ;; slot and infer the array dimensions.
+  (setf (test-results self) (make-array 0 :element-type 'test-result))
   (call-next-method))
 
 (defmethod print-object ((self test) stream)
@@ -302,8 +306,15 @@ from TESTS."))
 ;; TODO 2023-09-01: use sxp?
 ;; (defun validate-form (form))
 
+(defmethod push-result ((self test-result) (place test))
+  (with-slots (results) place
+    (push self results)))
+
+(defmethod pop-result ((self test))
+  (pop (test-results self)))
+
 (defmethod eval-test ((self test))
-  (eval `(lambda () ,@(test-form self))))
+  `(progn ,@(test-form self)))
 
 (defmethod compile-test ((self test) &key declare &allow-other-keys)
    (compile
@@ -321,7 +332,7 @@ from TESTS."))
   (declare (ignorable fx))
   (catch '%in-test ;; for `continue-testing' restart
     (setf (test-lock-p self) t)
-    (let* ((*testing* (test-name self))
+    (let* ((*testing* self)
 	   (bail nil)
 	   r)
       (debug! "running test: " *testing*)
@@ -511,7 +522,7 @@ from TESTS."))
 (defmacro is (test &rest args)
   "The DWIM Check.
 
-(is (= 1 1) :test 100) ;=> #S(TEST-RESULT :TAG :PASS :TEST (= 1 1))
+(is (= 1 1) :test 100) ;=> #S(TEST-RESULT :TAG :PASS :FORM (= 1 1))
 If TEST returns a truthy value, return a PASS test-result, else return
 a FAIL. The TEST is parameterized by ARGS which is a plist or nil.
 
@@ -533,16 +544,26 @@ All other values are treated as let bindings.
   (assert (formp test)
 	  (test)
 	  "TEST must be a form, not ~S" test)
-  (flet ((%test (test)
-	   `(if-let ((ok ,test))
-	      (make-test-result :pass ',test)
-	      (make-test-result :fail ',test))))
+  (flet ((%test (val form)
+	   (let ((r 
+		   (if val 
+		       (make-test-result :pass form)
+		       (make-test-result :fail form))))
+	     (debug! r)
+	     r)))
     `(if (null ,args)
-	 ,(%test test)
+	 (let ((val ,test)
+	       (form ',test))
+	   (if *testing* 
+	       (push-result (funcall ,#'%test val form) *testing*)
+	       (funcall ,#'%test val form)))
 	 (let* ((%ll ,(mapcar (lambda (x) `(,(symb (car x)) ,@(cdr x)))
 			      (group args 2)))
-		(%form (list 'let %ll ,test)))
-	   (funcall ,#'%test %form)))))
+		(val (funcall `(lambda () (let ',%ll ',test)))))
+	   ;; TODO 2023-09-21: does this work...
+	   (if *testing*
+	       (push-result (funcall ,#'%test val ',test) *testing*)
+	       (funcall ,#'%test val ',test))))))
 
 (defmacro signals (condition-spec &body body)
   "Generates a passing TEST-RESULT if body signals a condition of type
@@ -576,15 +597,15 @@ on the dynamic environment."
       (multiple-value-bind (forms dec doc)
 	  ;; parse body with docstring allowed
 	  (sb-int:parse-body
-	   (when (listp body) body nil) t)
-	`(',props ,doc ,dec ,forms))
+	   (or body) t)
+	`(',props ',doc ',dec ',forms))
     ;; TODO 2023-09-21: parse plist
     (declare (ignore pr))
     `(let ((obj (make-test
-		 :name (format nil "~A" ',name)
+		 :name ',(format nil "~A" name)
 		 ;; note: we could leave these unbound if we want,
 		 ;; personal preference
-		 :form ',fn
+		 :form ,fn
 		 ,@(when doc `(:doc ,doc))
 		 ,@(when dec `(:decl ,dec)))))
        (push-test obj *test-suite*)

@@ -33,16 +33,15 @@
 (in-suite :macs)
 (in-readtable *macs-readtable*)
 
+(setq *log-level*  :debug)
+
 (deftest rt ()
-  (fail! nil)
   (is (typep (make-fixture-prototype :empty nil)  'fixture-prototype))
   (is (typep (make-fixture tfix () () t) 'function))
   (let ((fx1 (make-fixture fx1 () (a b c) (setq a 1 b 2 c 3))))
     (funcall fx1)
     (with-fixture (a b c) fx1 
       (is (not (member 'nil (mapcar #'= (list 1 2 3) `(,a ,b ,c)))))))
-  (is (test-pass-p 
-       (is (= (+ 2 2) 4))))
   (is (when t t))
   (is (test-pass-p 
        (signals (error t) (test-form (make-instance 'test-result))))))

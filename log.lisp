@@ -64,10 +64,11 @@ function in which case it is used as the function value of
 (defun debug-p () (eq *log-level* :debug))
 
 ;; TODO 2023-08-31: single format control string
-(defmacro debug! (&rest args)
-  `(when (debug-p)
-     (format t ":DEBUG")
-     (if *log-timestamp*
-	 (format t " @ ~A ::~t" (log-timestamp-source)))
-     ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
-     (map nil (lambda (x) (format t "~A " x)) (list ,@args))))
+(defun debug! (&rest args)
+  (when (debug-p)
+    (format t ":DEBUG")
+    (if *log-timestamp*
+	(format t " @ ~A ::~t" (log-timestamp-source)))
+    ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
+    (map nil (lambda (x) (format t "~A " x)) args)
+    (format t "~%")))
