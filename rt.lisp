@@ -256,6 +256,34 @@ from TESTS."))
   (:documentation
    "Get the value of first cons where car is KEY in :opts slot of SELF."))
 
+;;;; Results
+(deftype result-tag ()
+  '(or (member :pass :fail :skip) null))
+
+(declaim (inline %make-test-result))
+(defstruct (test-result (:constructor %make-test-result)
+			(:conc-name  tr-))
+  (tag nil :type result-tag :read-only t)
+  (form nil :type form))
+
+(defun make-test-result (tag &optional form)
+  (%make-test-result :tag tag :form form))
+
+(defmethod test-pass-p ((res test-result))
+  (when (eq :pass (tr-tag res)) t))
+
+(defmethod test-fail-p ((res test-result))
+  (when (eq :fail (tr-tag res)) t))
+
+(defmethod test-skip-p ((res test-result))
+  (when (eq :skip (tr-tag res)) t))
+
+(defmethod print-object ((self test-result) stream)
+  (print-unreadable-object (self stream)
+    (format stream "~A ~A"
+	    (tr-tag self)
+	    (tr-form self))))
+
 ;;; Objects
 (defclass test-object ()
   ((name :initarg :name :initform (required-argument) :type string :accessor test-name)
@@ -386,34 +414,6 @@ from TESTS."))
 (defmacro with-fixture (pargs fx &body body)
   `(with-pandoric ,pargs ,fx ,@body))
 
-;;;; Results
-(deftype result-tag ()
-  '(or (member :pass :fail :skip) null))
-
-(declaim (inline %make-test-result))
-(defstruct (test-result (:constructor %make-test-result)
-			(:conc-name  tr-))
-  (tag nil :type result-tag :read-only t)
-  (form nil :type form))
-
-(defun make-test-result (tag &optional form)
-  (%make-test-result :tag tag :form form))
-
-(defmethod test-pass-p ((res test-result))
-  (when (eq :pass (tr-tag res)) t))
-
-(defmethod test-fail-p ((res test-result))
-  (when (eq :fail (tr-tag res)) t))
-
-(defmethod test-skip-p ((res test-result))
-  (when (eq :skip (tr-tag res)) t))
-
-(defmethod print-object ((self test-result) stream)
-  (print-unreadable-object (self stream)
-    (format stream "~A ~A"
-	    (tr-tag self)
-	    (tr-form self))))
-
 ;;;; Suites
 (defclass test-suite (test-object)
   ((tests :initarg :set :initform nil :type list :accessor tests
@@ -541,9 +541,6 @@ value:
 
 All other values are treated as let bindings.
 "
-  (assert (formp test)
-	  (test)
-	  "TEST must be a form, not ~S" test)
   (flet ((%test (val form)
 	   (let ((r 
 		   (if val 

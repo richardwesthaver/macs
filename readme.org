@@ -55,86 +55,6 @@ To load "macs/tests":
   (print (p pkg))
 #+end_src
 
-** Resources
-  - [[https://alexandria.common-lisp.dev/][alexandria]]
-  - [[https://edicl.github.io/cl-ppcre/][cl-ppcre]]
-  - [[https://github.com/melisgl/named-readtables][named-readtables]]
-  - [[https://github.com/takagi/cl-reexport/tree/master][cl-reexport]]
-  - [[https://gigamonkeys.com/book/][PCL]]
-  - [[https://letoverlambda.com/][LOL]] ([[https://github.com/thephoeron/let-over-lambda/tree/master][production version]])
-  - [[https://sep.turbifycdn.com/ty/cdn/paulgraham/bellanguage.txt?t=1688221954&][Bel]]
-  - [[https://wiki.c2.com/?LispMacro][c2 wiki on Lisp Macro]]
-  - [[https://gitlab.common-lisp.net/asdf/asdf/][asdf]]
-  - [[https://www.sbcl.org/manual/][sbcl manual]]
-  - [[https://docs.rs/clap/latest/clap/][clap.rs docs]]
-** Goals
-- power
-** Notes
-- /Macros aren't about being needlessly terse/ :: \\
-  Some people seem to think that once you hit a certain level of
-  macs-ification you're just making your code unreadable to save on
-  typing, or for the sake of codegolfing. This is not the case - the
-  keypresses you can keep for free, but the /power/ comes from using
-  macros to /think smarter/ and /faster/ about your problems.
-- /Macros don't increase cognitive overhead/ :: \\
-  They isolate it. For authors, the benefit of this is ten-fold. We
-  write a complex syntax translation, understand it, and use it in
-  our code. We don't use it to decrease code size, /we use it to
-  simplify patterns/. It allows us to think in terms of the macro
-  and skip a great deal of context switching and processing in our
-  brains.
-- /Blub macros don't come close to the gold standard/ :: \\
-  which is *Unhygienic Lisp Macros*. Hygienic macros are an
-  unfortunate inclusion of the Scheme specification.
-- /Macros are not functions/ :: \\
-  This, I credit to Paul Graham. I was actually just searching
-  through the Arc [[http://www.arclanguage.org/tut.txt][tutorial]] for the term 'hygienic' because the
-  implementation is in Racket and heard chatter of hygienic macros
-  in Arc. I was delighted to find this passage:
-  #+begin_quote
-  One of the keys to understanding macros is to remember that macro
-  calls aren't function calls.  Macro calls look like function calls.
-  Macro definitions even look a lot like function definitions.  But
-  something fundamentally different is happening.  You're transforming
-  code, not evaluating it.  Macros live in the land of the names, not 
-  the land of the things they refer to.    
-  #+end_quote
-- /Being terse has utility/ :: \\
-  First a quick anecdote: I heard a story from a buddy about an
-  individual who wrote some middleware in an extremely terse
-  fashion - single letter symbols, one-liners, minimal comments,
-  etc.
-
-  I think it's hard to see a reality where that person isn't just
-  trying to make a statement and piss off some people, without
-  seeing the code or being familiar with the author - because if
-  that's how your audience reacts, you're either doing it wrong, or
-  being an ass.
-
-  Stories like these are why I believe so many talented developers
-  don't fully accept the dark arts of the terse. A bad experience
-  which leaves a bitter taste.
-
-  Another part of me thinks there are some social/psychological
-  issues in play. Or alternatively, /developers write code for too
-  broad of an audience/. Mainstream education encourages high-level
-  code which is /optimized for human-readability/ - which isn't
-  something I know for a fact but will be sure to ask around and
-  report back. I think we can all agree this is a good thing to
-  encourage in the classroom in very broad strokes.
-
-  The problem is that I don't think we're doing a good job of
-  teaching students how to break these rules, and why you would want
-  to. Everyone seems to have this image of the ideal
-  =production-quality-code-base= which is, as it turns out, a hell
-  of a lot of work. Documentation to the nines. Descriptions in
-  every commit. Whitespace! We are conditioned to associate
-  human-readability with quality.
-
-  When you're working with thousands of inexperienced contributors,
-  yea put some weight on the ol' human interfaces. Take a team of 5
-  experts and try that and now you're just overcharging the
-  customer. It gets way more complicated every where in-between.
 * Systems
 ** macs/readtables
 *** macs.readtables
@@ -305,130 +225,59 @@ You can run the tests with asdf:
 #+end_src
 
 Or interactively:
-#+begin_src lisp :results output replace :wrap src lisp :exports both
-  (ql:quickload :macs)
-  (ql:quickload :macs/rt)
+#+begin_src lisp :results output replace :wrap src lisp :exports both :package macs.tests
   (ql:quickload :macs/tests)
-  (in-package :macs)
-  ;; enable test compilation - this will replace the tr-form value with
-  ;; a compiled function symbol. Set this to nil to eval only and show
-  ;; the full un-evaluated form in tr-form.
-  (setq log:*log-level* :debug)
+  (compile-file "tests.lisp" :trace-file t :emit-cfasl t)
+  (load "tests.lisp")
+  (in-package :macs.tests)
+  (setq *log-level* nil) ;; :debug,t
   (setq *catch-test-errors* t)
   (setq *compile-tests* t)
-  (load "tests.lisp")
-  (list (multiple-value-list (rt:do-tests :macs)) (rt:test-results rt:*test-suite*))
+  (list (multiple-value-list (do-tests :macs)) (test-results *test-suite*))
 #+end_src
 
 #+RESULTS:
 #+begin_src lisp
-To load "macs":
-  Load 1 ASDF system:
-    macs
-; Loading "macs"
-
-To load "macs/rt":
-  Load 1 ASDF system:
-    macs/rt
-; Loading "macs/rt"
-
 To load "macs/tests":
   Load 1 ASDF system:
     macs/tests
 ; Loading "macs/tests"
 
+; compiling file "/home/ellis/dev/macs/tests.lisp" (written 21 SEP 2023 09:28:16 PM):
+
+
+; wrote /home/ellis/dev/macs/tests.fasl
+; compilation finished in 0:00:00.030
 in suite MACS with 15/15 tests:
-:DEBUG @ 918.42334 :: running test:  #<TEST CLI :fn CLI-test852 :args NIL :persist NIL {10081E5733}> 
-testing:  [foobar]: :DEBUG @ 918.4267 :: #<PASS (STRING= (TPFOO-PROMPT) foobar)> 
-nothing: :DEBUG @ 918.4267 :: #<PASS (STRING= foobar
-                                              (COMPLETING-READ nothing:  TCOLL
-                                                               HISTORY 'THIST
-                                                               DEFAULT foobar))> 
-:DEBUG @ 918.4267 :: #<PASS (EQ (MAKE-SHORTY test) t)> 
-:DEBUG @ 918.4267 :: #<PASS (AND %OPTS %CMDS)> 
-#<PASS CLI-TEST852> 
-:DEBUG @ 918.4267 :: running test:  #<TEST PAN :fn PAN-test846 :args NIL :persist NIL {1007F01E63}> 
-:DEBUG @ 918.43 :: #<PASS (= 0 (FUNCALL P NIL))> 
-:DEBUG @ 918.43 :: #<PASS (= 1 (FUNCALL P 1))> 
-:DEBUG @ 918.43 :: #<PASS (= 1 B C)> 
-#<PASS PAN-TEST846> 
-:DEBUG @ 918.43 :: running test:  #<TEST ANA :fn ANA-test845 :args NIL :persist NIL {1007E4DB63}> 
-:DEBUG @ 918.43335 :: #<PASS (= 8 (AIF (+ 2 2) (+ IT IT)))> 
-#<PASS ANA-TEST845> 
-:DEBUG @ 918.43335 :: running test:  #<TEST FU :fn FU-test844 :args NIL :persist NIL {1007E49063}> 
-#<PASS FU-TEST844> 
-:DEBUG @ 918.43335 :: running test:  #<TEST FMT :fn FMT-test843 :args NIL :persist NIL {1007D9C2E3}> 
-:DEBUG @ 918.43665 :: #<PASS (STRING= (FORMAT NIL | 1 | 2 | 3 |~%)
-                                      (FMT-ROW '(1 2 3)))> 
-:DEBUG @ 918.43665 :: #<PASS (STRING= (FMT-SXHASH (SXHASH T))
-                                      (FMT-SXHASH (SXHASH T)))> 
-#<PASS FMT-TEST843> 
-:DEBUG @ 918.43665 :: running test:  #<TEST ALIEN :fn ALIEN-test842 :args NIL :persist NIL {1007C856A3}> 
-:DEBUG @ 918.43665 :: #<PASS (= 0 (FOREIGN-INT-TO-INTEGER 0 4))> 
-:DEBUG @ 918.43665 :: #<PASS (= 1 (BOOL-TO-FOREIGN-INT T))> 
-#<PASS ALIEN-TEST842> 
-:DEBUG @ 918.43665 :: running test:  #<TEST THREAD :fn THREAD-test841 :args NIL :persist NIL {1007C802C3}> 
-Current thread: #<THREAD tid=289053 "worker" RUNNING {1006CA9763}>
+testing:  [foobar]: nothing: #<PASS CLI-TEST361> 
+#<PASS PAN-TEST355> 
+#<PASS ANA-TEST354> 
+#<PASS FU-TEST353> 
+#<PASS FMT-TEST352> 
+#<PASS ALIEN-TEST351> 
+Current thread: #<THREAD tid=183861 "worker" RUNNING {10065E0CF3}>
 
 Current thread name: worker
 
 All threads:
- #<THREAD tid=282640 "main thread" RUNNING {1000000113}>
-#<THREAD tid=289053 "worker" RUNNING {1006CA9763}>
-#<THREAD tid=282665 "reader-thread" RUNNING {1002E60203}>
-#<THREAD tid=282672 "repl-thread" RUNNING {1005C011B3}>
-#<THREAD tid=282671 "auto-flush-thread" RUNNING {1005C00133}>
-#<THREAD tid=282666 "swank-indentation-cache-thread" RUNNING {1002E60583}>
-#<THREAD tid=282664 "control-thread" RUNNING {1002E38DE3}>
+ #<THREAD tid=183497 "main thread" RUNNING {1000000113}>
+#<THREAD tid=183861 "worker" RUNNING {10065E0CF3}>
+#<THREAD tid=183522 "reader-thread" RUNNING {1002E982F3}>
+#<THREAD tid=183529 "repl-thread" RUNNING {10047E91B3}>
+#<THREAD tid=183528 "auto-flush-thread" RUNNING {10047E8133}>
+#<THREAD tid=183523 "swank-indentation-cache-thread" RUNNING {1002E984C3}>
+#<THREAD tid=183521 "control-thread" RUNNING {1002E74473}>
 
-#<PASS THREAD-TEST841> 
-:DEBUG @ 918.43665 :: running test:  #<TEST REEXPORT :fn REEXPORT-test840 :args NIL :persist NIL {1007C135C3}> 
-#<PASS REEXPORT-TEST840> 
-:DEBUG @ 918.43665 :: running test:  #<TEST COND :fn COND-test839 :args NIL :persist NIL {1007B8B703}> 
-#<PASS COND-TEST839> 
-:DEBUG @ 918.43665 :: running test:  #<TEST LOG :fn LOG-test838 :args NIL :persist NIL {100796F483}> 
-:DEBUG @ 918.43665 :: test DEBUG 
-#<PASS LOG-TEST838> 
-:DEBUG @ 918.43665 :: running test:  #<TEST LIST :fn LIST-test837 :args NIL :persist NIL {100796DB03}> 
-:DEBUG @ 918.44 :: #<PASS (EQ (ENSURE-CAR '(0)) (ENSURE-CAR 0))> 
-:DEBUG @ 918.44 :: #<PASS (EQ (ENSURE-CAR '(NIL)) (ENSURE-CAR NIL))> 
-:DEBUG @ 918.44 :: #<PASS (NOT (EQ (ENSURE-CONS 0) (ENSURE-CONS 0)))> 
-:DEBUG @ 918.44 :: #<PASS (EQUAL (ENSURE-CONS 0) (ENSURE-CONS 0))> 
-#<PASS LIST-TEST837> 
-:DEBUG @ 918.44 :: running test:  #<TEST STR :fn STR-test836 :args NIL :persist NIL {100796BB63}> 
-:DEBUG @ 918.44336 :: #<PASS (TYPEP test 'STRING-DESIGNATOR)> 
-:DEBUG @ 918.44336 :: #<PASS (TYPEP 'TEST 'STRING-DESIGNATOR)> 
-:DEBUG @ 918.44336 :: #<PASS (TYPEP C 'STRING-DESIGNATOR)> 
-:DEBUG @ 918.44336 :: #<PASS (NOT (TYPEP 0 'STRING-DESIGNATOR))> 
-#<PASS STR-TEST836> 
-:DEBUG @ 918.44336 :: running test:  #<TEST SYM :fn SYM-test835 :args NIL :persist NIL {10079692D3}> 
-:DEBUG @ 918.44666 :: #<PASS (AND (= A B) (NOT (= C A)) (= (+ A B) (* C B)))> 
-:DEBUG @ 918.44666 :: #<PASS (NOT (EQUALP (MAKE-GENSYM 'A) (MAKE-GENSYM 'A)))> 
-:DEBUG @ 918.44666 :: #<PASS (EQ (ENSURE-SYMBOL 'TESTS MACS.TESTS) 'TESTS)> 
-:DEBUG @ 918.44666 :: #<PASS (EQ 'FOO (FORMAT-SYMBOL MACS.TESTS ~A 'FOO))> 
-:DEBUG @ 918.44666 :: #<PASS (EQ (MAKE-KEYWORD 'FIZZ) FIZZ)> 
-#<PASS SYM-TEST835> 
-:DEBUG @ 918.44666 :: running test:  #<TEST READTABLES :fn READTABLES-test834 :args NIL :persist NIL {10078E5803}> 
-:DEBUG @ 918.44666 :: #<PASS (TYPEP (LAMBDA (A1) `(,A1 ,A1 ',A1 ,@A1))
-                                    'FUNCTION)> 
-#<PASS READTABLES-TEST834> 
-:DEBUG @ 918.44666 :: running test:  #<TEST RT :fn RT-test833 :args NIL :persist NIL {10078E3C43}> 
-:DEBUG @ 918.4533 :: #<PASS (TYPEP (MAKE-FIXTURE-PROTOTYPE EMPTY NIL)
-                                   'FIXTURE-PROTOTYPE)> 
-:DEBUG @ 918.4533 :: #<PASS (TYPEP
-                             (MAKE-FIXTURE TFIX
-                                 NIL
-                                 NIL
-                               T)
-                             'FUNCTION)> 
-:DEBUG @ 918.4533 :: #<PASS (NOT
-                             (MEMBER 'NIL
-                                     (MAPCAR #'= (LIST 1 2 3) `(,A ,B ,C))))> 
-:DEBUG @ 918.4533 :: #<PASS (WHEN T T)> 
-:DEBUG @ 918.4533 :: #<PASS (TEST-PASS-P
-                             (SIGNALS (ERROR T)
-                               (TEST-FORM (MAKE-INSTANCE 'TEST-RESULT))))> 
-#<PASS RT-TEST833> 
+#<PASS THREAD-TEST350> 
+#<PASS REEXPORT-TEST349> 
+#<PASS COND-TEST348> 
+:DEBUG @ 55.600002 :: test DEBUG 
+#<PASS LOG-TEST347> 
+#<PASS LIST-TEST346> 
+#<PASS STR-TEST345> 
+#<PASS SYM-TEST344> 
+#<PASS READTABLES-TEST343> 
+#<PASS RT-TEST342> 
 No tests failed.
 #+end_src
 
@@ -440,3 +289,82 @@ macs System tests.
 
 (RUN-TESTS) 
 #+end_src
+* Notes
+- /Macros aren't about being needlessly terse/ :: \\
+  Some people seem to think that once you hit a certain level of
+  macs-ification you're just making your code unreadable to save on
+  typing, or for the sake of codegolfing. This is not the case - the
+  keypresses you can keep for free, but the /power/ comes from using
+  macros to /think smarter/ and /faster/ about your problems.
+- /Macros don't increase cognitive overhead/ :: \\
+  They isolate it. For authors, the benefit of this is ten-fold. We
+  write a complex syntax translation, understand it, and use it in
+  our code. We don't use it to decrease code size, /we use it to
+  simplify patterns/. It allows us to think in terms of the macro
+  and skip a great deal of context switching and processing in our
+  brains.
+- /Blub macros don't come close to the gold standard/ :: \\
+  which is *Unhygienic Lisp Macros*. Hygienic macros are an
+  unfortunate inclusion of the Scheme specification.
+- /Macros are not functions/ :: \\
+  This, I credit to Paul Graham. I was actually just searching
+  through the Arc [[http://www.arclanguage.org/tut.txt][tutorial]] for the term 'hygienic' because the
+  implementation is in Racket and heard chatter of hygienic macros
+  in Arc. I was delighted to find this passage:
+  #+begin_quote
+  One of the keys to understanding macros is to remember that macro
+  calls aren't function calls.  Macro calls look like function calls.
+  Macro definitions even look a lot like function definitions.  But
+  something fundamentally different is happening.  You're transforming
+  code, not evaluating it.  Macros live in the land of the names, not 
+  the land of the things they refer to.    
+  #+end_quote
+- /Being terse has utility/ :: \\
+  First a quick anecdote: I heard a story from a buddy about an
+  individual who wrote some middleware in an extremely terse
+  fashion - single letter symbols, one-liners, minimal comments,
+  etc.
+
+  I think it's hard to see a reality where that person isn't just
+  trying to make a statement and piss off some people, without
+  seeing the code or being familiar with the author - because if
+  that's how your audience reacts, you're either doing it wrong, or
+  being an ass.
+
+  Stories like these are why I believe so many talented developers
+  don't fully accept the dark arts of the terse. A bad experience
+  which leaves a bitter taste.
+
+  Another part of me thinks there are some social/psychological
+  issues in play. Or alternatively, /developers write code for too
+  broad of an audience/. Mainstream education encourages high-level
+  code which is /optimized for human-readability/ - which isn't
+  something I know for a fact but will be sure to ask around and
+  report back. I think we can all agree this is a good thing to
+  encourage in the classroom in very broad strokes.
+
+  The problem is that I don't think we're doing a good job of
+  teaching students how to break these rules, and why you would want
+  to. Everyone seems to have this image of the ideal
+  =production-quality-code-base= which is, as it turns out, a hell
+  of a lot of work. Documentation to the nines. Descriptions in
+  every commit. Whitespace! We are conditioned to associate
+  human-readability with quality.
+
+  When you're working with thousands of inexperienced contributors,
+  yea put some weight on the ol' human interfaces. Take a team of 5
+  experts and try that and now you're just overcharging the
+  customer. It gets way more complicated every where in-between.
+* Resources
+  - [[https://alexandria.common-lisp.dev/][alexandria]]
+  - [[https://edicl.github.io/cl-ppcre/][cl-ppcre]]
+  - [[https://github.com/melisgl/named-readtables][named-readtables]]
+  - [[https://github.com/takagi/cl-reexport/tree/master][cl-reexport]]
+  - [[https://gigamonkeys.com/book/][PCL]]
+  - [[https://letoverlambda.com/][LOL]] ([[https://github.com/thephoeron/let-over-lambda/tree/master][production version]])
+  - [[https://sep.turbifycdn.com/ty/cdn/paulgraham/bellanguage.txt?t=1688221954&][Bel]]
+  - [[https://wiki.c2.com/?LispMacro][c2 wiki on Lisp Macro]]
+  - [[https://gitlab.common-lisp.net/asdf/asdf/][asdf]]
+  - [[https://www.sbcl.org/manual/][sbcl manual]]
+  - [[https://docs.rs/clap/latest/clap/][clap.rs docs]]
+
