@@ -73,7 +73,7 @@ evaluation of FORM."
 
 (defun completing-read (prompt collection
 			&key (history nil) (default nil)
-			  (key nil) (test nil))
+			(key nil) (test nil))
 
   "A simplified COMPLETING-READ for common-lisp.
 
@@ -91,40 +91,32 @@ user to list valid options while continue waiting for input."
   (let ((r (if collection
 	       (find (read-line) collection :key key :test test)
 	       (or (read-line) default))))
-    (prog1 
+    (prog1
 	r
-      (push r (symbol-value history)))))
+    (setf history (push r history)))))
 
-(defmacro! make-prompt! (o!var &optional o!prompt)
-  "Generate a 'prompter' from list or variable VAR and optionalo
+(defmacro make-prompt! (var &optional prompt)
+  "Generate a 'prompter' from list or variable VAR and optional
 PROMPT string.
 
 This isn't an ideal solution as it does in fact expose a dynamic
 variable (VAR-prompt-history). We should generate accessors and
 keep the variables within lexical scope of the generated
 closure."
-  `(let ((,g!s (cond ;; prefix symbol
-                ((listp ',o!var) ,o!var)
-                ((boundp ',o!var) (symbol-value ,o!var))
-		((symbolp ',o!var) nil)
-                (t (error 'invalid-argument
-			  :reason "first arg must be a bound symbol or a list."
-			  :item ',o!var))))
-         (,g!p ,(when (stringp o!prompt) o!prompt)) ;; prompt string
-         (,g!h ',(symb o!var '-prompt-history))) ;; history symbol
-       ;;1 we use defvar for the implicit bindp check
-       (defvar ,(symb o!var '-prompt-history) nil)
-       ;;2 our new SYM-prompt function
-       ;; (declaim (inline ,(symb o!var '-prompt)))
-       (defun ,(symb o!var '-prompt) (&optional default)
+  (with-gensyms (s p h)
+  `(let ((,s (if (boundp ',var) ,var (progn (defvar ,var nil) ,var)))
+         (,p (when (stringp ,prompt) ,prompt)) ;; prompt string
+         (,h ',(symb var '-prompt-history))) ;; history symbol
+       (defvar ,(symb var '-prompt-history) nil)
+       (defun ,(symb var '-prompt) ()
 	 ,(format nil "Prompt for a value from `~A', use DEFAULT if non-nil
 and no value is provided by user, otherwise fallback to the `car'
-of `~A-PROMPT-HISTORY'." o!var o!var)
-	 (completing-read
-          (format nil "~A [~A]: "
-		  ,g!p
-		  (car (symbol-value ,g!h)))
-	  ,g!s :history ,g!h :default (car (symbol-value ,g!h))))))
+of `~A-PROMPT-HISTORY'." var var)
+	   (completing-read
+             (format nil "~A [~A]: "
+		     ,p
+		     (car (symbol-value ,h)))
+	     ,s :history ,h :default nil)))))
 
 (defmacro defmain (ret &body body)
   "Define a main function in the current package which returns RET.

@@ -225,59 +225,33 @@ You can run the tests with asdf:
 #+end_src
 
 Or interactively:
-#+begin_src lisp :results output replace :wrap src lisp :exports both :package macs.tests
-  (ql:quickload :macs/tests)
-  (compile-file "tests.lisp" :trace-file t :emit-cfasl t)
+#+begin_src lisp :results output replace :wrap src lisp :exports both
   (load "tests.lisp")
   (in-package :macs.tests)
-  (setq *log-level* nil) ;; :debug,t
+  (setq *log-level* nil)
   (setq *catch-test-errors* t)
-  (setq *compile-tests* t)
+  (setq *compile-tests* nil)
   (list (multiple-value-list (do-tests :macs)) (test-results *test-suite*))
 #+end_src
 
 #+RESULTS:
 #+begin_src lisp
-To load "macs/tests":
-  Load 1 ASDF system:
-    macs/tests
-; Loading "macs/tests"
-
-; compiling file "/home/ellis/dev/macs/tests.lisp" (written 21 SEP 2023 09:28:16 PM):
-
-
-; wrote /home/ellis/dev/macs/tests.fasl
-; compilation finished in 0:00:00.030
 in suite MACS with 15/15 tests:
-testing:  [foobar]: nothing: #<PASS CLI-TEST361> 
-#<PASS PAN-TEST355> 
-#<PASS ANA-TEST354> 
-#<PASS FU-TEST353> 
-#<PASS FMT-TEST352> 
-#<PASS ALIEN-TEST351> 
-Current thread: #<THREAD tid=183861 "worker" RUNNING {10065E0CF3}>
-
-Current thread name: worker
-
-All threads:
- #<THREAD tid=183497 "main thread" RUNNING {1000000113}>
-#<THREAD tid=183861 "worker" RUNNING {10065E0CF3}>
-#<THREAD tid=183522 "reader-thread" RUNNING {1002E982F3}>
-#<THREAD tid=183529 "repl-thread" RUNNING {10047E91B3}>
-#<THREAD tid=183528 "auto-flush-thread" RUNNING {10047E8133}>
-#<THREAD tid=183523 "swank-indentation-cache-thread" RUNNING {1002E984C3}>
-#<THREAD tid=183521 "control-thread" RUNNING {1002E74473}>
-
-#<PASS THREAD-TEST350> 
-#<PASS REEXPORT-TEST349> 
-#<PASS COND-TEST348> 
-:DEBUG @ 55.600002 :: test DEBUG 
-#<PASS LOG-TEST347> 
-#<PASS LIST-TEST346> 
-#<PASS STR-TEST345> 
-#<PASS SYM-TEST344> 
-#<PASS READTABLES-TEST343> 
-#<PASS RT-TEST342> 
+#<PASS CLI-PROMPT> 
+#<PASS CLI> 
+#<PASS ANA> 
+#<PASS FU> 
+#<PASS FMT> 
+#<PASS ALIEN> 
+#<PASS THREAD> 
+#<PASS REEXPORT> 
+#<PASS COND> 
+#<PASS LOG> 
+#<PASS LIST> 
+#<PASS STR> 
+#<PASS SYM> 
+#<PASS READTABLES> 
+#<PASS RT> 
 No tests failed.
 #+end_src
 

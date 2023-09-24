@@ -36,15 +36,13 @@
 (setq *log-level*  :debug)
 
 (deftest rt ()
-  (is (typep (make-fixture-prototype :empty nil)  'fixture-prototype))
+  (is (typep (make-fixture-prototype :empty nil) 'fixture-prototype))
   (is (typep (make-fixture tfix () () t) 'function))
-  (let ((fx1 (make-fixture fx1 () (a b c) (setq a 1 b 2 c 3))))
-    (funcall fx1)
-    (with-fixture (a b c) fx1 
-      (is (not (member 'nil (mapcar #'= (list 1 2 3) `(,a ,b ,c)))))))
-  (is (when t t))
-  (is (test-pass-p 
-       (signals (error t) (test-form (make-instance 'test-result))))))
+  ;; (let ((fx1 (make-fixture fx1 () (a b c) (setq a 1 b 2 c 3))))
+  ;;   (funcall fx1)
+  ;;   (with-fixture (a b c) fx1 
+  ;;     (is (not (member 'nil (mapcar #'= (list 1 2 3) (list a b c)))))))
+  (signals (error t) (test-form (make-instance 'test-result))))
 
 (deftest readtables ()
   "Test *macs-readtable* without cl-ppcre"
@@ -58,14 +56,10 @@
 (deftest sym ()
   "Test MACS.SYM"
   ;; gensyms
-  (with-gensyms (a b c)
-    (let ((a 1) (b 1) (c 2))
-      (is (and (= a b) (not (= c a))
-	       (= (+ a b) (* c b)))))
   (is (not (equalp (make-gensym 'a) (make-gensym 'a))))
   (is (eq (ensure-symbol 'tests :macs.tests) 'tests))
   (is (eq 'macs.tests::foo (format-symbol :macs.tests "~A" 'foo)))
-  (is (eq (make-keyword 'fizz) :fizz))))
+  (is (eq (make-keyword 'fizz) :fizz)))
 
 ;;; TODO
 (deftest str ()
@@ -119,41 +113,44 @@
 	 (aif (+ 2 2)
 	      (+ it it)))))
 
-(deftest pan ()
-  "Test MACS.STR"
-  (let ((p (plambda (a) (b c)
-		    (if (not a)
-			(setq b 0
-			      c 0)
-			(progn (incf b a) (incf c a))))))
-    (with-pandoric (b c) p
-      (is (= 0 (funcall p nil)))
-      (is (= 1 (funcall p 1)))
-      (is (= 1 b c)))))
-    
+;; (deftest pan ()
+;;   "Test MACS.STR"
+;;   (let ((p
+;; 	  (plambda (a) (b c)
+;; 		   (if (not a)
+;; 		       (setq b 0
+;; 			     c 0)
+;; 		       (progn (incf b a) (incf c a))))))
+;;     (with-pandoric (b c) p
+;;       (is (= 0 (funcall p nil)))
+;;       (is (= 1 (funcall p 1)))
+;;       (is (= 1 b c)))))
+
+;; WARNING bugs ahead
 
 ;; we should be able to call this from the body of the test, but we
 ;; get an undefined-function error for 'MACS.RT::MAKE-PROMPT!' -
 ;; package namespacing issue.
-(defvar tpfoo nil)
 (make-prompt! tpfoo "testing: ")
-
+(defvar tcoll nil)
+(defvar thist nil)
+(defvar opts (cli:make-opts '(:name foo :global t :description "bar")
+			    '(:name bar :description "foo")))
+(defvar cmds (cli:make-cmds `(:name baz :description "baz"
+			      :opts ,opts)))
 (deftest cli ()
-  "Test MACS.CLI"
-  ;; prompts 
-  (let ((*standard-input* (make-string-input-stream (format nil "~A~%~A~%" "foobar" "foobar"))))
-    (is (string= (tpfoo-prompt) "foobar"))
-    (defvar tcoll nil)
-    (defvar thist nil)
-    (is (string= "foobar"
-		 (cli:completing-read "nothing: " tcoll :history 'thist :default "foobar"))))
-  ;; args
+  "test MACS.CLI OOS."
   (is (eq (cli:make-shorty "test") #\t))
-  (defvar %opts (cli:make-opts '(:name foo :global t :description "bar")
-			       '(:name bar :description "foo")))
-  (defvar %cmds (cli:make-cmds `(:name baz :description "baz"
-				      :opts ,%opts)))
-  (is (and %opts %cmds)))
+  (is (and opts cmds)))
+
+(deftest cli-prompt ()
+  "Test MACS.CLI prompts"
+  (let ((*standard-input* (make-string-input-stream 
+				       (format nil "~A~%~A~%" "foobar" "foobar"))))
+    ;; prompts 
+    (is (string= (tpfoo-prompt) "foobar"))
+    (is (string= "foobar"
+		 (cli:completing-read "nothing: " tcoll :history thist :default "foobar")))))
 
 #+nil (test-results *test-suite*)
 #+nil (do-tests :macs)

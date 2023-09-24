@@ -87,6 +87,7 @@
    :test-suite
    :test-name
    :tests
+   :test-form
    :test-results))
 
 (in-package :macs.rt)
@@ -103,7 +104,7 @@ compiler optimizations.")
 (defvar *test-suite-list* nil "List of available `test-suite' objects.")
 (defvar *test-suite* nil "A 'test-suite-designator' which identifies the current `test-suite'.")
 (eval-when (:compile-toplevel :load-toplevel :execute)
-    (defvar *default-test-suite-name* "default"))
+  (defvar *default-test-suite-name* "default"))
 (declaim (type (or stream boolean string) *test-input*))
 (defvar *test-input* nil "When non-nil, specifies an input stream or buffer for `*testing*'.")
 
@@ -159,7 +160,7 @@ compiler optimizations.")
     #|(or nil '(t (cons item lst)))|#))
 
 ;; FIX 2023-08-31: spush, replace with `add-test' method.
-(declaim (inline normalize-test-name))
+;; (declaim (inline normalize-test-name))
 (defun normalize-test-name (a)
   "Return the normalized `test-suite-designator' of A."
   (etypecase a
@@ -174,7 +175,7 @@ compiler optimizations.")
 	(b (normalize-test-name b)))
     (string= a b)))
 
-(declaim (inline assert-suite ensure-suite))
+;; (declaim (inline assert-suite ensure-suite))
 (defun ensure-suite (name)
   (if-let ((ok (member name *test-suite-list* :test #'test-name=)))
     (car ok)
@@ -345,17 +346,17 @@ from TESTS."))
   `(progn ,@(test-form self)))
 
 (defmethod compile-test ((self test) &key declare &allow-other-keys)
-   (compile
-    (test-fn self)
-    `(lambda ()
-       ,@(when declare `((declare ,declare)))
-       ,@(test-form self))))
+  (compile
+   (test-fn self)
+   `(lambda ()
+      ,@(when declare `((declare ,declare)))
+      ,@(test-form self))))
 
 (defun fail! (form &optional fmt &rest args)
   (let ((reason (and fmt (apply #'format nil fmt args))))
     (with-simple-restart (ignore-fail "Continue testing.")
       (error 'test-failed :reason reason :form form))))
-  
+
 (defmethod do-test ((self test) &optional fx)
   (declare (ignorable fx))
   (catch '%in-test ;; for `continue-testing' restart
@@ -386,7 +387,7 @@ from TESTS."))
 			 (return-from bail r))))
 		(%do))
 	      (%do)))
-      (setf (test-lock-p self) bail))
+	(setf (test-lock-p self) bail))
       r)))
 
 ;;;; Fixtures
@@ -512,15 +513,21 @@ from TESTS."))
                          ~^, ~}~)."
 		      (length fails)
 		      fails))))
-    ;; close stream
-    (finish-output stream)
+      ;; close stream
+      (finish-output stream)
       ;; return values (PASS? LOCKED)
       (values (not fails) locked))))
 
 ;;; Checks
-;; TODO 2023-09-05: 
-(defmacro is (test &rest args)
-  "The DWIM Check.
+(flet ((%test (val form)
+	 (let ((r 
+		 (if val 
+		     (make-test-result :pass form)
+		     (make-test-result :fail form))))
+	   (debug! r)
+	   r)))
+  (defmacro is (test &rest args)
+    "The DWIM Check.
 
 (is (= 1 1) :test 100) ;=> #S(TEST-RESULT :TAG :PASS :FORM (= 1 1))
 If TEST returns a truthy value, return a PASS test-result, else return
@@ -541,26 +548,16 @@ value:
 
 All other values are treated as let bindings.
 "
-  (flet ((%test (val form)
-	   (let ((r 
-		   (if val 
-		       (make-test-result :pass form)
-		       (make-test-result :fail form))))
-	     (debug! r)
-	     r)))
-    `(if (null ,args)
-	 (let ((val ,test)
-	       (form ',test))
+    (with-gensyms (form)
+      `(if ,(null args)
 	   (if *testing* 
-	       (push-result (funcall ,#'%test val form) *testing*)
-	       (funcall ,#'%test val form)))
-	 (let* ((%ll ,(mapcar (lambda (x) `(,(symb (car x)) ,@(cdr x)))
-			      (group args 2)))
-		(val (funcall `(lambda () (let ',%ll ',test)))))
-	   ;; TODO 2023-09-21: does this work...
-	   (if *testing*
-	       (push-result (funcall ,#'%test val ',test) *testing*)
-	       (funcall ,#'%test val ',test))))))
+	       (push-result (funcall ,#'%test ,test ',test) *testing*)
+	       (funcall ,#'%test ,test ',test))
+	   (macrolet ((,form (test) `(let ,,(group args 2) ,,test)))
+	     ;; TODO 2023-09-21: does this work...
+	     (if *testing*
+		 (push-result (funcall ,#'%test (,form ,test) ',test) *testing*)
+		 (funcall ,#'%test (,form ,test) ',test)))))))
 
 (defmacro signals (condition-spec &body body)
   "Generates a passing TEST-RESULT if body signals a condition of type
@@ -609,7 +606,7 @@ on the dynamic environment."
        obj)))
 
 (defmacro defsuite (suite-name &key (stream '*standard-output*) (opts nil))
-    "Define a `test-suite' with provided keys. The object returned can be
+  "Define a `test-suite' with provided keys. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
   (check-type suite-name (or symbol string))
   `(eval-when (:compile-toplevel :load-toplevel :execute)
