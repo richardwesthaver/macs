@@ -38,10 +38,10 @@
 (deftest rt ()
   (is (typep (make-fixture-prototype :empty nil) 'fixture-prototype))
   (is (typep (make-fixture tfix () () t) 'function))
-  ;; (let ((fx1 (make-fixture fx1 () (a b c) (setq a 1 b 2 c 3))))
-  ;;   (funcall fx1)
-  ;;   (with-fixture (a b c) fx1 
-  ;;     (is (not (member 'nil (mapcar #'= (list 1 2 3) (list a b c)))))))
+  (let ((fx1 (make-fixture fx1 () (a b c) (setq a 1 b 2 c 3))))
+    (funcall fx1)
+    (with-fixture (a b c) fx1 
+      (is (not (member 'nil (mapcar #'= (list 1 2 3) (list a b c)))))))
   (signals (error t) (test-form (make-instance 'test-result))))
 
 (deftest readtables ()
@@ -113,18 +113,18 @@
 	 (aif (+ 2 2)
 	      (+ it it)))))
 
-;; (deftest pan ()
-;;   "Test MACS.STR"
-;;   (let ((p
-;; 	  (plambda (a) (b c)
-;; 		   (if (not a)
-;; 		       (setq b 0
-;; 			     c 0)
-;; 		       (progn (incf b a) (incf c a))))))
-;;     (with-pandoric (b c) p
-;;       (is (= 0 (funcall p nil)))
-;;       (is (= 1 (funcall p 1)))
-;;       (is (= 1 b c)))))
+(deftest pan ()
+  "Test MACS.STR"
+  (let ((p
+	  (plambda (a) (b c)
+		   (if (not a)
+		       (setq b 0
+			     c 0)
+		       (progn (incf b a) (incf c a))))))
+    (with-pandoric (b c) p
+      (is (= 0 (funcall p nil)))
+      (is (= 1 (funcall p 1)))
+      (is (= 1 b c)))))
 
 ;; WARNING bugs ahead
 

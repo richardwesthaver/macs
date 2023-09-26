@@ -71,6 +71,7 @@ evaluation of FORM."
      (with-slots ,slots ,cli
        ,@body)))
 
+;;; Prompts
 (defun completing-read (prompt collection
 			&key (history nil) (default nil)
 			(key nil) (test nil))
@@ -166,9 +167,27 @@ Note that this macro does not export the defined function and requires
 	    (list (apply #'make-cli :cmd x))))
 	opts))
 
+(defun long-opt-p (str)
+  (and (char= (aref str 0) (aref str 1) #\-)
+       (> (length str) 2)))
+
+(defun short-opt-p (str)
+  (and (char= (aref str 0) #\-)
+       (not (char= (aref str 1) #\-))
+       (> (length str) 1)))
+
+(defun opt-group-p (str)
+  (string= str *cli-group-separator*))
+
 ;;; Protocol
+(defgeneric find-cmd (self name))
+(defgeneric find-opt (self name))
+
 (defgeneric parse-args (self args)
-  (:documentation "Parse ARGS using SELF."))
+  (:documentation "Parse list of strings ARGS using SELF.
+
+A list of the same length as ARGS is returned containing 'cli-ast'
+objects: (OPT . (or char string)) (CMD . string) NIL"))
 
 (defgeneric do-cmd (self)
   (:documentation "Run the command SELF."))
@@ -254,34 +273,30 @@ Note that this macro does not export the defined function and requires
 ;; nested commands.
 
 ;;  TODO 2023-09-12: Parsing restarts at the `*cli-group-separator*'
-;; if present, or stops as EOI.
+;; if present, or stops at EOI.
+
+(defmethod find-cmd ((self cli-cmd) name)
+  (find name (cli-cmds self) :key #'cli-name :test #'string=))
+
+(defmethod find-opt ((self cli-cmd) name)
+  (find name (cli-opts self) :key #'cli-name))
+
 (defmethod parse-args ((self cli-cmd) args)
-  (with-slots (opts cmds) self
-    (let ((args (cdr args))
-	  r)
-      (push 
-       (loop 
-	 for i from 0
-	 for a in (cdr args)
-	 for c across cmds
-	 if (string= a (cli-name c))
-	   ;;  TODO 2023-09-12: better parsing strat
-	   collect (parse-args c (nthcdr i args)))
-	 r)
-      (push
-       (loop
-	 for i from 0
-	 for a in args
-	 for o across opts
-	 if (and 
-	     (print a t)
-	     (char-equal (aref a 0) #\-) 
-	     (let ((%i (string-trim "-" a)))
-	       (or (string= %i (cli-name o)) 
-		   (string= %i (make-shorty (cli-name o))))))
-	   collect (nth (1+ i) args))
-       r)
-      r)))
+  "Parse list of string arguments ARGS and return the updated object SELF."
+  ;; TODO 2023-09-25: room to optimize here
+  (loop 
+    for i from 0
+    for a in args
+    ;; SHORT OPT
+    if (short-opt-p a)
+      collect (cons 'opt (aref a 1))
+    ;; LONG OPT
+    if (long-opt-p a)
+      collect (cons 'opt (string-trim "-" a))
+    if (opt-group-p a)
+      collect nil
+    if (find-cmd self a)
+      collect (cons 'cmd a)))
 
 ;; warning: make sure to fill in the opt and cmd slots with values
 ;; from the top-level args before doing a command.
