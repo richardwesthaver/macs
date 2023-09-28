@@ -179,6 +179,7 @@
    :make-cli
    :make-opts
    :make-cmds
+   :proc-args
    :parse-args
    :do-cmd
    :print-help

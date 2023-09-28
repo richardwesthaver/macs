@@ -41,7 +41,6 @@
 (pushnew :macs.readtables *features*)
 
 (defmacro without-package-lock ((&rest package-names) &body body)
-  (declare (ignorable package-names))
   `(sb-ext:with-unlocked-packages (,@package-names) ,@body))
 
 ;;; Taken from SWANK (which is Public Domain.)

@@ -151,8 +151,8 @@
       (is (string= "foobar"
 		   (cli:completing-read "nothing: " tcoll :history thist :default "foobar"))))))
 
-(defvar opts (cli:make-opts '(:name foo :global t :description "bar")
-			    '(:name bar :description "foo")))
+(defvar opts (cli:make-opts '(:name "foo" :global t :description "bar")
+			    '(:name "bar" :description "foo")))
 
 (defvar cmds (cli:make-cmds `(:name baz :description "baz" :opts ,opts)))
 
@@ -160,8 +160,8 @@
   "test MACS.CLI OOS."
   (let ((cli (make-cli t :opts opts :cmds cmds :description "test cli")))
     (is (eq (cli:make-shorty "test") #\t))
-    (is (equal (parse-args cli '("-f" "--bar"))
-	       '((opt . #\f) (opt . "bar"))))
+    (is (equal (proc-args cli '("-f" "--bar")) ;; not eql
+	        '((opt . #\f) (opt . "bar"))))
     (is (null (print-version cli)))
     (is (null (print-usage cli)))
     (is (null (print-help cli)))))

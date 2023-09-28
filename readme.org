@@ -236,16 +236,17 @@ Or interactively:
 
 #+RESULTS:
 #+begin_src lisp
-in suite MACS with 15/15 tests:
-:DEBUG @ 1342.51 :: running test:  #<TEST CLI :fn CLI-test398 :args NIL :persist NIL {1005EFBCC3}> 
-:DEBUG @ 1342.5233 :: #<PASS (EQ (MAKE-SHORTY test) t)> 
-:DEBUG @ 1342.5233 :: #<PASS (EQUAL (PARSE-ARGS CLI '(-f --bar))
-                                    '((OPT . f) (OPT . bar)))> 
+in suite MACS with 16/16 tests:
+:DEBUG @ 11644.877 :: running test:  #<TEST CLI :fn CLI-test3581 :args NIL :persist NIL {1008773603}> 
+:DEBUG @ 11644.887 :: #<PASS (EQ (MAKE-SHORTY test) t)> 
+
+"bar" :DEBUG @ 11644.887 :: #<PASS (EQUAL (PROC-ARGS CLI '(-f --bar))
+                                          '((OPT . f) (OPT . bar)))> 
 0.1.0
-:DEBUG @ 1342.5233 :: #<PASS (NULL (PRINT-VERSION CLI))> 
+:DEBUG @ 11644.887 :: #<PASS (NULL (PRINT-VERSION CLI))> 
   usage: macs.tests [global] <command> [<arg>]
 
-:DEBUG @ 1342.5233 :: #<PASS (NULL (PRINT-USAGE CLI))> 
+:DEBUG @ 11644.887 :: #<PASS (NULL (PRINT-USAGE CLI))> 
 macs.tests v0.1.0
   usage: macs.tests [global] <command> [<arg>]
 
@@ -259,94 +260,96 @@ macs.tests v0.1.0
     baz  :  baz
      -f/--foo* :  bar
      -b/--bar  :  foo
-:DEBUG @ 1342.5233 :: #<PASS (NULL (PRINT-HELP CLI))> 
-#<PASS CLI-TEST398> 
-:DEBUG @ 1342.5233 :: running test:  #<TEST PAN :fn PAN-test397 :args NIL :persist NIL {1005EF8B03}> 
-:DEBUG @ 1342.5366 :: #<PASS (= 0 (FUNCALL P NIL))> 
-:DEBUG @ 1342.5366 :: #<PASS (= 1 (FUNCALL P 1))> 
-:DEBUG @ 1342.5366 :: #<PASS (= 1 B C)> 
-#<PASS PAN-TEST397> 
-:DEBUG @ 1342.5366 :: running test:  #<TEST ANA :fn ANA-test396 :args NIL :persist NIL {1005E7E5B3}> 
-:DEBUG @ 1342.54 :: #<PASS (= 8 (AIF (+ 2 2) (+ IT IT)))> 
-#<PASS ANA-TEST396> 
-:DEBUG @ 1342.54 :: running test:  #<TEST FU :fn FU-test395 :args NIL :persist NIL {1005E7CDC3}> 
-#<PASS FU-TEST395> 
-:DEBUG @ 1342.54 :: running test:  #<TEST FMT :fn FMT-test394 :args NIL :persist NIL {1005E7BB23}> 
-:DEBUG @ 1342.5466 :: #<PASS (STRING= (FORMAT NIL | 1 | 2 | 3 |~%)
-                                      (FMT-ROW '(1 2 3)))> 
-:DEBUG @ 1342.5466 :: #<PASS (STRING= (FMT-SXHASH (SXHASH T))
-                                      (FMT-SXHASH (SXHASH T)))> 
-:DEBUG @ 1342.5466 :: #<PASS (STRING=
-                              (FMT-TREE NIL '(FOOBAR (A) (B) (C) (D)) LAYOUT
-                                        DOWN)
-                              FOOBAR
+:DEBUG @ 11644.887 :: #<PASS (NULL (PRINT-HELP CLI))> 
+#<PASS CLI-TEST3581> 
+:DEBUG @ 11644.887 :: running test:  #<TEST PAN :fn PAN-test3580 :args NIL :persist NIL {100862C1E3}> 
+:DEBUG @ 11644.894 :: #<PASS (= 0 (FUNCALL P NIL))> 
+:DEBUG @ 11644.894 :: #<PASS (= 1 (FUNCALL P 1))> 
+:DEBUG @ 11644.894 :: #<PASS (= 1 B C)> 
+#<PASS PAN-TEST3580> 
+:DEBUG @ 11644.894 :: running test:  #<TEST ANA :fn ANA-test3579 :args NIL :persist NIL {10084EC543}> 
+:DEBUG @ 11644.896 :: #<PASS (= 8 (AIF (+ 2 2) (+ IT IT)))> 
+#<PASS ANA-TEST3579> 
+:DEBUG @ 11644.896 :: running test:  #<TEST FU :fn FU-test3578 :args NIL :persist NIL {10084EA033}> 
+#<PASS FU-TEST3578> 
+:DEBUG @ 11644.896 :: running test:  #<TEST FMT :fn FMT-test3577 :args NIL :persist NIL {10084E8D93}> 
+:DEBUG @ 11644.9 :: #<PASS (STRING= (FORMAT NIL | 1 | 2 | 3 |~%)
+                                    (FMT-ROW '(1 2 3)))> 
+:DEBUG @ 11644.9 :: #<PASS (STRING= (FMT-SXHASH (SXHASH T))
+                                    (FMT-SXHASH (SXHASH T)))> 
+:DEBUG @ 11644.9 :: #<PASS (STRING=
+                            (FMT-TREE NIL '(FOOBAR (A) (B) (C) (D)) LAYOUT
+                                      DOWN)
+                            FOOBAR
  ├─ :A
  ├─ :B
  ├─  C
  ╰─  D
 )> 
-#<PASS FMT-TEST394> 
-:DEBUG @ 1342.5466 :: running test:  #<TEST ALIEN :fn ALIEN-test393 :args NIL :persist NIL {1005E7A023}> 
-:DEBUG @ 1342.5466 :: #<PASS (= 0 (FOREIGN-INT-TO-INTEGER 0 4))> 
-:DEBUG @ 1342.5466 :: #<PASS (= 1 (BOOL-TO-FOREIGN-INT T))> 
-#<PASS ALIEN-TEST393> 
-:DEBUG @ 1342.5466 :: running test:  #<TEST THREAD :fn THREAD-test392 :args NIL :persist NIL {1005E78833}> 
-Current thread: #<THREAD tid=1364721 "worker" RUNNING {1000094A43}>
+#<PASS FMT-TEST3577> 
+:DEBUG @ 11644.9 :: running test:  #<TEST ALIEN :fn ALIEN-test3576 :args NIL :persist NIL {10083EE5C3}> 
+:DEBUG @ 11644.903 :: #<PASS (= 0 (FOREIGN-INT-TO-INTEGER 0 4))> 
+:DEBUG @ 11644.903 :: #<PASS (= 1 (BOOL-TO-FOREIGN-INT T))> 
+#<PASS ALIEN-TEST3576> 
+:DEBUG @ 11644.903 :: running test:  #<TEST THREAD :fn THREAD-test3575 :args NIL :persist NIL {10083EC3C3}> 
+Current thread: #<THREAD tid=1404103 "worker" RUNNING {1007518633}>
 
 Current thread name: worker
 
 All threads:
  #<THREAD tid=1359601 "main thread" RUNNING {1000000113}>
-#<THREAD tid=1364721 "worker" RUNNING {1000094A43}>
+#<THREAD tid=1404103 "worker" RUNNING {1007518633}>
 #<THREAD tid=1359626 "reader-thread" RUNNING {1002C30DF3}>
 #<THREAD tid=1359633 "repl-thread" RUNNING {100453EA33}>
 #<THREAD tid=1359632 "auto-flush-thread" RUNNING {100453D9B3}>
 #<THREAD tid=1359627 "swank-indentation-cache-thread" RUNNING {1002C30FC3}>
 #<THREAD tid=1359625 "control-thread" RUNNING {1002C21203}>
 
-#<PASS THREAD-TEST392> 
-:DEBUG @ 1342.5466 :: running test:  #<TEST REEXPORT :fn REEXPORT-test391 :args NIL :persist NIL {1005DEF563}> 
-#<PASS REEXPORT-TEST391> 
-:DEBUG @ 1342.5466 :: running test:  #<TEST COND :fn COND-test390 :args NIL :persist NIL {1005DEE293}> 
-#<PASS COND-TEST390> 
-:DEBUG @ 1342.5466 :: running test:  #<TEST LOG :fn LOG-test389 :args NIL :persist NIL {1005DECFC3}> 
-:DEBUG @ 1342.55 :: test DEBUG 
-#<PASS LOG-TEST389> 
-:DEBUG @ 1342.55 :: running test:  #<TEST LIST :fn LIST-test388 :args NIL :persist NIL {1005DEB9F3}> 
-:DEBUG @ 1342.5533 :: #<PASS (EQ (ENSURE-CAR '(0)) (ENSURE-CAR 0))> 
-:DEBUG @ 1342.5533 :: #<PASS (EQ (ENSURE-CAR '(NIL)) (ENSURE-CAR NIL))> 
-:DEBUG @ 1342.5533 :: #<PASS (NOT (EQ (ENSURE-CONS 0) (ENSURE-CONS 0)))> 
-:DEBUG @ 1342.5533 :: #<PASS (EQUAL (ENSURE-CONS 0) (ENSURE-CONS 0))> 
-#<PASS LIST-TEST388> 
-:DEBUG @ 1342.5533 :: running test:  #<TEST STR :fn STR-test387 :args NIL :persist NIL {1005DE9A53}> 
-:DEBUG @ 1342.5566 :: #<PASS (TYPEP test 'STRING-DESIGNATOR)> 
-:DEBUG @ 1342.5566 :: #<PASS (TYPEP 'TEST 'STRING-DESIGNATOR)> 
-:DEBUG @ 1342.5566 :: #<PASS (TYPEP C 'STRING-DESIGNATOR)> 
-:DEBUG @ 1342.5566 :: #<PASS (NOT (TYPEP 0 'STRING-DESIGNATOR))> 
-#<PASS STR-TEST387> 
-:DEBUG @ 1342.5566 :: running test:  #<TEST SYM :fn SYM-test386 :args NIL :persist NIL {1005D7FF33}> 
-:DEBUG @ 1342.5634 :: #<PASS (NOT (EQUALP (MAKE-GENSYM 'A) (MAKE-GENSYM 'A)))> 
-:DEBUG @ 1342.5634 :: #<PASS (EQ (ENSURE-SYMBOL 'TESTS MACS.TESTS) 'TESTS)> 
-:DEBUG @ 1342.5634 :: #<PASS (EQ 'FOO (FORMAT-SYMBOL MACS.TESTS ~A 'FOO))> 
-:DEBUG @ 1342.5634 :: #<PASS (EQ (MAKE-KEYWORD 'FIZZ) FIZZ)> 
-#<PASS SYM-TEST386> 
-:DEBUG @ 1342.5634 :: running test:  #<TEST READTABLES :fn READTABLES-test385 :args NIL :persist NIL {1005D7DC53}> 
-:DEBUG @ 1342.5634 :: #<PASS (TYPEP (LAMBDA (A1) `(,A1 ,A1 ',A1 ,@A1))
-                                    'FUNCTION)> 
-#<PASS READTABLES-TEST385> 
-:DEBUG @ 1342.5634 :: running test:  #<TEST RT :fn RT-test384 :args NIL :persist NIL {1005D7C403}> 
-:DEBUG @ 1342.5734 :: #<PASS (TYPEP (MAKE-FIXTURE-PROTOTYPE EMPTY NIL)
+#<PASS THREAD-TEST3575> 
+:DEBUG @ 11644.903 :: running test:  #<TEST REEXPORT :fn REEXPORT-test3574 :args NIL :persist NIL {1007F6FA43}> 
+#<PASS REEXPORT-TEST3574> 
+:DEBUG @ 11644.903 :: running test:  #<TEST COND :fn COND-test3573 :args NIL :persist NIL {1007F6E533}> 
+#<PASS COND-TEST3573> 
+:DEBUG @ 11644.903 :: running test:  #<TEST LOG :fn LOG-test3572 :args NIL :persist NIL {1007F6D183}> 
+:DEBUG @ 11644.903 :: test DEBUG 
+#<PASS LOG-TEST3572> 
+:DEBUG @ 11644.903 :: running test:  #<TEST LIST :fn LIST-test3571 :args NIL :persist NIL {1007F6B993}> 
+:DEBUG @ 11644.907 :: #<PASS (EQ (ENSURE-CAR '(0)) (ENSURE-CAR 0))> 
+:DEBUG @ 11644.907 :: #<PASS (EQ (ENSURE-CAR '(NIL)) (ENSURE-CAR NIL))> 
+:DEBUG @ 11644.907 :: #<PASS (NOT (EQ (ENSURE-CONS 0) (ENSURE-CONS 0)))> 
+:DEBUG @ 11644.907 :: #<PASS (EQUAL (ENSURE-CONS 0) (ENSURE-CONS 0))> 
+#<PASS LIST-TEST3571> 
+:DEBUG @ 11644.907 :: running test:  #<TEST STR :fn STR-test3570 :args NIL :persist NIL {1007F69743}> 
+:DEBUG @ 11644.91 :: #<PASS (TYPEP test 'STRING-DESIGNATOR)> 
+:DEBUG @ 11644.91 :: #<PASS (TYPEP 'TEST 'STRING-DESIGNATOR)> 
+:DEBUG @ 11644.91 :: #<PASS (TYPEP C 'STRING-DESIGNATOR)> 
+:DEBUG @ 11644.91 :: #<PASS (NOT (TYPEP 0 'STRING-DESIGNATOR))> 
+#<PASS STR-TEST3570> 
+:DEBUG @ 11644.91 :: running test:  #<TEST SYM :fn SYM-test3569 :args NIL :persist NIL {1007D8FAB3}> 
+:DEBUG @ 11644.917 :: #<PASS (NOT (EQUALP (MAKE-GENSYM 'A) (MAKE-GENSYM 'A)))> 
+:DEBUG @ 11644.917 :: #<PASS (EQ (ENSURE-SYMBOL 'TESTS MACS.TESTS) 'TESTS)> 
+:DEBUG @ 11644.917 :: #<PASS (EQ 'FOO (FORMAT-SYMBOL MACS.TESTS ~A 'FOO))> 
+:DEBUG @ 11644.917 :: #<PASS (EQ (MAKE-KEYWORD 'FIZZ) FIZZ)> 
+#<PASS SYM-TEST3569> 
+:DEBUG @ 11644.917 :: running test:  #<TEST PPCRE-READTABLES :fn PPCRE-READTABLES-test3568 :args NIL :persist NIL {1007D8D7D3}> 
+:DEBUG @ 11644.92 :: #<PASS (= 1 1)> 
+#<PASS PPCRE-READTABLES-TEST3568> 
+:DEBUG @ 11644.92 :: running test:  #<TEST READTABLES :fn READTABLES-test3567 :args NIL :persist NIL {1007D8C3D3}> 
+:DEBUG @ 11644.92 :: #<PASS (TYPEP (LAMBDA (A1) `(,A1 ,A1 ',A1 ,@A1)) 'FUNCTION)> 
+#<PASS READTABLES-TEST3567> 
+:DEBUG @ 11644.92 :: running test:  #<TEST RT :fn RT-test3566 :args NIL :persist NIL {1007D8ABE3}> 
+:DEBUG @ 11644.934 :: #<PASS (TYPEP (MAKE-FIXTURE-PROTOTYPE EMPTY NIL)
                                     'FIXTURE-PROTOTYPE)> 
-:DEBUG @ 1342.5767 :: #<PASS (TYPEP
+:DEBUG @ 11644.934 :: #<PASS (TYPEP
                               (MAKE-FIXTURE TFIX
                                   NIL
                                   NIL
                                 T)
                               'FUNCTION)> 
-:DEBUG @ 1342.5767 :: #<PASS (NOT
+:DEBUG @ 11644.934 :: #<PASS (NOT
                               (MEMBER 'NIL
                                       (MAPCAR #'= (LIST 1 2 3) (LIST A B C))))> 
-#<PASS RT-TEST384> 
+#<PASS RT-TEST3566> 
 No tests failed.
 #+end_src
 

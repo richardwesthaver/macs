@@ -68,6 +68,7 @@ evaluation of FORM."
   ;;  `(with-pandoric nil nil
   `(progn
      (init-args)
+     (parse-args ,cli *argv*)
      (with-slots ,slots ,cli
        ,@body)))
 
@@ -89,12 +90,13 @@ simulate one by embedding a DSL in our prompters if we choose. For
 example, perhaps we treat a single '?' character as a request from the
 user to list valid options while continue waiting for input."
   (princ prompt)
-  (let ((r (if collection
-	       (find (read-line) collection :key key :test test)
-	       (or (read-line) default))))
+  (let* ((coll (symbol-value collection))
+	 (r (if coll
+		(find (read-line) coll :key key :test test)
+		(or (read-line) default))))
     (prog1
 	r
-    (setf history (push r history)))))
+    (setf (symbol-value history) (push r history)))))
 
 (defmacro make-prompt! (var &optional prompt)
   "Generate a 'prompter' from list or variable VAR and optional
@@ -105,19 +107,22 @@ variable (VAR-prompt-history). We should generate accessors and
 keep the variables within lexical scope of the generated
 closure."
   (with-gensyms (s p h)
-  `(let ((,s (if (boundp ',var) ,var (progn (defvar ,var nil) ,var)))
-         (,p (when (stringp ,prompt) ,prompt)) ;; prompt string
-         (,h ',(symb var '-prompt-history))) ;; history symbol
+    `(let ((,s (if (boundp ',var) (symbol-value ',var) 
+		   (progn 
+		     (defvar ,(symb var) nil)
+		     ',(symb var))))
+           (,p (when (stringp ,prompt) ,prompt)) ;; prompt string
+           (,h ',(symb var '-prompt-history))) ;; history symbol
        (defvar ,(symb var '-prompt-history) nil)
        (defun ,(symb var '-prompt) ()
 	 ,(format nil "Prompt for a value from `~A', use DEFAULT if non-nil
 and no value is provided by user, otherwise fallback to the `car'
 of `~A-PROMPT-HISTORY'." var var)
-	   (completing-read
-             (format nil "~A [~A]: "
-		     ,p
-		     (car (symbol-value ,h)))
-	     ,s :history ,h :default nil)))))
+	 (completing-read
+          (format nil "~A [~A]: "
+		  (or ,p ">")
+		  (car (symbol-value ,h)))
+	  ,s :history ,h :default nil)))))
 
 (defmacro defmain (ret &body body)
   "Define a main function in the current package which returns RET.
@@ -179,9 +184,15 @@ Note that this macro does not export the defined function and requires
 (defun opt-group-p (str)
   (string= str *cli-group-separator*))
 
+(defun opt-prefix-eq (ch str)
+  (char= (aref str 0) ch))
+
 ;;; Protocol
 (defgeneric find-cmd (self name))
+
 (defgeneric find-opt (self name))
+
+(defgeneric find-short-opt (self ch))
 
 (defgeneric parse-args (self args)
   (:documentation "Parse list of strings ARGS using SELF.
@@ -213,7 +224,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 ;;; Objects
 (defclass cli-opt ()
   ;; note that cli-opts can have a nil or unbound name slot
-  ((name :initarg :name :initform nil :accessor cli-name :type (or null string))
+  ((name :initarg :name :accessor cli-name :type string)
    (val :initarg :val :initform nil :accessor cli-val)
    (global :initarg :global :initform nil :accessor global-opt-p)
    (description :initarg :description :accessor cli-description :type string))
@@ -279,24 +290,17 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
   (find name (cli-cmds self) :key #'cli-name :test #'string=))
 
 (defmethod find-opt ((self cli-cmd) name)
-  (find name (cli-opts self) :key #'cli-name))
+  (find name (cli-opts self) :key #'cli-name :test #'string=))
+
+(defmethod find-short-opt ((self cli-cmd) ch)
+  (find ch (cli-opts self) :key #'cli-name :test #'opt-prefix-eq))
 
 (defmethod parse-args ((self cli-cmd) args)
   "Parse list of string arguments ARGS and return the updated object SELF."
   ;; TODO 2023-09-25: room to optimize here
-  (loop 
-    for i from 0
-    for a in args
-    ;; SHORT OPT
-    if (short-opt-p a)
-      collect (cons 'opt (aref a 1))
-    ;; LONG OPT
-    if (long-opt-p a)
-      collect (cons 'opt (string-trim "-" a))
-    if (opt-group-p a)
-      collect nil
-    if (find-cmd self a)
-      collect (cons 'cmd a)))
+  (with-slots (opts cmds) self
+    (proc-args self args)
+    self))
 
 ;; warning: make sure to fill in the opt and cmd slots with values
 ;; from the top-level args before doing a command.
@@ -311,6 +315,23 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
   ((name :initarg :name :initform (string-downcase (package-name *package*)) :accessor cli-name :type string)
    (version :initarg :version :initform "0.1.0" :accessor cli-version :type string))
   (:documentation "CLI"))
+
+(defmethod proc-args ((self cli) args)
+  "process ARGS into a basic ast with validation."
+  (loop 
+    for a in args
+    ;; SHORT OPT
+    if (and (short-opt-p a)
+	    (find-short-opt self (aref a 1)))
+      collect (cons 'opt (aref a 1))
+    ;; LONG OPT
+    if (and (long-opt-p a)
+	    (find-opt self (string-trim "-" a)))
+      collect (cons 'opt (print (string-trim "-" a)))
+    if (opt-group-p a)
+      collect nil
+    if (find-cmd self a)
+      collect (cons 'cmd a)))
 
 (defmethod print-usage ((self cli))
   (iprintln (format nil "usage: ~A [global] <command> [<arg>]~%" (cli-name self))))
