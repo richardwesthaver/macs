@@ -225,33 +225,110 @@ You can run the tests with asdf:
 #+end_src
 
 Or interactively:
-#+begin_src lisp :results output replace :wrap src lisp :exports both
+#+begin_src lisp :results output replace :wrap src lisp :exports both :package :macs.tests
   (load "tests.lisp")
   (in-package :macs.tests)
-  (setq *log-level* nil)
+  (setq *log-level* :debug)
   (setq *catch-test-errors* t)
-  (setq *compile-tests* nil)
+  (setq *compile-tests* t)
   (list (multiple-value-list (do-tests :macs)) (test-results *test-suite*))
 #+end_src
 
 #+RESULTS:
 #+begin_src lisp
-in suite MACS with 15/15 tests:
-#<PASS CLI-PROMPT> 
-#<PASS CLI> 
-#<PASS ANA> 
-#<PASS FU> 
-#<PASS FMT> 
-#<PASS ALIEN> 
-#<PASS THREAD> 
-#<PASS REEXPORT> 
-#<PASS COND> 
-#<PASS LOG> 
-#<PASS LIST> 
-#<PASS STR> 
-#<PASS SYM> 
-#<PASS READTABLES> 
-#<PASS RT> 
+in suite MACS with 16/16 tests:
+:DEBUG @ 1971.51 :: running test:  #<TEST CLI :fn CLI-test3539 :args NIL :persist NIL {100A08A5B3}> 
+:DEBUG @ 1971.51 :: #<PASS (EQ (MAKE-SHORTY test) t)> 
+#<PASS CLI-TEST3539> 
+:DEBUG @ 1971.5133 :: running test:  #<TEST PAN :fn PAN-test3538 :args NIL :persist NIL {100A027DD3}> 
+:DEBUG @ 1971.54 :: #<PASS (= 0 (FUNCALL P NIL))> 
+:DEBUG @ 1971.54 :: #<PASS (= 1 (FUNCALL P 1))> 
+:DEBUG @ 1971.54 :: #<PASS (= 1 B C)> 
+#<PASS PAN-TEST3538> 
+:DEBUG @ 1971.54 :: running test:  #<TEST ANA :fn ANA-test3537 :args NIL :persist NIL {100A0258A3}> 
+:DEBUG @ 1971.54 :: #<PASS (= 8 (AIF (+ 2 2) (+ IT IT)))> 
+#<PASS ANA-TEST3537> 
+:DEBUG @ 1971.54 :: running test:  #<TEST FU :fn FU-test3536 :args NIL :persist NIL {100A0240B3}> 
+#<PASS FU-TEST3536> 
+:DEBUG @ 1971.54 :: running test:  #<TEST FMT :fn FMT-test3535 :args NIL :persist NIL {100A022E13}> 
+:DEBUG @ 1971.5466 :: #<PASS (STRING= (FORMAT NIL | 1 | 2 | 3 |~%)
+                                      (FMT-ROW '(1 2 3)))> 
+:DEBUG @ 1971.5466 :: #<PASS (STRING= (FMT-SXHASH (SXHASH T))
+                                      (FMT-SXHASH (SXHASH T)))> 
+:DEBUG @ 1971.5466 :: #<PASS (STRING=
+                              (FMT-TREE NIL '(FOOBAR (A) (B) (C) (D)) LAYOUT
+                                        DOWN)
+                              FOOBAR
+ ├─ :A
+ ├─ :B
+ ├─  C
+ ╰─  D
+)> 
+#<PASS FMT-TEST3535> 
+:DEBUG @ 1971.5466 :: running test:  #<TEST ALIEN :fn ALIEN-test3534 :args NIL :persist NIL {100A021313}> 
+:DEBUG @ 1971.5466 :: #<PASS (= 0 (FOREIGN-INT-TO-INTEGER 0 4))> 
+:DEBUG @ 1971.5466 :: #<PASS (= 1 (BOOL-TO-FOREIGN-INT T))> 
+#<PASS ALIEN-TEST3534> 
+:DEBUG @ 1971.5466 :: running test:  #<TEST THREAD :fn THREAD-test3533 :args NIL :persist NIL {10026DC023}> 
+Current thread: #<THREAD tid=1157131 "worker" RUNNING {1009AFE5B3}>
+
+Current thread name: worker
+
+All threads:
+ #<THREAD tid=1146091 "main thread" RUNNING {1000000113}>
+#<THREAD tid=1157131 "worker" RUNNING {1009AFE5B3}>
+#<THREAD tid=1146114 "reader-thread" RUNNING {1002E982F3}>
+#<THREAD tid=1146121 "repl-thread" RUNNING {10048511B3}>
+#<THREAD tid=1146120 "auto-flush-thread" RUNNING {1004850133}>
+#<THREAD tid=1146115 "swank-indentation-cache-thread" RUNNING {1002E984C3}>
+#<THREAD tid=1146113 "control-thread" RUNNING {1002E74473}>
+
+#<PASS THREAD-TEST3533> 
+:DEBUG @ 1971.5466 :: running test:  #<TEST REEXPORT :fn REEXPORT-test3532 :args NIL :persist NIL {10026DBFA3}> 
+#<PASS REEXPORT-TEST3532> 
+:DEBUG @ 1971.55 :: running test:  #<TEST COND :fn COND-test3531 :args NIL :persist NIL {10026DBF23}> 
+#<PASS COND-TEST3531> 
+:DEBUG @ 1971.55 :: running test:  #<TEST LOG :fn LOG-test3530 :args NIL :persist NIL {10026DBEA3}> 
+:DEBUG @ 1971.55 :: test DEBUG 
+#<PASS LOG-TEST3530> 
+:DEBUG @ 1971.55 :: running test:  #<TEST LIST :fn LIST-test3529 :args NIL :persist NIL {10026DBE23}> 
+:DEBUG @ 1971.5533 :: #<PASS (EQ (ENSURE-CAR '(0)) (ENSURE-CAR 0))> 
+:DEBUG @ 1971.5533 :: #<PASS (EQ (ENSURE-CAR '(NIL)) (ENSURE-CAR NIL))> 
+:DEBUG @ 1971.5533 :: #<PASS (NOT (EQ (ENSURE-CONS 0) (ENSURE-CONS 0)))> 
+:DEBUG @ 1971.5533 :: #<PASS (EQUAL (ENSURE-CONS 0) (ENSURE-CONS 0))> 
+#<PASS LIST-TEST3529> 
+:DEBUG @ 1971.5533 :: running test:  #<TEST STR :fn STR-test3528 :args NIL :persist NIL {10026DBDA3}> 
+:DEBUG @ 1971.5566 :: #<PASS (TYPEP test 'STRING-DESIGNATOR)> 
+:DEBUG @ 1971.5566 :: #<PASS (TYPEP 'TEST 'STRING-DESIGNATOR)> 
+:DEBUG @ 1971.5566 :: #<PASS (TYPEP C 'STRING-DESIGNATOR)> 
+:DEBUG @ 1971.5566 :: #<PASS (NOT (TYPEP 0 'STRING-DESIGNATOR))> 
+#<PASS STR-TEST3528> 
+:DEBUG @ 1971.5566 :: running test:  #<TEST SYM :fn SYM-test3527 :args NIL :persist NIL {10026DBCA3}> 
+:DEBUG @ 1971.5634 :: #<PASS (NOT (EQUALP (MAKE-GENSYM 'A) (MAKE-GENSYM 'A)))> 
+:DEBUG @ 1971.5634 :: #<PASS (EQ (ENSURE-SYMBOL 'TESTS MACS.TESTS) 'TESTS)> 
+:DEBUG @ 1971.5634 :: #<PASS (EQ 'FOO (FORMAT-SYMBOL MACS.TESTS ~A 'FOO))> 
+:DEBUG @ 1971.5634 :: #<PASS (EQ (MAKE-KEYWORD 'FIZZ) FIZZ)> 
+#<PASS SYM-TEST3527> 
+:DEBUG @ 1971.5634 :: running test:  #<TEST PPCRE-READTABLES :fn PPCRE-READTABLES-test3526 :args NIL :persist NIL {10026DBB53}> 
+:DEBUG @ 1971.5634 :: #<PASS (= 1 1)> 
+#<PASS PPCRE-READTABLES-TEST3526> 
+:DEBUG @ 1971.5634 :: running test:  #<TEST READTABLES :fn READTABLES-test3525 :args NIL :persist NIL {10026DBAD3}> 
+:DEBUG @ 1971.5634 :: #<PASS (TYPEP (LAMBDA (A1) `(,A1 ,A1 ',A1 ,@A1))
+                                    'FUNCTION)> 
+#<PASS READTABLES-TEST3525> 
+:DEBUG @ 1971.5634 :: running test:  #<TEST RT :fn RT-test3524 :args NIL :persist NIL {10026DBA53}> 
+:DEBUG @ 1971.5767 :: #<PASS (TYPEP (MAKE-FIXTURE-PROTOTYPE EMPTY NIL)
+                                    'FIXTURE-PROTOTYPE)> 
+:DEBUG @ 1971.5767 :: #<PASS (TYPEP
+                              (MAKE-FIXTURE TFIX
+                                  NIL
+                                  NIL
+                                T)
+                              'FUNCTION)> 
+:DEBUG @ 1971.5767 :: #<PASS (NOT
+                              (MEMBER 'NIL
+                                      (MAPCAR #'= (LIST 1 2 3) (LIST A B C))))> 
+#<PASS RT-TEST3524> 
 No tests failed.
 #+end_src
 

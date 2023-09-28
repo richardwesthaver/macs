@@ -101,8 +101,15 @@
 (deftest fmt ()
   "Test MACS.STR"
   (is (string= (format nil "| 1 | 2 | 3 |~%") (fmt-row '(1 2 3))))
-  (is (string= (fmt-sxhash (sxhash t)) (fmt-sxhash (sxhash t)))))
-
+  (is (string= (fmt-sxhash (sxhash t)) (fmt-sxhash (sxhash t))))
+  (is (string= 
+       (fmt-tree nil '(foobar (:a) (:b) (c) (d)) :layout :down)
+       "FOOBAR
+ ├─ :A
+ ├─ :B
+ ├─  C
+ ╰─  D
+")))
 
 (deftest fu (:disable t)
   "Test MACS.STR")
@@ -129,20 +136,15 @@
 ;; WARNING bugs ahead
 
 ;; we should be able to call this from the body of the test, but we
-;; get an undefined-function error for 'MACS.RT::MAKE-PROMPT!' -
-;; package namespacing issue.
-(make-prompt! tpfoo "testing: ")
-(defvar tcoll nil)
-(defvar thist nil)
-(defvar opts (cli:make-opts '(:name foo :global t :description "bar")
-			    '(:name bar :description "foo")))
-(defvar cmds (cli:make-cmds `(:name baz :description "baz"
-			      :opts ,opts)))
-(deftest cli ()
-  "test MACS.CLI OOS."
-  (is (eq (cli:make-shorty "test") #\t))
-  (is (and opts cmds)))
-
+;; get an undefined-function error for 'MACS.RT::MAKE-PROMPT!'
+(unless *compile-tests*
+  (make-prompt! tpfoo "testing: ")
+  (defvar tcoll nil)
+  (defvar thist nil)
+  (defvar opts (cli:make-opts '(:name foo :global t :description "bar")
+			      '(:name bar :description "foo")))
+  (defvar cmds (cli:make-cmds `(:name baz :description "baz"
+				:opts ,opts)))
 (deftest cli-prompt ()
   "Test MACS.CLI prompts"
   (let ((*standard-input* (make-string-input-stream 
@@ -150,7 +152,11 @@
     ;; prompts 
     (is (string= (tpfoo-prompt) "foobar"))
     (is (string= "foobar"
-		 (cli:completing-read "nothing: " tcoll :history thist :default "foobar")))))
+		 (cli:completing-read "nothing: " tcoll :history thist :default "foobar"))))))
+
+(deftest cli ()
+  "test MACS.CLI OOS."
+  (is (eq (cli:make-shorty "test") #\t)))
 
 #+nil (test-results *test-suite*)
 #+nil (do-tests :macs)

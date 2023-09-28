@@ -19,8 +19,8 @@
 ;;; Code:
 (in-package :macs.log)
 
-(deftype log-level-indicator () '(member :warn :debug :info :trace))
-(declaim (type (or boolean log-level-indicator) *log-level*))
+(deftype log-level-designator () '(member :warn :debug :info :trace))
+(declaim (type (or boolean log-level-designator) *log-level*))
 (defparameter *log-level* nil)
 (defparameter *logger* nil)
 (defparameter *log-router* nil)
@@ -67,8 +67,10 @@ function in which case it is used as the function value of
 (defun debug! (&rest args)
   (when (debug-p)
     (format t ":DEBUG")
-    (if *log-timestamp*
-	(format t " @ ~A ::~t" (log-timestamp-source)))
+    (when *log-timestamp*
+      (format t " @ ~A ::~t" (log-timestamp-source)))
     ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
-    (map nil (lambda (x) (format t "~A " x)) args)
-    (format t "~%")))
+    (map nil (lambda (x) (format t "~X " x)) args)
+    (format t "~%"))
+  args)
+

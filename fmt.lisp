@@ -40,3 +40,98 @@ be produced by `sxhash'."
      (mapcar
       (lambda (x) (format nil "~{~(~2,'0x~)~}" x))
       (group r 2)))))
+
+;;; ASCII
+
+;;;; Trees
+
+;; from https://gist.github.com/WetHat/9682b8f70f0241c37cd5d732784d1577
+
+;; Example:
+
+;; (let ((tree '(A (B1) (B2) (B3 (C1) (C2)) (B4))))
+;;     ; enumerate all layout options and draw the tree for each one.
+;;     (dolist (layout '(:up :centered :down))
+;;         (format t "Layout = :~A~%" layout)
+;;         (fmt-tree t tree :layout layout)))
+
+;;                       Unicode    plain ASCII representation
+(defconstant +space+      "    ")
+(defconstant +upper-knee+ " ╭─ ") ; " .- "
+(defconstant +pipe+       " │  ") ; " |  "
+(defconstant +tee+        " ├─ ") ; " +- "
+(defconstant +lower-knee+ " ╰─ ") ; " '- "
+
+(defun format-tree-segments (node &key (layout :centered)
+                                       (node-formatter #'write-to-string))
+    (unless node
+        (return-from format-tree-segments nil)) ; nothing to do here
+    (flet ((prefix-node-strings (child-node &key layout node-formatter
+                                                 (upper-connector +pipe+)
+                                                 (root-connector  +tee+)
+                                                 (lower-connector +pipe+))
+                "A local utility to add connectors to a string representation
+                 of a tree segment to connect it to other tree segments."
+                (multiple-value-bind (u r l)
+                    (format-tree-segments child-node
+                        :layout         layout
+                        :node-formatter node-formatter)
+                    ; prefix tree segment with connector glyphs to connect it to
+                    ; other segments.
+                    (nconc
+                        (mapcar
+                            (lambda (str) (concatenate 'string upper-connector str))
+                            u)
+                         (list (concatenate 'string root-connector r))
+                         (mapcar
+                             (lambda (str) (concatenate 'string lower-connector str))
+                             l)))))
+        (let* ((children (rest node))
+              (pivot (case layout ; the split point of the list of children
+                         (:up   (length children)) ; split at top
+                         (:down 0)                 ; split at bottom
+                         (otherwise (round (/ (length children) 2))))) ; bisect
+              (upper-children (reverse (subseq children 0 pivot))) ; above root
+              (lower-children (subseq children pivot))) ; nodes below root
+        (values ; compile multiple value return of upper-children root lower children
+            (when upper-children
+                (loop with top = (prefix-node-strings (first upper-children)
+                                     :layout layout
+                                     :node-formatter node-formatter
+                                     :upper-connector +space+
+                                     :root-connector  +upper-knee+) ; top node has special connectors
+                    for child-node in (rest upper-children)
+                    nconc (prefix-node-strings child-node
+                              :layout layout
+                              :node-formatter node-formatter)
+                    into strlist
+                    finally (return (nconc top strlist))))
+            (let ((root-name (funcall node-formatter (car node)))) ; root node
+                (if (= 1 (length root-name))
+                    (concatenate 'string " " root-name) ; at least 2 chars needed
+                 ;else
+                     root-name))
+            (when lower-children
+                (loop for (head . tail) on lower-children
+                    while tail ; omit the last child
+                    nconc (prefix-node-strings head
+                              :layout layout
+                              :node-formatter node-formatter)
+                    into strlist
+                    finally (return
+                                (nconc
+                                    strlist
+                                    ; bottom node has special connectors
+                                    (prefix-node-strings head
+                                        :layout layout
+                                        :node-formatter  node-formatter
+                                        :root-connector  +lower-knee+
+                                        :lower-connector +space+)))))))))
+
+(defun fmt-tree (stream root &key (layout :centered)
+                                     (node-formatter #'write-to-string))
+    (multiple-value-bind (u r l)
+        (format-tree-segments root
+                              :layout layout
+                              :node-formatter node-formatter)
+        (format stream "~{~A~%~}" (nconc u (list r) l))))

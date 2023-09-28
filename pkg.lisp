@@ -113,12 +113,12 @@
   (:use :cl :reexport :str :fu)
   (:import-from :uiop :println)
   (:nicknames :fmt)
-  (:export :printer-status :fmt-row :fmt-sxhash :iprintln))
+  (:export :printer-status :fmt-row :fmt-sxhash :iprintln :fmt-tree))
 
 (defpackage :macs.log
   (:use :cl :str :fmt :sym :fu)
   (:nicknames :log)
-  (:export :*log-level* :log-timestamp-source :log! :warn! :info! :debug! :trace!))
+  (:export :*log-level* :log-level-designator :log-timestamp-source :log! :warn! :info! :debug! :trace!))
 
 (defpackage :macs.ana
   (:use :cl :macs.readtables :macs.reexport :macs.fu)
