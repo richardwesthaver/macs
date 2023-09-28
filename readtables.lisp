@@ -42,21 +42,7 @@
 
 (defmacro without-package-lock ((&rest package-names) &body body)
   (declare (ignorable package-names))
-  #+clisp
-  (return-from without-package-lock
-    `(ext:without-package-lock (,@package-names) ,@body))
-  #+lispworks
-  (return-from without-package-lock
-    `(let ((hcl:*packages-for-warn-on-redefinition*
-            (set-difference hcl:*packages-for-warn-on-redefinition*
-                            '(,@package-names)
-                            :key (lambda (package-designator)
-                                   (if (packagep package-designator)
-                                       (package-name package-designator)
-                                       package-designator))
-                            :test #'string=)))
-       ,@body))
-  `(progn ,@body))
+  `(sb-ext:with-unlocked-packages (,@package-names) ,@body))
 
 ;;; Taken from SWANK (which is Public Domain.)
 
@@ -301,43 +287,8 @@ Signals a PROGRAM-ERROR is the lambda-list is malformed."
                  ,@decls
                  (locally
                      #+sbcl (declare (sb-ext:unmuffle-conditions style-warning))
-
                      ;; SBCL will interpret the ftype declaration as
                      ;; assertion and will insert type checks for us.
-                     #-sbcl
-                     (progn
-                       ;; CHECK-TYPE required parameters
-                       ,@(loop for req-arg in reqs
-                               for req-type = (pop type-list)
-                               do (assert req-type)
-                               collect `(check-type ,req-arg ,req-type))
-
-                       ;; CHECK-TYPE optional parameters
-                       ,@(progn
-                           (assert (or (null opts)
-                                       (eq (pop type-list) '&optional)))
-                           (loop for (opt-arg . nil) in opts
-                                 for opt-type = (pop type-list)
-                                 do (assert opt-type)
-                                 collect `(check-type ,opt-arg ,opt-type)))
-
-                       ;; CHECK-TYPE rest parameter
-                       ,@(when rest
-                           (assert (eq (pop type-list) '&rest))
-                           (let ((rest-type (pop type-list)))
-                             (assert rest-type)
-                             `((dolist (x ,rest)
-                                 (check-type x ,rest-type)))))
-
-                       ;; CHECK-TYPE key parameters
-                       ,@(progn
-                           (assert (or (null keys)
-                                       (eq (pop type-list) '&key)))
-                           (loop for ((keyword key-arg)  . nil) in keys
-                                 for (nil key-type) = (find keyword type-list
-                                                            :key #'car)
-                                 collect `(check-type ,key-arg ,key-type))))
-
                      ,@body)))))))))
 
 (defmacro define-cruft (name lambda-list &body (docstring . alternatives))
@@ -420,40 +371,19 @@ Signals a PROGRAM-ERROR is the lambda-list is malformed."
 ;;; On Allegro we reuse their named-readtable support so we work
 ;;; nicely on their infrastructure.
 
-#-allegro
 (defvar *named-readtables* (make-hash-table :test 'eq))
-
-#+allegro
-(defun readtable-name-for-allegro (symbol)
-  (multiple-value-bind (kwd status)
-        (if (keywordp symbol)
-            (values symbol nil)
-            ;; Kludge: ACL uses keywords to name readtables, we allow
-            ;; arbitrary symbols.
-            (intern (format nil "~A.~A"
-                            (package-name (symbol-package symbol))
-                            (symbol-name symbol))
-                    :keyword))
-    (prog1 kwd
-      (assert (or (not status) (get kwd 'named-readtable-designator)))
-      (setf (get kwd 'named-readtable-designator) t))))
 
 (define-cruft %associate-name-with-readtable (name readtable)
   "Associate NAME with READTABLE for FIND-READTABLE to work."
-  #+ :allegro     (setf (excl:named-readtable (readtable-name-for-allegro name)) readtable)
   #+ :common-lisp (setf (gethash name *named-readtables*) readtable))
 
 (define-cruft %unassociate-name-from-readtable (name readtable)
   "Remove the association between NAME and READTABLE"
-  #+ :allegro     (let ((n (readtable-name-for-allegro name)))
-                    (assert (eq readtable (excl:named-readtable n)))
-                    (setf (excl:named-readtable n) nil))
   #+ :common-lisp (progn (assert (eq readtable (gethash name *named-readtables*)))
                          (remhash name *named-readtables*)))
 
 (define-cruft %find-readtable (name)
   "Return the readtable named NAME."
-  #+ :allegro     (excl:named-readtable (readtable-name-for-allegro name) nil)
   #+ :common-lisp (values (gethash name *named-readtables* nil)))
 
 
@@ -463,15 +393,6 @@ Signals a PROGRAM-ERROR is the lambda-list is malformed."
 ;;; each readtable copy.
 (define-cruft function= (fn1 fn2)
   "Are reader-macro function-designators FN1 and FN2 the same?"
-  #+ :clisp
-  (let* ((fn1 (ensure-function fn1))
-         (fn2 (ensure-function fn2))
-         (n1 (system::function-name fn1))
-         (n2 (system::function-name fn2)))
-    (if (and (eq n1 :lambda) (eq n2 :lambda))
-        (eq fn1 fn2)
-        (equal n1 n2)))
-  #+ :sbcl
   (let ((fn1 (ensure-function fn1))
         (fn2 (ensure-function fn2)))
     (or (eq fn1 fn2)
@@ -492,13 +413,10 @@ Signals a PROGRAM-ERROR is the lambda-list is malformed."
   #+ :common-lisp
   (eq (ensure-function fn1) (ensure-function fn2)))
 
-;;; CLISP will incorrectly fold the call to G-D-M-C away
-;;; if not declared inline.
 (define-cruft dispatch-macro-char-p (char rt)
   "Is CHAR a dispatch macro character in RT?"
   #+ :common-lisp
   (handler-case (locally
-                    #+clisp (declare (notinline get-dispatch-macro-character))
                   (get-dispatch-macro-character char #\x rt)
                   t)
     (error () nil)))
@@ -535,7 +453,6 @@ Signals a PROGRAM-ERROR is the lambda-list is malformed."
              (when symbol
                (return-from funcall-or (apply symbol args))))))
 
-#+sbcl
 (defun %make-readtable-iterator (readtable)
   (let ((char-macro-array (funcall-or '((sb-impl base-char-macro-array)
                                         (sb-impl character-macro-array))
@@ -572,167 +489,6 @@ Signals a PROGRAM-ERROR is the lambda-list is malformed."
                      (t
                       (values t char disp-fn nil nil))))))
         #'grovel-base-chars))))
-#+clozure
-(defun %make-readtable-iterator (readtable)
-  (flet ((ensure-alist (x)
-           #.`(etypecase x
-                (list x)
-                ,@(uiop:if-let (sv (uiop:find-symbol* '#:sparse-vector :ccl nil))
-                    `((,sv
-                       (let ((table (uiop:symbol-call :ccl '#:sparse-vector-table x)))
-                         (uiop:while-collecting (c)
-                           (loop for i below (length table) do
-                             (uiop:if-let ((v (svref table i)))
-                               (loop with i8 = (ash i 8)
-                                     for j below (length v) do
-                                       (uiop:if-let ((datum (svref v j)))
-                                         (c (cons (code-char (+ i8 j)) datum))))))))))))))
-    (let ((char-macros
-            (ensure-alist
-             (#.(or (uiop:find-symbol* '#:rdtab.macros :ccl nil) (uiop:find-symbol* '#:rdtab.alist :ccl)) readtable))))
-      (lambda ()
-        (if char-macros
-            (destructuring-bind (char . defn) (pop char-macros)
-              (if (consp defn)
-                  (values t char (car defn) t (ensure-alist (cdr defn)))
-                  (values t char defn nil nil)))
-            (values nil nil nil nil nil))))))
-
-;;; Written on ACL 8.0.
-#+allegro
-(defun %make-readtable-iterator (readtable)
-  (declare (optimize speed))            ; for TCO
-  (check-type readtable readtable)
-  (let* ((macro-table     (first (excl::readtable-macro-table readtable)))
-         (dispatch-tables (excl::readtable-dispatch-tables readtable))
-         (table-length    (length macro-table))
-         (idx 0))
-    (labels ((grovel-macro-chars ()
-               (if (>= idx table-length)
-                   (grovel-dispatch-chars)
-                   (let ((read-fn (svref macro-table idx))
-			 (oidx idx))
-                     (incf idx)
-                     (if (or (eq read-fn #'excl::read-token)
-                             (eq read-fn #'excl::read-dispatch-char)
-                             (eq read-fn #'excl::undefined-macro-char))
-                         (grovel-macro-chars)
-                         (values t (code-char oidx) read-fn nil nil)))))
-             (grovel-dispatch-chars ()
-               (if (null dispatch-tables)
-                   (values nil nil nil nil nil)
-                   (destructuring-bind (disp-char sub-char-table)
-                       (first dispatch-tables)
-                     (setf dispatch-tables (rest dispatch-tables))
-                     ;;; Kludge. We can't fully clear dispatch tables
-                     ;;; in %CLEAR-READTABLE.
-                     (when (eq (svref macro-table (char-code disp-char))
-                               #'excl::read-dispatch-char)
-                       (values t
-                               disp-char
-                               (svref macro-table (char-code disp-char))
-                               t
-                               (loop for subch-fn   across sub-char-table
-                                     for subch-code from 0
-                                     when subch-fn
-                                       collect (cons (code-char subch-code)
-                                                     subch-fn))))))))
-      #'grovel-macro-chars)))
-
-;;; This is really only needed for CMUCL with unicode support. Without
-;;; unicode, the default implementation is probably fast enough.
-#+cmucl
-(defun %make-readtable-iterator (readtable)
-  (let ((char-macro-ht    (lisp::character-macro-hash-table readtable))
-        (dispatch-tables  (lisp::dispatch-tables readtable))
-        (char-code 0))
-    (with-hash-table-iterator (ht-iterator char-macro-ht)
-      (labels
-          ((grovel-base-chars ()
-             (if (>= char-code lisp::attribute-table-limit)
-                 (grovel-unicode-chars)
-                 (let* ((char (code-char (shiftf char-code (1+ char-code))))
-		        ;; Need %GET-MACRO-CHARACTER here, not
-		        ;; GET-MACRO-CHARACTER because we want NIL to
-		        ;; be returned instead of #'LISP::READ-TOKEN.
-		        (reader-fn (%get-macro-character char readtable)))
-                   (if reader-fn
-		       (yield char reader-fn)
-		       (grovel-base-chars)))))
-           (grovel-unicode-chars ()
-             (multiple-value-bind (more? char reader-fn)
-                 (ht-iterator)
-               (if (not more?)
-                   (values nil nil nil nil nil)
-                   (yield char reader-fn))))
-           (yield (char reader-fn)
-             (let ((disp-ht))
-               (cond
-                 ((setq disp-ht (cdr (assoc char dispatch-tables)))
-                  (let ((disp-fn (get-macro-character char readtable))
-                        (sub-char-alist))
-                    (if (< (char-code char) lisp::attribute-table-limit)
-                        (let ((disp (lisp::char-dispatch-table-table disp-ht)))
-                          (dotimes (k lisp::attribute-table-limit)
-                            (let ((f (aref disp k)))
-                              (unless (eq f #'lisp::dispatch-char-error)
-                                (push (cons (code-char k) f)
-                                      sub-char-alist)))))
-                        (let ((disp-ht (lisp::char-dispatch-table-hash-table
-                                        disp-ht)))
-                          (maphash (lambda (k v)
-                                     (push (cons k v) sub-char-alist))
-                                   disp-ht)))
-                    (values t char disp-fn t sub-char-alist)))
-                 (t
-                  (values t char reader-fn nil nil))))))
-        #'grovel-base-chars))))
-
-#-(or sbcl clozure allegro cmucl)
-(eval-when (:compile-toplevel)
-  (let ((*print-pretty* t))
-    (simple-style-warn
-     "~&~@<  ~@;~A has not been ported to ~A. ~
-       We fall back to a portable implementation of readtable iterators. ~
-       This implementation has to grovel through all available characters. ~
-       On Unicode-aware implementations this may come with some costs.~@:>"
-     (package-name '#.*package*) (lisp-implementation-type))))
-
-#-(or sbcl clozure allegro cmucl)
-(defun %make-readtable-iterator (readtable)
-  (check-type readtable readtable)
-  (let ((char-code 0))
-    #'(lambda ()
-        (prog ()
-         :GROVEL
-           (when (< char-code char-code-limit)
-             (let ((char (code-char char-code)))
-               (incf char-code)
-               (when (not char) (go :GROVEL))
-               (let ((fn (get-macro-character char readtable)))
-                 (when (not fn) (go :GROVEL))
-                 (multiple-value-bind (disp? alist)
-                     (handler-case ; grovel dispatch macro characters.
-                         (values
-                          t
-                          ;; Only grovel upper case characters to
-                          ;; avoid duplicates.
-                          (loop for code from 0 below char-code-limit
-                                for subchar = (non-lowercase-code-char code)
-                                for disp-fn = (and subchar
-                                                   (get-dispatch-macro-character
-                                                    char subchar readtable))
-                                when disp-fn
-                                  collect (cons subchar disp-fn)))
-                       (error () nil))
-                   (return (values t char fn disp? alist))))))))))
-
-#-(or sbcl clozure allegro)
-(defun non-lowercase-code-char (code)
-  (let ((ch (code-char code)))
-    (when (and ch (or (not (alpha-char-p ch))
-                      (upper-case-p ch)))
-      ch)))
 
 (defmacro do-readtable ((entry-designator readtable &optional result)
                         &body body)
@@ -778,55 +534,20 @@ Signals a PROGRAM-ERROR is the lambda-list is malformed."
 ;;; workaround.
 (define-cruft %clear-readtable (readtable)
   "Make all macro characters in READTABLE be constituents."
-  #+ :sbcl
   (prog1 readtable
     (do-readtable (char readtable)
       (set-syntax-from-char char #\A readtable))
     (setf (sb-impl::dispatch-tables readtable) nil))
-  #+ :allegro
-  (prog1 readtable
-    (do-readtable (char readtable)
-      (set-syntax-from-char char #\A readtable))
-    (let ((dispatch-tables (excl::readtable-dispatch-tables readtable)))
-      (setf (cdr   dispatch-tables) nil)
-      (setf (caar  dispatch-tables) #\Backspace)
-      (setf (cadar dispatch-tables) (fill (cadar dispatch-tables) nil))))
-  #+ :cmucl
-  (prog1 readtable
-    (do-readtable (char readtable)
-      (set-syntax-from-char char #\A readtable))
-    (setf (lisp::dispatch-tables readtable) nil))
   #+ :common-lisp
   (do-readtable (char readtable readtable)
     (set-syntax-from-char char #\A readtable)))
 
-;;; See Clozure Trac Ticket 601. This is supposed to be removed at
-;;; some point in the future.
 (define-cruft %get-dispatch-macro-character (char subchar rt)
   "Ensure ANSI behaviour for GET-DISPATCH-MACRO-CHARACTER."
-  #+ :ccl         (ignore-errors
-                    (get-dispatch-macro-character char subchar rt))
-  #+ :cmucl
-  (let ((f (get-dispatch-macro-character char subchar rt)))
-    ;; CMUCL returns #'LISP::DISPATCH-CHAR-ERROR, and named-readtables
-    ;; wants NIL in those cases.
-    (unless (eq f #'lisp::dispatch-char-error)
-      f))
   #+ :common-lisp (get-dispatch-macro-character char subchar rt))
 
-;;; Allegro stores READ-TOKEN as reader macro function of each
-;;; constituent character.
 (define-cruft %get-macro-character (char rt)
   "Ensure ANSI behaviour for GET-MACRO-CHARACTER."
-  #+ :allegro     (let ((fn (get-macro-character char rt)))
-                    (cond ((not fn) nil)
-                          ((function= fn #'excl::read-token) nil)
-                          (t fn)))
-  #+ :cmucl
-  (let ((fn (get-macro-character char rt)))
-    (cond ((not fn) nil)
-          ((function= fn #'lisp::read-token) nil)
-          (t fn)))
   #+ :common-lisp (get-macro-character char rt))
 
 
@@ -837,10 +558,7 @@ Signals a PROGRAM-ERROR is the lambda-list is malformed."
 ;;; likely to work (modulo package-locks) on most implementations,
 ;;; though.
 
-;;; We don't need this on Allegro CL's as we hook into their
-;;; named-readtable facility, and they provide such a method already.
-#-allegro
-(without-package-lock (:common-lisp #+lispworks :implementation)
+(without-package-lock (:common-lisp)
   (defmethod print-object :around ((rt readtable) stream)
     (let ((name (readtable-name rt)))
       (if name

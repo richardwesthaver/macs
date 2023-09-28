@@ -1,11 +1,10 @@
 ;;; fu.lisp --- Function utilities
 
 ;;; Code:
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (require :sb-introspect))
-(in-package :macs.fu)
+(in-package :macs.fu)  
 
 ;;; From LOL
+
 (defun group (source n)
   (when (zerop n) (error "zero length"))
   (labels ((rec (source acc)
@@ -697,9 +696,14 @@ Example:
   "`defun' without args."
   `(defun ,name () ,@body))
 
+(defmacro eval-always (&body body)
+  `(eval-when (:compile-toplevel :load-toplevel :execute) ,@body))
+
 ;;; TODO 2023-09-04: Env
 
 ;;; Introspection
+(eval-always (require :sb-introspect))
+
 (reexport-from :sb-introspect
 	       :include '(:function-lambda-list :lambda-list-keywords :lambda-parameters-limit
 			  :method-combination-lambda-list :deftype-lambda-list
@@ -709,11 +713,11 @@ Example:
 			  :find-function-callees :find-function-callers))
 
 ;;; Compiler
+
 (reexport-from :sb-c
 	       :include '(:define-source-transformation
 			  :parse-eval-when-situations
 			  :source-location))
-
 ;;; Named Lambdas
 (reexport-from :sb-int :include '(:make-macro-lambda :parse-lambda-list))
 

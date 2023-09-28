@@ -106,6 +106,7 @@
    #:if-let
    #:if-let*
    :defcmd
+   :eval-always
    :merge! :sort!
    :list-slot-values-using-class :list-class-methods :list-class-slots :list-indirect-slot-methods))
    
