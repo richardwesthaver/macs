@@ -141,22 +141,30 @@
   (make-prompt! tpfoo "testing: ")
   (defvar tcoll nil)
   (defvar thist nil)
-  (defvar opts (cli:make-opts '(:name foo :global t :description "bar")
-			      '(:name bar :description "foo")))
-  (defvar cmds (cli:make-cmds `(:name baz :description "baz"
-				:opts ,opts)))
-(deftest cli-prompt ()
-  "Test MACS.CLI prompts"
-  (let ((*standard-input* (make-string-input-stream 
-				       (format nil "~A~%~A~%" "foobar" "foobar"))))
-    ;; prompts 
-    (is (string= (tpfoo-prompt) "foobar"))
-    (is (string= "foobar"
-		 (cli:completing-read "nothing: " tcoll :history thist :default "foobar"))))))
+				
+  (deftest cli-prompt ()
+    "Test MACS.CLI prompts"
+    (let ((*standard-input* (make-string-input-stream 
+			     (format nil "~A~%~A~%" "foobar" "foobar"))))
+      ;; prompts 
+      (is (string= (tpfoo-prompt) "foobar"))
+      (is (string= "foobar"
+		   (cli:completing-read "nothing: " tcoll :history thist :default "foobar"))))))
+
+(defvar opts (cli:make-opts '(:name foo :global t :description "bar")
+			    '(:name bar :description "foo")))
+
+(defvar cmds (cli:make-cmds `(:name baz :description "baz" :opts ,opts)))
 
 (deftest cli ()
   "test MACS.CLI OOS."
-  (is (eq (cli:make-shorty "test") #\t)))
+  (let ((cli (make-cli t :opts opts :cmds cmds :description "test cli")))
+    (is (eq (cli:make-shorty "test") #\t))
+    (is (equal (parse-args cli '("-f" "--bar"))
+	       '((opt . #\f) (opt . "bar"))))
+    (is (null (print-version cli)))
+    (is (null (print-usage cli)))
+    (is (null (print-help cli)))))
 
 #+nil (test-results *test-suite*)
 #+nil (do-tests :macs)

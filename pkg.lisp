@@ -189,6 +189,8 @@
    :cli-opt
    :cli-cmd
    :cli
+   :opt
+   :cmd
    :cli-name
    :cli-opts
    :cli-cmds
