@@ -111,7 +111,7 @@
    :list-slot-values-using-class :list-class-methods :list-class-slots :list-indirect-slot-methods))
    
 (defpackage :macs.fmt
-  (:use :cl :reexport :str :fu)
+  (:use :cl :reexport :str :fu :list)
   (:import-from :uiop :println)
   (:nicknames :fmt)
   (:export :printer-status :fmt-row :fmt-sxhash :iprintln :fmt-tree))

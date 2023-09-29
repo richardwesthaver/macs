@@ -109,7 +109,19 @@
  ├─ :B
  ├─  C
  ╰─  D
+"))
+;; with plist option
+  (is (string= 
+       (fmt:fmt-tree nil '(sk-project :name "foobar" :path "/a/b/c.asd" :vc :hg) :layout :down :plist t)
+       "SK-PROJECT
+ ├─ :NAME
+ │   ╰─ \"foobar\"
+ ├─ :PATH
+ │   ╰─ \"/a/b/c.asd\"
+ ╰─ :VC
+     ╰─ :HG
 ")))
+
 
 (deftest fu (:disable t)
   "Test MACS.STR")

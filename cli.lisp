@@ -327,7 +327,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
     ;; LONG OPT
     if (and (long-opt-p a)
 	    (find-opt self (string-trim "-" a)))
-      collect (cons 'opt (print (string-trim "-" a)))
+      collect (cons 'opt (string-trim "-" a))
     if (opt-group-p a)
       collect nil
     if (find-cmd self a)

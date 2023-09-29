@@ -49,27 +49,50 @@ be produced by `sxhash'."
 
 ;; Example:
 
-;; (let ((tree '(A (B1) (B2) (B3 (C1) (C2)) (B4))))
+;; (let ((tree '(A B1 B2 (B3 C1) C2)))
 ;;     ; enumerate all layout options and draw the tree for each one.
 ;;     (dolist (layout '(:up :centered :down))
 ;;         (format t "Layout = :~A~%" layout)
 ;;         (fmt-tree t tree :layout layout)))
 
+;; Layout = :UP
+;;  ╭─ C2
+;;  │   ╭─ C1
+;;  ├─ B3
+;;  ├─ B2
+;;  ├─ B1
+;;  A
+;; Layout = :CENTERED
+;;  ╭─ B2
+;;  ├─ B1
+;;  A
+;;  ├─ B3
+;;  │   ╰─ C1
+;;  ╰─ C2
+;; Layout = :DOWN
+;;  A
+;;  ├─ B1
+;;  ├─ B2
+;;  ├─ B3
+;;  │   ╰─ C1
+;;  ╰─ C2
+
 ;;                       Unicode    plain ASCII representation
-(defconstant +space+      "    ")
-(defconstant +upper-knee+ " ╭─ ") ; " .- "
-(defconstant +pipe+       " │  ") ; " |  "
-(defconstant +tee+        " ├─ ") ; " +- "
-(defconstant +lower-knee+ " ╰─ ") ; " '- "
+(defvar *space*      "    ")
+(defvar *upper-knee* " ╭─ ") ; " .- "
+(defvar *pipe*       " │  ") ; " |  "
+(defvar *tee*        " ├─ ") ; " +- "
+(defvar *lower-knee* " ╰─ ") ; " '- "
 
 (defun format-tree-segments (node &key (layout :centered)
                                        (node-formatter #'write-to-string))
-    (unless node
-        (return-from format-tree-segments nil)) ; nothing to do here
-    (flet ((prefix-node-strings (child-node &key layout node-formatter
-                                                 (upper-connector +pipe+)
-                                                 (root-connector  +tee+)
-                                                 (lower-connector +pipe+))
+  (unless node
+    (return-from format-tree-segments nil)) ; nothing to do here
+  (setq node (ensure-cons node))
+  (flet ((prefix-node-strings (child-node &key layout node-formatter
+                                                 (upper-connector *pipe*)
+                                                 (root-connector  *tee*)
+                                                 (lower-connector *pipe*))
                 "A local utility to add connectors to a string representation
                  of a tree segment to connect it to other tree segments."
                 (multiple-value-bind (u r l)
@@ -128,10 +151,12 @@ be produced by `sxhash'."
                                         :root-connector  +lower-knee+
                                         :lower-connector +space+)))))))))
 
-(defun fmt-tree (stream root &key (layout :centered)
-                                     (node-formatter #'write-to-string))
+(defun fmt-tree (stream root &key 
+			       (plist nil)
+			       (layout :centered)
+                               (node-formatter #'write-to-string))
     (multiple-value-bind (u r l)
-        (format-tree-segments root
+        (format-tree-segments (if plist (cons (car root) (group (cdr root) 2)) root)
                               :layout layout
                               :node-formatter node-formatter)
         (format stream "~{~A~%~}" (nconc u (list r) l))))
