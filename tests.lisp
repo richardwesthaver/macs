@@ -177,7 +177,7 @@
   (let ((cli *cli*))
 
     (is (eq (make-shorty "test") #\t))
-    (is (equal (proc-args cli '("-f" "baz" "--bar" "fax")) ;; not eql
+    (is (equalp (proc-args cli '("-f" "baz" "--bar" "fax")) ;; not eql
 		(make-cli-ast 
 		 (list (make-cli-node 'opt #\f) 
 		       (make-cli-node 'cmd "baz") 
