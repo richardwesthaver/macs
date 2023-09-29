@@ -171,9 +171,9 @@
 (deftest cli ()
   "test MACS.CLI OOS."
   (let ((cli (make-cli t :opts opts :cmds cmds :description "test cli")))
-    (is (eq (cli:make-shorty "test") #\t))
-    (is (equal (proc-args cli '("-f" "--bar")) ;; not eql
-	        '((opt . #\f) (opt . "bar"))))
+    (is (eq (make-shorty "test") #\t))
+    (is (equalp (proc-args cli '("-f" "--bar")) ;; not eql
+		(list (make-cli-node 'opt #\f) (make-cli-node 'opt "bar"))))
     (is (null (print-version cli)))
     (is (null (print-usage cli)))
     (is (null (print-help cli)))))

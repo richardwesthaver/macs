@@ -180,6 +180,8 @@
    :make-opts
    :make-cmds
    :proc-args
+   :make-cli-node
+   :proc-args
    :parse-args
    :do-cmd
    :print-help

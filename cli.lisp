@@ -310,6 +310,12 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
       (funcall (cli-thunk self))
       (error 'slot-unbound 'thunk)))
 
+(declaim (inline %make-cli-node))
+(defstruct (cli-node (:constructor %make-cli-node)) kind form)
+
+(defun make-cli-node (kind form)  
+  (%make-cli-node :kind kind :form form))
+
 (defclass cli (cli-cmd)
   ;; name slot defaults to *package*, must be string
   ((name :initarg :name :initform (string-downcase (package-name *package*)) :accessor cli-name :type string)
@@ -323,15 +329,15 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
     ;; SHORT OPT
     if (and (short-opt-p a)
 	    (find-short-opt self (aref a 1)))
-      collect (cons 'opt (aref a 1))
+      collect (make-cli-node 'opt (aref a 1))
     ;; LONG OPT
     if (and (long-opt-p a)
 	    (find-opt self (string-trim "-" a)))
-      collect (cons 'opt (string-trim "-" a))
+      collect (make-cli-node 'opt (string-trim "-" a))
     if (opt-group-p a)
       collect nil
     if (find-cmd self a)
-      collect (cons 'cmd a)))
+      collect (make-cli-node 'cmd a)))
 
 (defmethod print-usage ((self cli))
   (iprintln (format nil "usage: ~A [global] <command> [<arg>]~%" (cli-name self))))

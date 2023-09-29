@@ -121,8 +121,8 @@ be produced by `sxhash'."
                 (loop with top = (prefix-node-strings (first upper-children)
                                      :layout layout
                                      :node-formatter node-formatter
-                                     :upper-connector +space+
-                                     :root-connector  +upper-knee+) ; top node has special connectors
+                                     :upper-connector *space*
+                                     :root-connector  *upper-knee*) ; top node has special connectors
                     for child-node in (rest upper-children)
                     nconc (prefix-node-strings child-node
                               :layout layout
@@ -148,8 +148,8 @@ be produced by `sxhash'."
                                     (prefix-node-strings head
                                         :layout layout
                                         :node-formatter  node-formatter
-                                        :root-connector  +lower-knee+
-                                        :lower-connector +space+)))))))))
+                                        :root-connector  *lower-knee*
+                                        :lower-connector *space*)))))))))
 
 (defun fmt-tree (stream root &key 
 			       (plist nil)
