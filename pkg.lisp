@@ -109,7 +109,7 @@
    :eval-always
    :merge! :sort!
    :list-slot-values-using-class :list-class-methods :list-class-slots :list-indirect-slot-methods))
-   
+
 (defpackage :macs.fmt
   (:use :cl :reexport :str :fu :list)
   (:import-from :uiop :println)
@@ -155,7 +155,7 @@
   (:export))
 
 (defpackage :macs.cli
-  (:use :cl :sym :cond :fu :str :ana :fmt)
+  (:use :cl :sym :cond :fu :str :ana :fmt :log)
   (:import-from :ana :alet)
   (:import-from :uiop :println)
   (:nicknames :cli)
@@ -181,6 +181,7 @@
    :make-cmds
    :proc-args
    :make-cli-node
+   :make-cli-ast
    :proc-args
    :parse-args
    :do-cmd
@@ -193,8 +194,10 @@
    :cli-opt
    :cli-cmd
    :cli
+   ;; ast types
    :opt
    :cmd
+   :arg
    :cli-name
    :cli-opts
    :cli-cmds

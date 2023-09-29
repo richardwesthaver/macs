@@ -188,13 +188,19 @@ Note that this macro does not export the defined function and requires
   (char= (aref str 0) ch))
 
 ;;; Protocol
+(defgeneric push-cmd (cmd place))
+(defgeneric push-opt (opt place))
+
+(defgeneric pop-cmd (place))
+(defgeneric pop-opt (place))
+
 (defgeneric find-cmd (self name))
 
 (defgeneric find-opt (self name))
 
 (defgeneric find-short-opt (self ch))
 
-(defgeneric parse-args (self args)
+(defgeneric parse-args (self args &key &allow-other-keys)
   (:documentation "Parse list of strings ARGS using SELF.
 
 A list of the same length as ARGS is returned containing 'cli-ast'
@@ -224,7 +230,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 ;;; Objects
 (defclass cli-opt ()
   ;; note that cli-opts can have a nil or unbound name slot
-  ((name :initarg :name :accessor cli-name :type string)
+  ((name :initarg :name :initform (required-argument :name) :accessor cli-name :type string)
    (val :initarg :val :initform nil :accessor cli-val)
    (global :initarg :global :initform nil :accessor global-opt-p)
    (description :initarg :description :accessor cli-description :type string))
@@ -277,6 +283,18 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 		""
 		(format nil "~%    ~{!  ~A~}" (loop for c across cmds collect (print-usage c)))))))
 
+(defmethod push-cmd ((self cli-cmd) (place cli-cmd))
+  (vector-push self (cli-cmds place)))
+
+(defmethod push-opt ((self cli-opt) (place cli-cmd))
+  (vector-push self (cli-opts place)))
+
+(defmethod pop-cmd ((self cli-cmd))
+  (vector-pop (cli-cmds self)))
+
+(defmethod pop-opt ((self cli-opt))
+  (vector-pop (cli-opts self)))
+
 ;; typically when starting from a top-level `cli', the global
 ;; `cli-opts' will be parsed first, followed by the first command
 ;; found. If a command is found, the tail of the list is passed as
@@ -285,6 +303,18 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 
 ;;  TODO 2023-09-12: Parsing restarts at the `*cli-group-separator*'
 ;; if present, or stops at EOI.
+
+(declaim (inline %make-cli-node))
+(defstruct (cli-node (:constructor %make-cli-node)) kind form)
+
+(defun make-cli-node (kind form)  
+  (%make-cli-node :kind kind :form form))
+
+(declaim (inline %make-cli-ast))
+(defstruct (cli-ast (:constructor %make-cli-ast)) ast)
+
+(defun make-cli-ast (nodes)  
+  (%make-cli-ast :ast nodes))
 
 (defmethod find-cmd ((self cli-cmd) name)
   (find name (cli-cmds self) :key #'cli-name :test #'string=))
@@ -295,12 +325,37 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 (defmethod find-short-opt ((self cli-cmd) ch)
   (find ch (cli-opts self) :key #'cli-name :test #'opt-prefix-eq))
 
-(defmethod parse-args ((self cli-cmd) args)
-  "Parse list of string arguments ARGS and return the updated object SELF."
-  ;; TODO 2023-09-25: room to optimize here
+(defmethod proc-args ((self cli-cmd) args)
+  "process ARGS into a basic ast with validation."
+  (make-cli-ast
+   (loop 
+     for a in args
+     ;; SHORT OPT
+     if (and (short-opt-p a)
+	     (find-short-opt self (aref a 1)))
+       collect (make-cli-node 'opt (aref a 1))
+     ;; LONG OPT
+     else if (and (long-opt-p a)
+		  (find-opt self (string-trim "-" a)))
+	    collect (make-cli-node 'opt (string-trim "-" a))
+     ;; OPT GROUP
+     else if (opt-group-p a)
+	    collect nil
+     ;; CMD
+     else if (find-cmd self a)
+	    collect (make-cli-node 'cmd a)
+     ;; ARG
+     else collect (make-cli-node 'arg a))))
+
+(defmethod parse-args ((self cli-cmd) args &key (compile nil))
+  "Parse ARGS and return the updated object SELF.
+
+ARGS is assumed to be a valid cli-ast (list of cli-nodes), unless
+COMPILE is t, in which case a list of strings is assumed."
   (with-slots (opts cmds) self
-    (proc-args self args)
-    self))
+    (let ((args (if compile (proc-args self args) args)))
+      (print args)
+      self)))
 
 ;; warning: make sure to fill in the opt and cmd slots with values
 ;; from the top-level args before doing a command.
@@ -310,34 +365,11 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
       (funcall (cli-thunk self))
       (error 'slot-unbound 'thunk)))
 
-(declaim (inline %make-cli-node))
-(defstruct (cli-node (:constructor %make-cli-node)) kind form)
-
-(defun make-cli-node (kind form)  
-  (%make-cli-node :kind kind :form form))
-
 (defclass cli (cli-cmd)
   ;; name slot defaults to *package*, must be string
   ((name :initarg :name :initform (string-downcase (package-name *package*)) :accessor cli-name :type string)
    (version :initarg :version :initform "0.1.0" :accessor cli-version :type string))
   (:documentation "CLI"))
-
-(defmethod proc-args ((self cli) args)
-  "process ARGS into a basic ast with validation."
-  (loop 
-    for a in args
-    ;; SHORT OPT
-    if (and (short-opt-p a)
-	    (find-short-opt self (aref a 1)))
-      collect (make-cli-node 'opt (aref a 1))
-    ;; LONG OPT
-    if (and (long-opt-p a)
-	    (find-opt self (string-trim "-" a)))
-      collect (make-cli-node 'opt (string-trim "-" a))
-    if (opt-group-p a)
-      collect nil
-    if (find-cmd self a)
-      collect (make-cli-node 'cmd a)))
 
 (defmethod print-usage ((self cli))
   (iprintln (format nil "usage: ~A [global] <command> [<arg>]~%" (cli-name self))))
@@ -360,3 +392,11 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
     (unless (null cmds)
       (loop for c across cmds
 	    do (iprintln (print-usage c) 4)))))
+
+(defmethod parse-args ((self cli) (args list) &key (compile t))
+  "Parse list of string arguments ARGS and return the updated object SELF."
+  ;; TODO 2023-09-25: room to optimize here
+  (with-slots (opts cmds) self
+    (let ((args (if compile (proc-args self args) args)))
+      (debug! args)
+      self)))

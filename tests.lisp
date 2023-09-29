@@ -163,17 +163,27 @@
       (is (string= "foobar"
 		   (cli:completing-read "nothing: " tcoll :history thist :default "foobar"))))))
 
-(defvar opts (cli:make-opts '(:name "foo" :global t :description "bar")
+(defparameter *opts* (cli:make-opts '(:name "foo" :global t :description "bar")
 			    '(:name "bar" :description "foo")))
 
-(defvar cmds (cli:make-cmds `(:name baz :description "baz" :opts ,opts)))
+(defparameter *cmd1* (make-cli :cmd :name "holla" :opts *opts* :description "cmd1 description"))
+(defparameter *cmd2* (make-cli :cmd :name "ayo" :cmds #(*cmd1*) :opts *opts* :description "cmd1 description"))
+(defparameter *cmds* (cli:make-cmds `(:name "baz" :description "baz" :opts ,*opts*)))
+
+(defparameter *cli* (make-cli t :opts *opts* :cmds *cmds* :description "test cli"))
 
 (deftest cli ()
   "test MACS.CLI OOS."
-  (let ((cli (make-cli t :opts opts :cmds cmds :description "test cli")))
+  (let ((cli *cli*))
+
     (is (eq (make-shorty "test") #\t))
-    (is (equalp (proc-args cli '("-f" "--bar")) ;; not eql
-		(list (make-cli-node 'opt #\f) (make-cli-node 'opt "bar"))))
+    (is (equal (proc-args cli '("-f" "baz" "--bar" "fax")) ;; not eql
+		(make-cli-ast 
+		 (list (make-cli-node 'opt #\f) 
+		       (make-cli-node 'cmd "baz") 
+		       (make-cli-node 'opt "bar")
+		       (make-cli-node 'arg "fax")))))
+    (is (parse-args cli '("--bar" "baz" "-f" "yaks")))
     (is (null (print-version cli)))
     (is (null (print-usage cli)))
     (is (null (print-help cli)))))
