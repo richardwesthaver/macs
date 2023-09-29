@@ -259,7 +259,9 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
    (opts :initarg :opts :initform nil :accessor cli-opts :type (or (vector cli-opt) null))
    (cmds :initarg :cmds :initform nil :accessor cli-cmds :type (or (vector cli-cmd) null))
    (thunk :initarg :thunk :accessor cli-thunk :type lambda)
-   (description :initarg :description :accessor cli-description :type string))
+   (lock :initarg :lock :accessor cli-lock-p :type boolean)
+   (description :initarg :description :accessor cli-description :type string)
+   (%args :type list))
   (:documentation "CLI command"))
 
 (defmethod print-object ((self cli-cmd) stream)
@@ -307,7 +309,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 (declaim (inline %make-cli-node))
 (defstruct (cli-node (:constructor %make-cli-node)) kind form)
 
-(defun make-cli-node (kind form)  
+(defun make-cli-node (kind form)
   (%make-cli-node :kind kind :form form))
 
 (declaim (inline %make-cli-ast))
@@ -326,18 +328,22 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
   (find ch (cli-opts self) :key #'cli-name :test #'opt-prefix-eq))
 
 (defmethod proc-args ((self cli-cmd) args)
-  "process ARGS into a basic ast with validation."
+  "process ARGS into an ast. Each element of the ast is a node with a
+:kind slot, indicating the type of node and a :form slot which stores
+a value.
+
+For now we parse group separators '--' and insert a nil into the tree,
+this will likely change to generating a new branch in the ast as it
+should be."
   (make-cli-ast
    (loop 
      for a in args
      ;; SHORT OPT
-     if (and (short-opt-p a)
-	     (find-short-opt self (aref a 1)))
-       collect (make-cli-node 'opt (aref a 1))
+     if (short-opt-p a)
+       collect (make-cli-node 'opt (find-short-opt self (aref a 1)))
      ;; LONG OPT
-     else if (and (long-opt-p a)
-		  (find-opt self (string-trim "-" a)))
-	    collect (make-cli-node 'opt (string-trim "-" a))
+     else if (long-opt-p a)
+	    collect (make-cli-node 'opt (find-opt self (string-trim "-" a)))
      ;; OPT GROUP
      else if (opt-group-p a)
 	    collect nil
@@ -347,6 +353,39 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
      ;; ARG
      else collect (make-cli-node 'arg a))))
 
+(defmethod install-ast ((self cli-cmd) (ast cli-ast))
+  "Install the given AST, recursively filling in value slots."
+  (with-slots (cmds opts) self
+    ;; we assume all nodes in the ast have been validated and the ast
+    ;; itself is consumed. validation is performed in proc-args.
+    (loop named install
+	  for (node . tail) on (cli-ast-ast ast)
+	  unless (null node) 
+	    do 
+	       (with-slots (kind form) node
+		 (case kind
+		   ;; opts 
+		   (opt 
+		    (let ((name (cli-name form))
+			  (val (cli-val form)))
+		      (setf (cli-val (find-opt self name)) val)))
+		   ;; when we encounter a command we recurse over the tail
+		   (cmd 
+		    (let ((cmd (find-cmd self (cli-name form))))
+		      (setf (cli-lock-p cmd) t)
+		      ;; handle the rest of the AST
+		      (install-ast cmd (make-cli-ast tail))
+		      (return-from install)))
+		   (arg (push-arg form self)))))))
+
+(defmethod push-arg (arg (self cli-cmd))
+  (push arg (slot-value self '%ast)))
+
+(defmethod pop-args ((self cli-cmd))
+  (prog1
+      (slot-value self '%ast)
+    (slot-makunbound self '%ast)))
+
 (defmethod parse-args ((self cli-cmd) args &key (compile nil))
   "Parse ARGS and return the updated object SELF.
 
@@ -354,8 +393,7 @@ ARGS is assumed to be a valid cli-ast (list of cli-nodes), unless
 COMPILE is t, in which case a list of strings is assumed."
   (with-slots (opts cmds) self
     (let ((args (if compile (proc-args self args) args)))
-      (print args)
-      self)))
+      (install-ast self args))))
 
 ;; warning: make sure to fill in the opt and cmd slots with values
 ;; from the top-level args before doing a command.
@@ -393,9 +431,9 @@ COMPILE is t, in which case a list of strings is assumed."
       (loop for c across cmds
 	    do (iprintln (print-usage c) 4)))))
 
+;; same as cli-cmd method, default is to compile though
 (defmethod parse-args ((self cli) (args list) &key (compile t))
   "Parse list of string arguments ARGS and return the updated object SELF."
-  ;; TODO 2023-09-25: room to optimize here
   (with-slots (opts cmds) self
     (let ((args (if compile (proc-args self args) args)))
       (debug! args)

@@ -226,6 +226,7 @@ You can run the tests with asdf:
 
 Or interactively:
 #+begin_src lisp :results output replace :wrap src lisp :exports both :package :macs.tests
+  (compile-file "tests.lisp")
   (load "tests.lisp")
   (setq log:*log-level* nil)
   (setq rt:*catch-test-errors* t)
@@ -235,6 +236,10 @@ Or interactively:
 
 #+RESULTS:
 #+begin_src lisp
+; compiling file "/home/ellis/dev/macs/tests.lisp" (written 29 SEP 2023 07:17:11 PM):
+
+; wrote /home/ellis/dev/macs/tests.fasl
+; compilation finished in 0:00:00.010
 in suite MACS with 16/16 tests:
 #<PASS CLI> 
 #<PASS CLI-PROMPT> 
