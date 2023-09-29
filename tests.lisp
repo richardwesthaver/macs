@@ -150,12 +150,11 @@
 ;; we should be able to call this from the body of the test, but we
 ;; get an undefined-function error for 'MACS.RT::MAKE-PROMPT!'
 (unless *compile-tests*
-  (make-prompt! tpfoo "testing: ")
-  (defvar tcoll nil)
-  (defvar thist nil)
-				
   (deftest cli-prompt ()
     "Test MACS.CLI prompts"
+    (make-prompt! tpfoo "testing: ")
+    (defvar tcoll nil)
+    (defvar thist nil)
     (let ((*standard-input* (make-string-input-stream 
 			     (format nil "~A~%~A~%" "foobar" "foobar"))))
       ;; prompts 
