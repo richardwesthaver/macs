@@ -261,7 +261,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
    (thunk :initarg :thunk :accessor cli-thunk :type lambda)
    (lock :initarg :lock :accessor cli-lock-p :type boolean)
    (description :initarg :description :accessor cli-description :type string)
-   (%args :type list))
+   (%args :initform nil :type list :accessor %cli-args))
   (:documentation "CLI command"))
 
 (defmethod print-object ((self cli-cmd) stream)
@@ -349,7 +349,7 @@ should be."
 	    collect nil
      ;; CMD
      else if (find-cmd self a)
-	    collect (make-cli-node 'cmd a)
+	    collect (make-cli-node 'cmd (find-cmd self a))
      ;; ARG
      else collect (make-cli-node 'arg a))))
 
@@ -378,13 +378,29 @@ should be."
 		      (return-from install)))
 		   (arg (push-arg form self)))))))
 
+(defun gen-thunk-ll% (origin args)
+  (nconc `(($a0 ,origin)) (loop for i from 1 for a in args collect `(,(symb '$a i) ,a))))
+
+(defmacro gen-cli-thunk (origin args &body body)
+  "Generate a closure with ARGS lexically bound around BODY.
+Each arg introduces a new anaphor prefixed by $a based on the position
+in the list, starting from 1. We bind the command itself to $a0."
+  `(let ,(gen-thunk-ll% origin args)
+     (lambda () 
+       ,@body)))
+
+(defmethod install-thunk ((self cli-cmd) thunk)
+  (let ((args (pop-args self)))
+    (setf (cli-thunk self) 
+	  (compile nil `(gen-cli-thunk ',self ',args ',thunk)))))
+
 (defmethod push-arg (arg (self cli-cmd))
-  (push arg (slot-value self '%ast)))
+  (push arg (%cli-args self)))
 
 (defmethod pop-args ((self cli-cmd))
   (prog1
-      (slot-value self '%ast)
-    (slot-makunbound self '%ast)))
+      (slot-value self '%args)
+    (slot-makunbound self '%args)))
 
 (defmethod parse-args ((self cli-cmd) args &key (compile nil))
   "Parse ARGS and return the updated object SELF.

@@ -193,6 +193,11 @@
    :handle-invalid-argument
    :cli-opt
    :cli-cmd
+   :find-cmd
+   :find-opt
+   :find-short-opt
+   :install-ast
+   :install-thunk
    :cli
    ;; ast types
    :opt

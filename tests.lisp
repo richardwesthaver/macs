@@ -178,11 +178,12 @@
     (is (eq (make-shorty "test") #\t))
     (is (equalp (proc-args cli '("-f" "baz" "--bar" "fax")) ;; not eql
 		(make-cli-ast 
-		 (list (make-cli-node 'opt #\f) 
-		       (make-cli-node 'cmd "baz") 
-		       (make-cli-node 'opt "bar")
+		 (list (make-cli-node 'opt (find-short-opt cli #\f))
+		       (make-cli-node 'cmd (find-cmd cli "baz"))
+		       (make-cli-node 'opt (find-opt cli "bar"))
 		       (make-cli-node 'arg "fax")))))
     (is (parse-args cli '("--bar" "baz" "-f" "yaks")))
+    (is (install-thunk (parse-args cli '("--foo")) '(print $a1)))
     (is (null (print-version cli)))
     (is (null (print-usage cli)))
     (is (null (print-help cli)))))

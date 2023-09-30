@@ -236,7 +236,7 @@ Or interactively:
 
 #+RESULTS:
 #+begin_src lisp
-; compiling file "/home/ellis/dev/macs/tests.lisp" (written 29 SEP 2023 07:17:11 PM):
+; compiling file "/home/ellis/dev/macs/tests.lisp" (written 29 SEP 2023 09:58:08 PM):
 
 ; wrote /home/ellis/dev/macs/tests.fasl
 ; compilation finished in 0:00:00.010
