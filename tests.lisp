@@ -188,8 +188,8 @@
     ;; the form we pass in needs to be unevaluated - this is a function
     (let ((c1 (parse-args cli '("--foo" "boombap"))))
       (print c1)
-      (is (install-thunk c1 '(lambda () (print $a0) (print 'thunk-ok))))
-      (is (print (do-cmd c1))))
+      (is (install-thunk c1 '(lambda () (print $a0) 'thunk-ok)))
+      (is (eql 'thunk-ok (do-cmd c1))))
     (is (null (print-version cli)))
     (is (null (print-usage cli)))
     (is (null (print-help cli)))))

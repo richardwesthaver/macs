@@ -261,7 +261,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
    (thunk :initarg :thunk :accessor cli-thunk :type lambda)
    (lock :initarg :lock :accessor cli-lock-p :type boolean)
    (description :initarg :description :accessor cli-description :type string)
-   (%args :initform nil :type list :accessor %cli-args))
+   (args :initform nil :type list :accessor cli-cmd-args))
   (:documentation "CLI command"))
 
 (defmethod print-object ((self cli-cmd) stream)
@@ -383,7 +383,7 @@ should be."
   (let ((a0 (list (symb '$a 0) origin)))
     (group 
      (nconc a0 
-	    (loop for i from 1 for a in args nconc (list (symb '$a i) a)))
+	    (loop for i from 1 for a in args nconc `(,(symb '$a i) ,a)))
      2)))
 
 (defmacro gen-cli-thunk (origin args thunk)
@@ -394,18 +394,14 @@ in the list, starting from 1. We bind the command itself to $a0."
      ,thunk))
 
 (defmethod install-thunk ((self cli-cmd) thunk)
-  (let ((args (pop-args self)))
+  "Install THUNK into the corresponding slot in cli-cmd SELF."
+  (let ((args (cli-cmd-args self)))
     (setf (cli-thunk self)
-	  (funcall (lambda () (macroexpand `(gen-cli-thunk ,self ,args ,thunk)))))
+	  (funcall (lambda () (macroexpand `(gen-cli-thunk ',self ,args ,thunk)))))
     self))
 
 (defmethod push-arg (arg (self cli-cmd))
-  (push arg (%cli-args self)))
-
-(defmethod pop-args ((self cli-cmd))
-  (prog1
-      (slot-value self '%args)
-    (slot-makunbound self '%args)))
+  (push arg (cli-cmd-args self)))
 
 (defmethod parse-args ((self cli-cmd) args &key (compile nil))
   "Parse ARGS and return the updated object SELF.

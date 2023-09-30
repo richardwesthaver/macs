@@ -228,7 +228,7 @@ Or interactively:
 #+begin_src lisp :results output replace :wrap src lisp :exports both :package :macs.tests
   (compile-file "tests.lisp")
   (load "tests.lisp")
-  (setq log:*log-level* :debug)
+  (setq log:*log-level* nil)
   (setq rt:*catch-test-errors* t)
   (setq rt:*compile-tests* t)
   (list (multiple-value-list (rt:do-tests :macs)) (rt:test-results rt:*test-suite*))
@@ -236,69 +236,25 @@ Or interactively:
 
 #+RESULTS:
 #+begin_src lisp
-; compiling file "/home/ellis/dev/macs/tests.lisp" (written 30 SEP 2023 03:51:47 PM):
+; compiling file "/home/ellis/dev/macs/tests.lisp" (written 30 SEP 2023 05:23:59 PM):
 
 ; wrote /home/ellis/dev/macs/tests.fasl
-; compilation finished in 0:00:00.013
+; compilation finished in 0:00:00.010
 in suite MACS with 15/15 tests:
-:DEBUG @ 74105.43 :: running test:  #<TEST CLI :fn CLI-test14239 :args NIL :persist NIL {1003C44883}> 
 
 1 
 1 
 2 
 2 
 3 
-3 :DEBUG @ 74105.445 :: #<PASS (EQ (MAKE-SHORTY test) t)> 
-:DEBUG @ 74105.445 :: #<PASS (EQUALP (PROC-ARGS CLI '(-f baz --bar fax))
-                                     (MAKE-CLI-AST
-                                      (LIST
-                                       (MAKE-CLI-NODE 'OPT
-                                                      (FIND-SHORT-OPT CLI f))
-                                       (MAKE-CLI-NODE 'CMD (FIND-CMD CLI baz))
-                                       (MAKE-CLI-NODE 'OPT (FIND-OPT CLI bar))
-                                       (MAKE-CLI-NODE 'ARG fax))))> 
-:DEBUG @ 74105.445 :: #S(CLI-AST
-                         :AST (#S(CLI-NODE
-                                  :KIND OPT
-                                  :FORM #<CLI-OPT bar :global NIL :val NIL>)
-                               #S(CLI-NODE
-                                  :KIND CMD
-                                  :FORM #<CLI-CMD baz :opts 2 :cmds 0>)
-                               #S(CLI-NODE
-                                  :KIND OPT
-                                  :FORM #<CLI-OPT foo :global T :val NIL>)
-                               #S(CLI-NODE :KIND ARG :FORM yaks))) 
-:DEBUG @ 74105.445 :: #<PASS (PARSE-ARGS CLI '(--bar baz -f yaks))> 
-
-1 :DEBUG @ 74105.445 :: #<PASS (= 1 (GEN-CLI-THUNK 1 NIL (PRINT $A0)))> 
-
-2 :DEBUG @ 74105.445 :: #<PASS (= 2 (GEN-CLI-THUNK NIL (2 3) (PRINT $A1)))> 
-
-3 :DEBUG @ 74105.445 :: #<PASS (= 3
-                                  (FUNCALL
-                                   (GEN-CLI-THUNK NIL (2 3)
-                                                  (LAMBDA () (PRINT $A2)))))> 
-:DEBUG @ 74105.445 :: #S(CLI-AST
-                         :AST (#S(CLI-NODE
-                                  :KIND OPT
-                                  :FORM #<CLI-OPT foo :global T :val NIL>)
-                               #S(CLI-NODE :KIND ARG :FORM boombap))) 
-
-#<CLI macs.tests :opts 2 :cmds 1> :DEBUG @ 74105.445 :: #<PASS (INSTALL-THUNK
-                                                                C1
-                                                                '(LAMBDA ()
-                                                                   (PRINT $A0)
-                                                                   (PRINT
-                                                                    'THUNK-OK)))> 
-
+3 
+1 
+2 
+3 
 #<CLI macs.tests :opts 2 :cmds 1> 
-THUNK-OK 
-THUNK-OK :DEBUG @ 74105.445 :: #<PASS (PRINT (DO-CMD C1))> 
-0.1.0
-:DEBUG @ 74105.445 :: #<PASS (NULL (PRINT-VERSION CLI))> 
+#<CLI macs.tests :opts 2 :cmds 1> 0.1.0
   usage: macs.tests [global] <command> [<arg>]
 
-:DEBUG @ 74105.445 :: #<PASS (NULL (PRINT-USAGE CLI))> 
 macs.tests v0.1.0
   usage: macs.tests [global] <command> [<arg>]
 
@@ -312,108 +268,39 @@ macs.tests v0.1.0
     baz  :  baz
      -f/--foo* :  bar
      -b/--bar  :  foo
-:DEBUG @ 74105.445 :: #<PASS (NULL (PRINT-HELP CLI))> 
-#<PASS CLI-TEST14239> 
-:DEBUG @ 74105.445 :: running test:  #<TEST PAN :fn PAN-test14238 :args NIL :persist NIL {10039C6BA3}> 
-:DEBUG @ 74105.45 :: #<PASS (= 0 (FUNCALL P NIL))> 
-:DEBUG @ 74105.45 :: #<PASS (= 1 (FUNCALL P 1))> 
-:DEBUG @ 74105.45 :: #<PASS (= 1 B C)> 
-#<PASS PAN-TEST14238> 
-:DEBUG @ 74105.45 :: running test:  #<TEST ANA :fn ANA-test14237 :args NIL :persist NIL {10039C4553}> 
-:DEBUG @ 74105.46 :: #<PASS (= 8 (AIF (+ 2 2) (+ IT IT)))> 
-#<PASS ANA-TEST14237> 
-:DEBUG @ 74105.46 :: running test:  #<TEST FU :fn FU-test14236 :args NIL :persist NIL {10039C2D63}> 
-#<PASS FU-TEST14236> 
-:DEBUG @ 74105.46 :: running test:  #<TEST FMT :fn FMT-test14235 :args NIL :persist NIL {10039C1AC3}> 
-:DEBUG @ 74105.47 :: #<PASS (STRING= (FORMAT NIL | 1 | 2 | 3 |~%)
-                                     (FMT-ROW '(1 2 3)))> 
-:DEBUG @ 74105.47 :: #<PASS (STRING= (FMT-SXHASH (SXHASH T))
-                                     (FMT-SXHASH (SXHASH T)))> 
-:DEBUG @ 74105.47 :: #<PASS (STRING=
-                             (FMT-TREE NIL '(FOOBAR (A) (B) (C) (D)) LAYOUT
-                                       DOWN)
-                             FOOBAR
- ├─ :A
- ├─ :B
- ├─  C
- ╰─  D
-)> 
-:DEBUG @ 74105.47 :: #<PASS (STRING=
-                             (FMT-TREE NIL
-                                       '(SK-PROJECT NAME foobar PATH /a/b/c.asd
-                                         VC HG)
-                                       LAYOUT DOWN PLIST T)
-                             SK-PROJECT
- ├─ :NAME
- │   ╰─ "foobar"
- ├─ :PATH
- │   ╰─ "/a/b/c.asd"
- ╰─ :VC
-     ╰─ :HG
-)> 
-#<PASS FMT-TEST14235> 
-:DEBUG @ 74105.47 :: running test:  #<TEST ALIEN :fn ALIEN-test14234 :args NIL :persist NIL {100389FA73}> 
-:DEBUG @ 74105.47 :: #<PASS (= 0 (FOREIGN-INT-TO-INTEGER 0 4))> 
-:DEBUG @ 74105.47 :: #<PASS (= 1 (BOOL-TO-FOREIGN-INT T))> 
-#<PASS ALIEN-TEST14234> 
-:DEBUG @ 74105.47 :: running test:  #<TEST THREAD :fn THREAD-test14233 :args NIL :persist NIL {100389E283}> 
-Current thread: #<THREAD tid=1887794 "worker" RUNNING {1006452C93}>
+#<PASS CLI-TEST1344> 
+#<PASS PAN-TEST1343> 
+#<PASS ANA-TEST1342> 
+#<PASS FU-TEST1341> 
+#<PASS FMT-TEST1340> 
+#<PASS ALIEN-TEST1339> 
+Current thread: #<THREAD tid=1926308 "worker" RUNNING {1004E42D33}>
 
 Current thread name: worker
 
 All threads:
- #<THREAD tid=1662639 "main thread" RUNNING {1000000113}>
-#<THREAD tid=1887622 "worker" RUNNING {1002B42E83}>
-#<THREAD tid=1662664 "reader-thread" RUNNING {1002C30DF3}>
-#<THREAD tid=1662670 "auto-flush-thread" RUNNING {1004540133}>
-#<THREAD tid=1887794 "worker" RUNNING {1006452C93}>
-#<THREAD tid=1662671 "repl-thread" RUNNING {10045411B3}>
-#<THREAD tid=1662665 "swank-indentation-cache-thread" RUNNING {1002C30FC3}>
-#<THREAD tid=1662663 "control-thread" RUNNING {1002C21203}>
+ #<THREAD tid=1920339 "main thread" RUNNING {1000000113}>
+#<THREAD tid=1923884 "worker" RUNNING {10073C8B43}>
+#<THREAD tid=1920360 "reader-thread" RUNNING {1002C30DF3}>
+#<THREAD tid=1920366 "auto-flush-thread" RUNNING {1005BD0133}>
+#<THREAD tid=1920361 "swank-indentation-cache-thread" RUNNING {1002C30FC3}>
+#<THREAD tid=1920359 "control-thread" RUNNING {1002C21203}>
+#<THREAD tid=1923891 "worker" RUNNING {10073C9383}>
+#<THREAD tid=1926308 "worker" RUNNING {1004E42D33}>
+#<THREAD tid=1923914 "worker" RUNNING {10073CD1E3}>
+#<THREAD tid=1923897 "worker" RUNNING {10073CBEA3}>
+#<THREAD tid=1920367 "repl-thread" RUNNING {1005BD11B3}>
 
-#<PASS THREAD-TEST14233> 
-:DEBUG @ 74105.47 :: running test:  #<TEST REEXPORT :fn REEXPORT-test14232 :args NIL :persist NIL {100389CFE3}> 
-#<PASS REEXPORT-TEST14232> 
-:DEBUG @ 74105.47 :: running test:  #<TEST COND :fn COND-test14231 :args NIL :persist NIL {100389BD43}> 
-#<PASS COND-TEST14231> 
-:DEBUG @ 74105.47 :: running test:  #<TEST LOG :fn LOG-test14230 :args NIL :persist NIL {100389AAA3}> 
-:DEBUG @ 74105.47 :: test DEBUG 
-#<PASS LOG-TEST14230> 
-:DEBUG @ 74105.47 :: running test:  #<TEST LIST :fn LIST-test14229 :args NIL :persist NIL {1003899503}> 
-:DEBUG @ 74105.48 :: #<PASS (EQ (ENSURE-CAR '(0)) (ENSURE-CAR 0))> 
-:DEBUG @ 74105.48 :: #<PASS (EQ (ENSURE-CAR '(NIL)) (ENSURE-CAR NIL))> 
-:DEBUG @ 74105.48 :: #<PASS (NOT (EQ (ENSURE-CONS 0) (ENSURE-CONS 0)))> 
-:DEBUG @ 74105.48 :: #<PASS (EQUAL (ENSURE-CONS 0) (ENSURE-CONS 0))> 
-#<PASS LIST-TEST14229> 
-:DEBUG @ 74105.48 :: running test:  #<TEST STR :fn STR-test14228 :args NIL :persist NIL {10037BF243}> 
-:DEBUG @ 74105.48 :: #<PASS (TYPEP test 'STRING-DESIGNATOR)> 
-:DEBUG @ 74105.48 :: #<PASS (TYPEP 'TEST 'STRING-DESIGNATOR)> 
-:DEBUG @ 74105.48 :: #<PASS (TYPEP C 'STRING-DESIGNATOR)> 
-:DEBUG @ 74105.48 :: #<PASS (NOT (TYPEP 0 'STRING-DESIGNATOR))> 
-#<PASS STR-TEST14228> 
-:DEBUG @ 74105.48 :: running test:  #<TEST SYM :fn SYM-test14227 :args NIL :persist NIL {10037BD743}> 
-:DEBUG @ 74105.484 :: #<PASS (NOT (EQUALP (MAKE-GENSYM 'A) (MAKE-GENSYM 'A)))> 
-:DEBUG @ 74105.484 :: #<PASS (EQ (ENSURE-SYMBOL 'TESTS MACS.TESTS) 'TESTS)> 
-:DEBUG @ 74105.484 :: #<PASS (EQ 'FOO (FORMAT-SYMBOL MACS.TESTS ~A 'FOO))> 
-:DEBUG @ 74105.484 :: #<PASS (EQ (MAKE-KEYWORD 'FIZZ) FIZZ)> 
-#<PASS SYM-TEST14227> 
-:DEBUG @ 74105.484 :: running test:  #<TEST READTABLES :fn READTABLES-test14226 :args NIL :persist NIL {10037BB7A3}> 
-:DEBUG @ 74105.484 :: #<PASS (TYPEP (LAMBDA (A1) `(,A1 ,A1 ',A1 ,@A1))
-                                    'FUNCTION)> 
-#<PASS READTABLES-TEST14226> 
-:DEBUG @ 74105.484 :: running test:  #<TEST RT :fn RT-test14225 :args NIL :persist NIL {10037B9FB3}> 
-:DEBUG @ 74105.5 :: #<PASS (TYPEP (MAKE-FIXTURE-PROTOTYPE EMPTY NIL)
-                                  'FIXTURE-PROTOTYPE)> 
-:DEBUG @ 74105.5 :: #<PASS (TYPEP
-                            (MAKE-FIXTURE TFIX
-                                NIL
-                                NIL
-                              T)
-                            'FUNCTION)> 
-:DEBUG @ 74105.5 :: #<PASS (NOT
-                            (MEMBER 'NIL
-                                    (MAPCAR #'= (LIST 1 2 3) (LIST A B C))))> 
-#<PASS RT-TEST14225> 
+#<PASS THREAD-TEST1338> 
+#<PASS REEXPORT-TEST1337> 
+#<PASS COND-TEST1336> 
+:DEBUG @ 1029.66 :: test DEBUG 
+#<PASS LOG-TEST1335> 
+#<PASS LIST-TEST1334> 
+#<PASS STR-TEST1333> 
+#<PASS SYM-TEST1332> 
+#<PASS READTABLES-TEST1331> 
+#<PASS RT-TEST1330> 
 No tests failed.
 #+end_src
 
