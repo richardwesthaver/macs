@@ -376,23 +376,28 @@ should be."
 		      ;; handle the rest of the AST
 		      (install-ast cmd (make-cli-ast tail))
 		      (return-from install)))
-		   (arg (push-arg form self)))))))
+		   (arg (push-arg form self)))))
+    self))
 
 (defun gen-thunk-ll% (origin args)
-  (nconc `(($a0 ,origin)) (loop for i from 1 for a in args collect `(,(symb '$a i) ,a))))
+  (let ((a0 (list (symb '$a 0) origin)))
+    (group 
+     (nconc a0 
+	    (loop for i from 1 for a in args nconc (list (symb '$a i) a)))
+     2)))
 
-(defmacro gen-cli-thunk (origin args &body body)
-  "Generate a closure with ARGS lexically bound around BODY.
+(defmacro gen-cli-thunk (origin args thunk)
+  "Generate a closure with ARGS lexically bound around THUNK
 Each arg introduces a new anaphor prefixed by $a based on the position
 in the list, starting from 1. We bind the command itself to $a0."
   `(let ,(gen-thunk-ll% origin args)
-     (lambda () 
-       ,@body)))
+     ,thunk))
 
 (defmethod install-thunk ((self cli-cmd) thunk)
   (let ((args (pop-args self)))
-    (setf (cli-thunk self) 
-	  (compile nil `(gen-cli-thunk ',self ',args ',thunk)))))
+    (setf (cli-thunk self)
+	  (funcall (lambda () (macroexpand `(gen-cli-thunk ,self ,args ,thunk)))))
+    self))
 
 (defmethod push-arg (arg (self cli-cmd))
   (push arg (%cli-args self)))
@@ -416,7 +421,7 @@ COMPILE is t, in which case a list of strings is assumed."
 (defmethod do-cmd ((self cli-cmd))
   (if (slot-boundp self 'thunk)
       ;; TODO 2023-09-12: handle args/env
-      (funcall (cli-thunk self))
+      (funcall (eval (cli-thunk self)))
       (error 'slot-unbound 'thunk)))
 
 (defclass cli (cli-cmd)
@@ -453,4 +458,4 @@ COMPILE is t, in which case a list of strings is assumed."
   (with-slots (opts cmds) self
     (let ((args (if compile (proc-args self args) args)))
       (debug! args)
-      self)))
+      (install-ast self args))))

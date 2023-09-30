@@ -197,6 +197,7 @@
    :find-opt
    :find-short-opt
    :install-ast
+   :gen-cli-thunk
    :install-thunk
    :cli
    ;; ast types

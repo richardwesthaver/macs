@@ -174,7 +174,6 @@
 (deftest cli ()
   "test MACS.CLI OOS."
   (let ((cli *cli*))
-
     (is (eq (make-shorty "test") #\t))
     (is (equalp (proc-args cli '("-f" "baz" "--bar" "fax")) ;; not eql
 		(make-cli-ast 
@@ -183,10 +182,14 @@
 		       (make-cli-node 'opt (find-opt cli "bar"))
 		       (make-cli-node 'arg "fax")))))
     (is (parse-args cli '("--bar" "baz" "-f" "yaks")))
-    (is (install-thunk (parse-args cli '("--foo")) '(print $a1)))
+    (is (= 1 (gen-cli-thunk 1 () (print $a0))))
+    (is (= 2 (gen-cli-thunk nil (2 3) (print $a1))))
+    (is (= 3 (funcall (gen-cli-thunk nil (2 3) (lambda () (print $a2))))))
+    ;; the form we pass in needs to be unevaluated - this is a function
+    (let ((c1 (parse-args cli '("--foo" "boombap"))))
+      (print c1)
+      (is (install-thunk c1 '(lambda () (print $a0) (print 'thunk-ok))))
+      (is (print (do-cmd c1))))
     (is (null (print-version cli)))
     (is (null (print-usage cli)))
     (is (null (print-help cli)))))
-
-#+nil (test-results *test-suite*)
-#+nil (do-tests :macs)
