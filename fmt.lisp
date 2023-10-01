@@ -3,7 +3,7 @@
 ;;; Code:
 (in-package :macs.fmt)
 
-(defun iprintln (x &optional (n 2) (stream *standard-output*))
+(defun iprintln (x &optional (n 2) stream)
   (println (format nil "~A~A" (make-string n :initial-element #\Space) x) stream))
 
 (defun printer-status ()

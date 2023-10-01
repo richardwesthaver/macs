@@ -33,8 +33,6 @@
 (in-suite :macs)
 (in-readtable *macs-readtable*)
 
-(setq *log-level*  :debug)
-
 (deftest rt ()
   (is (typep (make-fixture-prototype :empty nil) 'fixture-prototype))
   (is (typep (make-fixture tfix () () t) 'function))
@@ -80,20 +78,19 @@
   (is (not (eq (ensure-cons 0) (ensure-cons 0))))
   (is (equal (ensure-cons 0) (ensure-cons 0))))
 
-(deftest log (:disable t)
+(deftest log ()
   "Test MACS.STR"
-  (let ((*log-level* :debug))
-    (debug! "test" *log-level*)))
+  (is (debug! "test" *log-level*)))
 
-(deftest cond (:disable t)
+(deftest cond ()
   "Test MACS.STR")
 
-(deftest reexport (:disable t)
+(deftest reexport ()
   "Test MACS.STR")
 
-(deftest thread (:disable t)
+(deftest thread ()
   "Test MACS.STR"
-  (print-thread-info))
+  (is (stringp (print-thread-info nil))))
 
 (deftest alien ()
   "Test MACS.STR"
@@ -105,7 +102,8 @@
   (is (string= (format nil "| 1 | 2 | 3 |~%") (fmt-row '(1 2 3))))
   (is (string= (fmt-sxhash (sxhash t)) (fmt-sxhash (sxhash t))))
   (is (string= 
-       (fmt-tree nil '(foobar (:a) (:b) (c) (d)) :layout :down)
+       ;; note the read-time-eval..
+       #.(fmt-tree nil '(foobar (:a) (:b) (c) (d)) :layout :down)
        #"FOOBAR
  ├─ :A
  ├─ :B
@@ -114,7 +112,7 @@
 "#))
 ;; with plist option
   (is (string= 
-       (fmt:fmt-tree nil '(sk-project :name "foobar" :path "/a/b/c.asd" :vc :hg) :layout :down :plist t)
+       #.(fmt:fmt-tree nil '(sk-project :name "foobar" :path "/a/b/c.asd" :vc :hg) :layout :down :plist t)
        #"SK-PROJECT
  ├─ :NAME
  │   ╰─ "foobar"
@@ -192,7 +190,8 @@
 	;; the form we pass in needs to be unevaluated - this is a function
 	(is (install-thunk c1 (lambda () $a0 'thunk-ok)))
 	(is (eql 'thunk-ok (do-cmd c1)))))
-
-    (is (null (print-version cli)))
-    (is (null (print-usage cli)))
-    (is (null (print-help cli)))))
+    (is (stringp
+	 (with-output-to-string (s)
+	   (print-version cli s)
+	   (print-usage cli s)
+	   (print-help cli s))))))

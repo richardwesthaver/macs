@@ -100,78 +100,76 @@ regression testing framework.
 ** macs/tests
 You can run the tests with asdf:
 #+begin_src shell :results output :exports both
-  sbcl --noinform --eval '(progn (asdf:load-system :macs/tests) (asdf:test-system "macs"))'
+  sbcl --noinform --non-interactive --eval '(asdf:load-system :macs/tests)' --eval '(asdf:test-system "macs")' 
 #+end_src
+
+#+RESULTS:
+#+begin_example
+in suite MACS with 15/15 tests:
+#<PASS CLI-TEST158> 
+#<PASS PAN-TEST157> 
+#<PASS ANA-TEST156> 
+#<PASS FU-TEST155> 
+#<PASS FMT-TEST154> 
+#<PASS ALIEN-TEST153> 
+#<PASS THREAD-TEST152> 
+#<PASS REEXPORT-TEST151> 
+#<PASS COND-TEST150> 
+#<PASS LOG-TEST149> 
+#<PASS LIST-TEST148> 
+#<PASS STR-TEST147> 
+#<PASS SYM-TEST146> 
+#<PASS READTABLES-TEST145> 
+#<PASS RT-TEST144> 
+No tests failed.
+#+end_example
+
 *** macs.tests
 macs System tests.
 #+begin_src lisp :results output replace :wrap src lisp :exports code
-  (ql:quickload :macs/tests)
-  (compile-file "tests.lisp")
   (load "tests.lisp")
   (in-package :macs.tests)
-  (setq log:*log-level* nil)
+  (setq log:*log-level* :debug)
   (setq *catch-test-errors* t)
-  (setq *compile-tests* t)
+  (setq *compile-tests* nil)
   (do-tests :macs)
 #+end_src
 
 #+RESULTS:
 #+begin_src lisp
-To load "macs/tests":
-  Load 1 ASDF system:
-    macs/tests
-; Loading "macs/tests"
-
-; compiling file "/home/ellis/dev/macs/tests.lisp" (written 30 SEP 2023 08:44:56 PM):
-
-; wrote /home/ellis/dev/macs/tests.fasl
-; compilation finished in 0:00:00.013
-in suite MACS with 15/15 tests:
-0.1.0
-  usage: macs.tests [global] <command> [<arg>]
-
-macs.tests v0.1.0
-  usage: macs.tests [global] <command> [<arg>]
-
-  test cli
-
-  options:
-     -f/--foo* :  bar
-     -b/--bar  :  foo
-
-  commands:
-    baz  :  baz
-     -f/--foo* :  bar
-     -b/--bar  :  foo
-#<PASS CLI-TEST1681> 
-#<PASS PAN-TEST1680> 
-#<PASS ANA-TEST1679> 
-#<PASS FU-TEST1678> 
-#<PASS FMT-TEST1677> 
-#<PASS ALIEN-TEST1676> 
-Current thread: #<THREAD tid=1980503 "worker" RUNNING {10043849B3}>
-
-Current thread name: worker
-
-All threads:
- #<THREAD tid=1974457 "main thread" RUNNING {1000000113}>
-#<THREAD tid=1980503 "worker" RUNNING {10043849B3}>
-#<THREAD tid=1974478 "reader-thread" RUNNING {1002C30DF3}>
-#<THREAD tid=1974485 "repl-thread" RUNNING {10045411B3}>
-#<THREAD tid=1974484 "auto-flush-thread" RUNNING {1004540133}>
-#<THREAD tid=1974479 "swank-indentation-cache-thread" RUNNING {1002C30FC3}>
-#<THREAD tid=1974477 "control-thread" RUNNING {1002C21203}>
-
-#<PASS THREAD-TEST1675> 
-#<PASS REEXPORT-TEST1674> 
-#<PASS COND-TEST1673> 
-:DEBUG @ 1102.8967 :: test DEBUG 
-#<PASS LOG-TEST1672> 
-#<PASS LIST-TEST1671> 
-#<PASS STR-TEST1670> 
-#<PASS SYM-TEST1669> 
-#<PASS READTABLES-TEST1668> 
-#<PASS RT-TEST1667> 
+in suite MACS with 16/16 tests:
+:DEBUG @ 1327.8667 :: running test:  #<TEST CLI :fn CLI-test2040 :args NIL :persist NIL {1008C33603}> 
+#<PASS CLI> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST CLI-PROMPT :fn CLI-PROMPT-test2039 :args NIL :persist NIL {1008B8ECE3}> 
+#<PASS CLI-PROMPT> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST PAN :fn PAN-test2038 :args NIL :persist NIL {1008B8CD43}> 
+#<PASS PAN> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST ANA :fn ANA-test2037 :args NIL :persist NIL {1008B8A813}> 
+#<PASS ANA> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST FU :fn FU-test2036 :args NIL :persist NIL {1008B89023}> 
+#<PASS FU> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST FMT :fn FMT-test2035 :args NIL :persist NIL {1008AE7D83}> 
+#<PASS FMT> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST ALIEN :fn ALIEN-test2034 :args NIL :persist NIL {1008AE6283}> 
+#<PASS ALIEN> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST THREAD :fn THREAD-test2033 :args NIL :persist NIL {1008AE4A93}> 
+#<PASS THREAD> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST REEXPORT :fn REEXPORT-test2032 :args NIL :persist NIL {1008AE3693}> 
+#<PASS REEXPORT> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST COND :fn COND-test2031 :args NIL :persist NIL {1008AE23F3}> 
+#<PASS COND> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST LOG :fn LOG-test2030 :args NIL :persist NIL {1008AE1153}> 
+#<PASS LOG> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST LIST :fn LIST-test2029 :args NIL :persist NIL {1008A8FD43}> 
+#<PASS LIST> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST STR :fn STR-test2028 :args NIL :persist NIL {1008A8DDA3}> 
+#<PASS STR> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST SYM :fn SYM-test2027 :args NIL :persist NIL {1008A8C2A3}> 
+#<PASS SYM> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST READTABLES :fn READTABLES-test2026 :args NIL :persist NIL {1008A8A303}> 
+#<PASS READTABLES> 
+:DEBUG @ 1327.8667 :: running test:  #<TEST RT :fn RT-test2025 :args NIL :persist NIL {1008A88803}> 
+#<PASS RT> 
 No tests failed.
 #+end_src
 

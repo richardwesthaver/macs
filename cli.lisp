@@ -209,13 +209,13 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 (defgeneric do-cmd (self)
   (:documentation "Run the command SELF."))
 
-(defgeneric print-help (self)
+(defgeneric print-help (self &optional stream)
   (:documentation "Format cli SELF as a helpful string."))
 
-(defgeneric print-version (self)
+(defgeneric print-version (self &optional stream)
   (:documentation "Print the version of SELF."))
 
-(defgeneric print-usage (self)
+(defgeneric print-usage (self &optional stream)
   (:documentation "Format cli SELF as a useful string."))
 
 (defgeneric handle-unknown-argument (self arg)
@@ -243,14 +243,14 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 	    (global-opt-p self)
 	    (cli-val self))))
 
-(defmethod print-usage ((self cli-opt))
-  (format nil " -~(~{~A~^/--~}~)~A~A"
+(defmethod print-usage ((self cli-opt) &optional stream)
+  (format stream " -~(~{~A~^/--~}~)~A~A"
 	  (if-let ((n (cli-name self)))
 	    (list (make-shorty n) n)
 	    'dyn)
 	  (if (global-opt-p self) "* " "  ")
 	  (if-let ((d (and (slot-boundp self 'description) (cli-description self))))
-	    (format nil ":  ~A" d)
+	    (format stream ":  ~A" d)
 	    "")))
 
 (defclass cli-cmd ()
@@ -271,19 +271,19 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
           (length (cli-opts self))
 	  (length (cli-cmds self)))))
 
-(defmethod print-usage ((self cli-cmd))
+(defmethod print-usage ((self cli-cmd) &optional stream)
   (with-slots (opts cmds) self
-    (format nil "~(~A~)  ~A~A~A"
+    (format stream "~(~A~)  ~A~A~A"
 	    (cli-name self)
 	    (if-let ((d (and (slot-boundp self 'description) (cli-description self))))
 	      (format nil ":  ~A" d)
 	      "")
 	    (if (null opts)
 		""
-		(format nil "~{~%    ~A~^~}" (loop for o across opts collect (print-usage o))))
+		(format nil "~{~%    ~A~^~}" (loop for o across opts collect (print-usage o nil))))
 	    (if (null cmds)
 		""
-		(format nil "~%    ~{!  ~A~}" (loop for c across cmds collect (print-usage c)))))))
+		(format nil "~%    ~{!  ~A~}" (loop for c across cmds collect (print-usage c nil)))))))
 
 (defmethod push-cmd ((self cli-cmd) (place cli-cmd))
   (vector-push self (cli-cmds place)))
@@ -398,7 +398,7 @@ in the list, starting from 1. We bind the command itself to $a0."
   (let ((args (cli-cmd-args self)))
     (setf (cli-thunk self)
 	  ;; always compiles
-	  (funcall (lambda () `(gen-cli-thunk ,self ,args ,thunk))))
+	  (funcall (compile nil (lambda () (macroexpand `(gen-cli-thunk ,self ,args ,thunk))))))
     self))
 
 (defmethod push-arg (arg (self cli-cmd))
@@ -427,27 +427,27 @@ COMPILE is t, in which case a list of strings is assumed."
    (version :initarg :version :initform "0.1.0" :accessor cli-version :type string))
   (:documentation "CLI"))
 
-(defmethod print-usage ((self cli))
-  (iprintln (format nil "usage: ~A [global] <command> [<arg>]~%" (cli-name self))))
+(defmethod print-usage ((self cli) &optional stream)
+  (iprintln (format nil "usage: ~A [global] <command> [<arg>]~%" (cli-name self)) 2 stream))
 
-(defmethod print-version ((self cli))
-  (println (cli-version self)))
+(defmethod print-version ((self cli) &optional stream)
+  (println (cli-version self) stream))
 
-(defmethod print-help ((self cli))
-  (println (format nil "~A v~A" (cli-name self) (cli-version self)))
-  (print-usage self)
-  (iprintln (cli-description self))
-  (terpri)
-  (iprintln "options:")
+(defmethod print-help ((self cli) &optional stream) 
+  (println (format nil "~A v~A" (cli-name self) (cli-version self)) stream)
+  (print-usage self stream)
+  (iprintln (cli-description self) 2 stream)
+  ;; (terpri stream)
+  (iprintln "options:" 2 stream)
   (with-slots (opts cmds) self
     (unless (null opts)
       (loop for o across opts
-	    do (iprintln (print-usage o) 4)))
-    (terpri)
-    (iprintln "commands:")
+	    do (iprintln (print-usage o) 4 stream)))
+    ;; (terpri stream)
+    (iprintln "commands:" 2 stream)
     (unless (null cmds)
       (loop for c across cmds
-	    do (iprintln (print-usage c) 4)))))
+	    do (iprintln (print-usage c) 4 stream)))))
 
 ;; same as cli-cmd method, default is to compile though
 (defmethod parse-args ((self cli) (args list) &key (compile t))
