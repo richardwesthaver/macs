@@ -46,7 +46,9 @@
 
 (deftest readtables ()
   "Test *macs-readtable* without cl-ppcre"
-  (is (typep #`(,a1 ,a1 ',a1 ,@a1) 'function)))
+  (is (typep #`(,a1 ,a1 ',a1 ,@a1) 'function))
+  (is (string= #"test "foo" "# "test \"foo\" "))
+  (is (string= #$test "1 2 3"$# "test \"1 2 3\"")))
 
 #+cl-ppcre
 (deftest ppcre-readtables (:persist t)
@@ -104,23 +106,23 @@
   (is (string= (fmt-sxhash (sxhash t)) (fmt-sxhash (sxhash t))))
   (is (string= 
        (fmt-tree nil '(foobar (:a) (:b) (c) (d)) :layout :down)
-       "FOOBAR
+       #"FOOBAR
  ├─ :A
  ├─ :B
  ├─  C
  ╰─  D
-"))
+"#))
 ;; with plist option
   (is (string= 
        (fmt:fmt-tree nil '(sk-project :name "foobar" :path "/a/b/c.asd" :vc :hg) :layout :down :plist t)
-       "SK-PROJECT
+       #"SK-PROJECT
  ├─ :NAME
- │   ╰─ \"foobar\"
+ │   ╰─ "foobar"
  ├─ :PATH
- │   ╰─ \"/a/b/c.asd\"
+ │   ╰─ "/a/b/c.asd"
  ╰─ :VC
      ╰─ :HG
-")))
+"#)))
 
 
 (deftest fu (:disable t)
@@ -170,7 +172,6 @@
 (defparameter *cmds* (cli:make-cmds `(:name "baz" :description "baz" :opts ,*opts*)))
 
 (defparameter *cli* (make-cli t :opts *opts* :cmds *cmds* :description "test cli"))
-
 (deftest cli ()
   "test MACS.CLI OOS."
   (let ((cli *cli*))
@@ -182,14 +183,16 @@
 		       (make-cli-node 'opt (find-opt cli "bar"))
 		       (make-cli-node 'arg "fax")))))
     (is (parse-args cli '("--bar" "baz" "-f" "yaks")))
-    (is (= 1 (gen-cli-thunk 1 () (print $a0))))
-    (is (= 2 (gen-cli-thunk nil (2 3) (print $a1))))
-    (is (= 3 (funcall (gen-cli-thunk nil (2 3) (lambda () (print $a2))))))
-    ;; the form we pass in needs to be unevaluated - this is a function
-    (let ((c1 (parse-args cli '("--foo" "boombap"))))
-      (print c1)
-      (is (install-thunk c1 '(lambda () (print $a0) 'thunk-ok)))
-      (is (eql 'thunk-ok (do-cmd c1))))
+
+    (unless *compile-tests*
+      (is (= 1 (funcall (gen-cli-thunk 1 nil (lambda () $a0)))))
+      (is (= 2 (funcall (gen-cli-thunk nil (2 3) (lambda () $a1)))))
+      (is (= 3 (funcall (gen-cli-thunk nil (2 3) (lambda () $a2)))))q
+      (let ((c1 (parse-args cli '("--foo" "boombap"))))
+	;; the form we pass in needs to be unevaluated - this is a function
+	(is (install-thunk c1 (lambda () $a0 'thunk-ok)))
+	(is (eql 'thunk-ok (do-cmd c1)))))
+
     (is (null (print-version cli)))
     (is (null (print-usage cli)))
     (is (null (print-help cli)))))

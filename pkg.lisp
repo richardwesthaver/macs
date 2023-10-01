@@ -79,6 +79,7 @@
    #:|#"-reader|
    #:|#`-reader|
    #:|#f-reader|
+   #:|#$-reader|
    #:segment-reader
    #:match-mode-ppcre-lambda-form
    #:subst-mode-ppcre-lambda-form

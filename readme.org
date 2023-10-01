@@ -59,16 +59,6 @@ To load "macs/tests":
 ** macs/readtables
 *** macs.readtables
 Named Readtable support. See the [[https://github.com/melisgl/named-readtables][official named-readtables repo]] for details.
-#+CALL: p('readtables)
-#+RESULTS:
-#+begin_src lisp
-
-(READTABLE-ERROR UNREGISTER-READTABLE READER-MACRO-CONFLICT ENSURE-READTABLE
- COPY-NAMED-READTABLE PARSE-BODY DEFREADTABLE REGISTER-READTABLE
- LIST-ALL-NAMED-READTABLES IN-READTABLE RENAME-READTABLE
- NAMED-READTABLE-DESIGNATOR FIND-READTABLE READTABLE-DOES-ALREADY-EXIST
- READTABLE-DOES-NOT-EXIST MAKE-READTABLE READTABLE-NAME MERGE-READTABLES-INTO) 
-#+end_src
 ** macs
 *** macs
 Wrapper package. Rexports =macs.*= including =macs.readtables=.
@@ -77,101 +67,24 @@ A special user-space package where extensions, experiments and
 prototype symbols can be defined.
 *** macs.reexport
 Symbol reexport support. See the [[https://github.com/takagi/cl-reexport/tree/master][cl-reexport repo]].
-#+CALL: p('reexport)
-#+RESULTS:
-#+begin_src lisp
-
-(REEXPORT-FROM REEXPORTS) 
-#+end_src
 *** macs.str
 String utilities. Re-exports from =sb-unicode=.
-#+CALL: p('str)
-#+RESULTS:
-#+begin_src lisp
-
-(UNICODE> UNICODE< STRING-DESIGNATOR GRAPHEMES LINES BIDI-CLASS
-          DEFAULT-IGNORABLE-P ALPHABETIC-P DECIMAL-VALUE CHAR-BLOCK LOWERCASE
-          SENTENCE-BREAK-CLASS UNICODE-EQUAL DIGIT-VALUE CASEFOLD
-          LINE-BREAK-CLASS NORMALIZED-P UPPERCASE-P GRAPHEME-BREAK-CLASS
-          SENTENCES UPPERCASE UNICODE= HEX-DIGIT-P CASED-P UNICODE<= MATH-P
-          UNICODE>= TITLECASE WORDS BIDI-MIRRORING-GLYPH NORMALIZE-STRING
-          LOWERCASE-P MIRRORED-P CONFUSABLE-P WORD-BREAK-CLASS WHITESPACE-P) 
-#+end_src
 *** macs.sym
 Symbol utilities.
-#+CALL: p('sym)
-#+RESULTS:
-#+begin_src lisp
-
-(MAKE-SLOT-NAME ENSURE-SYMBOL KEYWORDICATE SYMBOLICATE PACKAGE-SYMBOLICATE
-                FORMAT-SYMBOL GENSYMIFY* MAKE-KEYWORD MAKE-GENSYM
-                WITH-UNIQUE-NAMES WITH-GENSYMS MAKE-GENSYM-LIST) 
-#+end_src
 *** macs.list
 List utilities.
-#+CALL: p('list)
-#+RESULTS:
-#+begin_src lisp
-
-(PROPER-LIST-P ENSURE-LIST ASSQ MEMQ ENSURE-CAR RECONS PROPER-LIST-OF-LENGTH-P
-               SINGLETON-P ENSURE-CONS) 
-#+end_src
 *** macs.cond
 Various conditions, restarts, errors, and other utilities for
 exception handling. See [[https://gigamonkeys.com/book/beyond-exception-handling-conditions-and-restarts.html][PCL]] for an introduction to conditions and
 restarts.
-#+CALL: p('cond)
-#+RESULTS:
-#+begin_src lisp
-
-(SIMPLE-PROGRAM-ERROR SIMPLE-READER-ERROR INVALID-ARGUMENT-ITEM
-                      UNKNOWN-ARGUMENT-P INVALID-ARGUMENT SIMPLE-STYLE-WARNING
-                      UNKNOWN-ARGUMENT-NAME IGNORE-SOME-CONDITIONS
-                      MISSING-ARGUMENT-P INVALID-ARGUMENT-REASON
-                      INVALID-ARGUMENT-P MISSING-ARGUMENT UNKNOWN-ARGUMENT
-                      UNWIND-PROTECT-CASE CIRCULAR-DEPENDENCY-ITEMS NYI!
-                      CIRCULAR-DEPENDENCY SIMPLE-PARSE-ERROR REQUIRED-ARGUMENT
-                      MISSING-ARGUMENT-COMMAND UNKNOWN-ARGUMENT-KIND) 
-#+end_src
 *** macs.fu
 The =fu= extension package. Includes macro utility functions from LOL,
 alexandria, PCL, PG, custom readers, and a named-readtable called
 =*macs-readtable*=.
-#+CALL: p('fu)
-#+RESULTS:
-#+begin_src lisp
-
-(LIST-INDIRECT-SLOT-METHODS LIST-CLASS-METHODS WHEN-LET* DEFMACRO! CHOOSE
- ONCE-ONLY WHEN-LET SYMB |#f-reader| DESTRUCTURING-CASE
- WHO-SPECIALIZES-GENERALLY SUBST-MODE-PPCRE-LAMBDA-FORM MAKE-MACRO-LAMBDA
- WHEN-MATCH *MACS-READTABLE* PARSE-EVAL-WHEN-SITUATIONS IF-MATCH
- PARSE-LAMBDA-LIST DEFMACRO/G! DEFUN! DLAMBDA FUNCTION-LAMBDA-LIST
- TLIST-REM-LEFT O!-SYMBOL-TO-G!-SYMBOL TLIST-ADD-LEFT SEGMENT-READER
- METHOD-COMBINATION-LAMBDA-LIST LIST-SLOT-VALUES-USING-CLASS MAKE-TLIST DEFCMD
- LIST-CLASS-SLOTS TLIST-ADD-RIGHT O!-SYMBOL-P TLIST-LEFT FIND-FUNCTION-CALLERS
- |#`-reader| SORTF SOURCE-LOCATION BUILD-BATCHER-SN |#"-reader| SORT! MKSTR
- DESTRUCTURING-ECASE DESTRUCTURING-CCASE IF-LET* FACT FIND-FUNCTION-CALLEES
- ALLOCATION-INFORMATION MERGE! MATCH-MODE-PPCRE-LAMBDA-FORM TLIST-UPDATE
- TLIST-EMPTY-P DOLLAR-SYMBOL-P DEFTYPE-LAMBDA-LIST TLIST-RIGHT IF-LET
- FUNCTION-TYPE FLATTEN G!-SYMBOL-P WHO-SPECIALIZES-DIRECTLY GROUP) 
-#+end_src
 *** macs.ana
 Anaphoric macros.
-#+CALL: p('ana)
-#+RESULTS:
-#+begin_src lisp
-
-(ALET NLET-TAIL ACOND2 SELF IT THIS AWHEN AIF ALET% ACOND ALAMBDA) 
-#+end_src
 *** macs.pan
 Pandoric macros.
-#+CALL: p('pan)
-#+RESULTS:
-#+begin_src lisp
-
-(PANDORICLET-GET PANDORIC-RECODE WITH-PANDORIC PLAMBDA PANDORICLET
-                 PANDORIC-EVAL PANDORICLET-SET PANDORIC-HOTPATCH GET-PANDORIC) 
-#+end_src
 *** macs.cli
 This package provides an API for building CLI apps. It is highly
 opinionated and loosely derived from [[https://github.com/dnaeon/clingon][clingon]] and uiop.
@@ -179,80 +92,42 @@ opinionated and loosely derived from [[https://github.com/dnaeon/clingon][clingo
 - [2023-09-17 Sun] :: =completing-read= and =make-prompt!= added for
   CLI-based data entry
 
-#+CALL: p('cli)
-#+RESULTS:
-#+begin_src lisp
-
-(CLI-USAGE CLI-CMDS INIT-ARGS PRINT-USAGE WITH-CLI CLI-CMD PARSE-ARGS
- MAKE-PROMPT! MAKE-OPTS *ARGV* CLI-ARGS PRINT-HELP WITH-CLI-HANDLERS CLI-OPT
- COMPLETING-READ DO-CMD MAKE-SHORTY HANDLE-UNKNOWN-ARGUMENT
- HANDLE-MISSING-ARGUMENT COMMAND-LINE-ARGS CLI-VERSION CLI-NAME
- HANDLE-INVALID-ARGUMENT MAKE-CLI CLI DEFMAIN MAKE-CMDS EXEC-PATH-LIST CLI-OPTS
- PRINT-VERSION CLI-THUNK CLI-ARG0 ARGP *CLI-GROUP-SEPARATOR* MAIN
- CLI-DESCRIPTION) 
-#+end_src
 *** macs.alien
 Foreign alien types, utils, and helpers.
-#+CALL: p('alien)
-#+RESULTS:
-#+begin_src lisp
-
-(F24 BOOL-TO-FOREIGN-INT I4 U128 U2 U4 U64 U32 SANCTIFY-FOR-EXECUTION U3 U24
- I64 I32 DEFBYTES I128 I2 F64 F32 FOREIGN-INT-TO-INTEGER I8 FOREIGN-INT-TO-BOOL
- I3 I16 U8 I24 U1 F16 U16 F128) 
-#+end_src
 ** macs/rt
 *** macs.rt
 regression testing framework.
-#+CALL: p('rt)
-#+RESULTS:
-#+begin_src lisp
-
-(DO-SUITE TEST-SUITE TEST-NAME= TEST-FAILED DELETE-TEST TEST-SUITE-DESIGNATOR
-          IS FIND-TEST TEST-OBJECT PUSH-TEST *CATCH-TEST-ERRORS*
-          CONTINUE-TESTING ENSURE-SUITE LOCKED-TESTS TEST-PASS-P *TESTING*
-          TEST-FAIL-P WITH-TEST *DEFAULT-TEST-SUITE-NAME*
-          CHECK-SUITE-DESIGNATOR WITH-TEST-ENV DO-TESTS *TEST-SUFFIX* FAIL!
-          ,*TEST-DEBUG* *COMPILE-TESTS* MAKE-SUITE SIGNALS TEST-RESULTS
-          EVAL-TEST MAKE-TEST TEST-NAME COMPILE-TEST DO-TEST *TEST-SUITE-LIST*
-          POP-TEST GET-TEST-OPT TESTS DEFSUITE DEFTEST IN-SUITE *TEST-SUITE*
-          TEST-FIXTURE TEST-SKIP-P TEST) 
-#+end_src
 ** macs/tests
 You can run the tests with asdf:
-#+begin_src shell :results output silent :exports both
+#+begin_src shell :results output :exports both
   sbcl --noinform --eval '(progn (asdf:load-system :macs/tests) (asdf:test-system "macs"))'
 #+end_src
-
-Or interactively:
-#+begin_src lisp :results output replace :wrap src lisp :exports both :package :macs.tests
+*** macs.tests
+macs System tests.
+#+begin_src lisp :results output replace :wrap src lisp :exports code
+  (ql:quickload :macs/tests)
   (compile-file "tests.lisp")
   (load "tests.lisp")
+  (in-package :macs.tests)
   (setq log:*log-level* nil)
-  (setq rt:*catch-test-errors* t)
-  (setq rt:*compile-tests* t)
-  (list (multiple-value-list (rt:do-tests :macs)) (rt:test-results rt:*test-suite*))
+  (setq *catch-test-errors* t)
+  (setq *compile-tests* t)
+  (do-tests :macs)
 #+end_src
 
 #+RESULTS:
 #+begin_src lisp
-; compiling file "/home/ellis/dev/macs/tests.lisp" (written 30 SEP 2023 05:23:59 PM):
+To load "macs/tests":
+  Load 1 ASDF system:
+    macs/tests
+; Loading "macs/tests"
+
+; compiling file "/home/ellis/dev/macs/tests.lisp" (written 30 SEP 2023 08:44:56 PM):
 
 ; wrote /home/ellis/dev/macs/tests.fasl
-; compilation finished in 0:00:00.010
+; compilation finished in 0:00:00.013
 in suite MACS with 15/15 tests:
-
-1 
-1 
-2 
-2 
-3 
-3 
-1 
-2 
-3 
-#<CLI macs.tests :opts 2 :cmds 1> 
-#<CLI macs.tests :opts 2 :cmds 1> 0.1.0
+0.1.0
   usage: macs.tests [global] <command> [<arg>]
 
 macs.tests v0.1.0
@@ -268,50 +143,38 @@ macs.tests v0.1.0
     baz  :  baz
      -f/--foo* :  bar
      -b/--bar  :  foo
-#<PASS CLI-TEST1344> 
-#<PASS PAN-TEST1343> 
-#<PASS ANA-TEST1342> 
-#<PASS FU-TEST1341> 
-#<PASS FMT-TEST1340> 
-#<PASS ALIEN-TEST1339> 
-Current thread: #<THREAD tid=1926308 "worker" RUNNING {1004E42D33}>
+#<PASS CLI-TEST1681> 
+#<PASS PAN-TEST1680> 
+#<PASS ANA-TEST1679> 
+#<PASS FU-TEST1678> 
+#<PASS FMT-TEST1677> 
+#<PASS ALIEN-TEST1676> 
+Current thread: #<THREAD tid=1980503 "worker" RUNNING {10043849B3}>
 
 Current thread name: worker
 
 All threads:
- #<THREAD tid=1920339 "main thread" RUNNING {1000000113}>
-#<THREAD tid=1923884 "worker" RUNNING {10073C8B43}>
-#<THREAD tid=1920360 "reader-thread" RUNNING {1002C30DF3}>
-#<THREAD tid=1920366 "auto-flush-thread" RUNNING {1005BD0133}>
-#<THREAD tid=1920361 "swank-indentation-cache-thread" RUNNING {1002C30FC3}>
-#<THREAD tid=1920359 "control-thread" RUNNING {1002C21203}>
-#<THREAD tid=1923891 "worker" RUNNING {10073C9383}>
-#<THREAD tid=1926308 "worker" RUNNING {1004E42D33}>
-#<THREAD tid=1923914 "worker" RUNNING {10073CD1E3}>
-#<THREAD tid=1923897 "worker" RUNNING {10073CBEA3}>
-#<THREAD tid=1920367 "repl-thread" RUNNING {1005BD11B3}>
+ #<THREAD tid=1974457 "main thread" RUNNING {1000000113}>
+#<THREAD tid=1980503 "worker" RUNNING {10043849B3}>
+#<THREAD tid=1974478 "reader-thread" RUNNING {1002C30DF3}>
+#<THREAD tid=1974485 "repl-thread" RUNNING {10045411B3}>
+#<THREAD tid=1974484 "auto-flush-thread" RUNNING {1004540133}>
+#<THREAD tid=1974479 "swank-indentation-cache-thread" RUNNING {1002C30FC3}>
+#<THREAD tid=1974477 "control-thread" RUNNING {1002C21203}>
 
-#<PASS THREAD-TEST1338> 
-#<PASS REEXPORT-TEST1337> 
-#<PASS COND-TEST1336> 
-:DEBUG @ 1029.66 :: test DEBUG 
-#<PASS LOG-TEST1335> 
-#<PASS LIST-TEST1334> 
-#<PASS STR-TEST1333> 
-#<PASS SYM-TEST1332> 
-#<PASS READTABLES-TEST1331> 
-#<PASS RT-TEST1330> 
+#<PASS THREAD-TEST1675> 
+#<PASS REEXPORT-TEST1674> 
+#<PASS COND-TEST1673> 
+:DEBUG @ 1102.8967 :: test DEBUG 
+#<PASS LOG-TEST1672> 
+#<PASS LIST-TEST1671> 
+#<PASS STR-TEST1670> 
+#<PASS SYM-TEST1669> 
+#<PASS READTABLES-TEST1668> 
+#<PASS RT-TEST1667> 
 No tests failed.
 #+end_src
 
-*** macs.tests
-macs System tests.
-#+CALL: p('tests)
-#+RESULTS:
-#+begin_src lisp
-
-(RUN-TESTS) 
-#+end_src
 * Notes
 - /Macros aren't about being needlessly terse/ :: \\
   Some people seem to think that once you hit a certain level of

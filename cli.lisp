@@ -380,7 +380,7 @@ should be."
     self))
 
 (defun gen-thunk-ll% (origin args)
-  (let ((a0 (list (symb '$a 0) origin)))
+  (let ((a0 `(,(symb '$a 0) ,origin)))
     (group 
      (nconc a0 
 	    (loop for i from 1 for a in args nconc `(,(symb '$a i) ,a)))
@@ -397,7 +397,8 @@ in the list, starting from 1. We bind the command itself to $a0."
   "Install THUNK into the corresponding slot in cli-cmd SELF."
   (let ((args (cli-cmd-args self)))
     (setf (cli-thunk self)
-	  (funcall (lambda () (macroexpand `(gen-cli-thunk ',self ,args ,thunk)))))
+	  ;; always compiles
+	  (funcall (lambda () `(gen-cli-thunk ,self ,args ,thunk))))
     self))
 
 (defmethod push-arg (arg (self cli-cmd))
