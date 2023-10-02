@@ -33,7 +33,7 @@
 (in-suite :macs)
 (in-readtable *macs-readtable*)
 
-(deftest rt ()
+(deftest rt (:bench 100 :profile t :persist t)
   (is (typep (make-fixture-prototype :empty nil) 'fixture-prototype))
   (is (typep (make-fixture tfix () () t) 'function))
   (let ((fx1 (make-fixture fx1 () (a b c) (setq a 1 b 2 c 3))))
@@ -121,10 +121,6 @@
  ╰─ :VC
      ╰─ :HG
 "#)))
-
-
-(deftest fu (:disable t)
-  "Test MACS.STR")
 
 (deftest ana ()
   "Test MACS.STR"

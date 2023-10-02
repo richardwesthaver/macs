@@ -105,11 +105,10 @@ You can run the tests with asdf:
 
 #+RESULTS:
 #+begin_example
-in suite MACS with 15/15 tests:
-#<PASS CLI-TEST158> 
-#<PASS PAN-TEST157> 
-#<PASS ANA-TEST156> 
-#<PASS FU-TEST155> 
+in suite MACS with 14/14 tests:
+#<PASS CLI-TEST157> 
+#<PASS PAN-TEST156> 
+#<PASS ANA-TEST155> 
 #<PASS FMT-TEST154> 
 #<PASS ALIEN-TEST153> 
 #<PASS THREAD-TEST152> 
@@ -137,38 +136,36 @@ macs System tests.
 
 #+RESULTS:
 #+begin_src lisp
-in suite MACS with 16/16 tests:
-:DEBUG @ 1327.8667 :: running test:  #<TEST CLI :fn CLI-test2040 :args NIL :persist NIL {1008C33603}> 
+in suite MACS with 15/15 tests:
+:DEBUG @ 82954.8 :: running test:  #<TEST CLI :fn CLI-test4496 :args NIL :persist NIL {1008E426E3}> 
 #<PASS CLI> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST CLI-PROMPT :fn CLI-PROMPT-test2039 :args NIL :persist NIL {1008B8ECE3}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST CLI-PROMPT :fn CLI-PROMPT-test4495 :args NIL :persist NIL {1008D95643}> 
 #<PASS CLI-PROMPT> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST PAN :fn PAN-test2038 :args NIL :persist NIL {1008B8CD43}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST PAN :fn PAN-test4494 :args NIL :persist NIL {1008D93693}> 
 #<PASS PAN> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST ANA :fn ANA-test2037 :args NIL :persist NIL {1008B8A813}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST ANA :fn ANA-test4493 :args NIL :persist NIL {1008D91153}> 
 #<PASS ANA> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST FU :fn FU-test2036 :args NIL :persist NIL {1008B89023}> 
-#<PASS FU> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST FMT :fn FMT-test2035 :args NIL :persist NIL {1008AE7D83}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST FMT :fn FMT-test4492 :args NIL :persist NIL {1008C978D3}> 
 #<PASS FMT> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST ALIEN :fn ALIEN-test2034 :args NIL :persist NIL {1008AE6283}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST ALIEN :fn ALIEN-test4491 :args NIL :persist NIL {1008C95DC3}> 
 #<PASS ALIEN> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST THREAD :fn THREAD-test2033 :args NIL :persist NIL {1008AE4A93}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST THREAD :fn THREAD-test4490 :args NIL :persist NIL {1008C945C3}> 
 #<PASS THREAD> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST REEXPORT :fn REEXPORT-test2032 :args NIL :persist NIL {1008AE3693}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST REEXPORT :fn REEXPORT-test4489 :args NIL :persist NIL {1008C931B3}> 
 #<PASS REEXPORT> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST COND :fn COND-test2031 :args NIL :persist NIL {1008AE23F3}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST COND :fn COND-test4488 :args NIL :persist NIL {1008C91F03}> 
 #<PASS COND> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST LOG :fn LOG-test2030 :args NIL :persist NIL {1008AE1153}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST LOG :fn LOG-test4487 :args NIL :persist NIL {1008C90903}> 
 #<PASS LOG> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST LIST :fn LIST-test2029 :args NIL :persist NIL {1008A8FD43}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST LIST :fn LIST-test4486 :args NIL :persist NIL {1008B672C3}> 
 #<PASS LIST> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST STR :fn STR-test2028 :args NIL :persist NIL {1008A8DDA3}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST STR :fn STR-test4485 :args NIL :persist NIL {1008B65313}> 
 #<PASS STR> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST SYM :fn SYM-test2027 :args NIL :persist NIL {1008A8C2A3}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST SYM :fn SYM-test4484 :args NIL :persist NIL {1008B63803}> 
 #<PASS SYM> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST READTABLES :fn READTABLES-test2026 :args NIL :persist NIL {1008A8A303}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST READTABLES :fn READTABLES-test4483 :args NIL :persist NIL {1008B61853}> 
 #<PASS READTABLES> 
-:DEBUG @ 1327.8667 :: running test:  #<TEST RT :fn RT-test2025 :args NIL :persist NIL {1008A88803}> 
+:DEBUG @ 82954.8 :: running test:  #<TEST RT :fn RT-test4482 :args NIL :persist T {1008ACFD13}> 
 #<PASS RT> 
 No tests failed.
 #+end_src

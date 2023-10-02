@@ -20,10 +20,11 @@
 ;;; TODO:
 #|
 
-- [ ] with-test-env
+- [ ] benchmark support: do-bench, test-count, 
 
-- [ ] sxp formatter
+- [ ] fixtures api
 
+- [ ] profiling 
 |#
 ;;; Code:
 #+x86-64
@@ -107,7 +108,8 @@ compiler optimizations.")
   (defvar *default-test-suite-name* "default"))
 (declaim (type (or stream boolean string) *test-input*))
 (defvar *test-input* nil "When non-nil, specifies an input stream or buffer for `*testing*'.")
-
+(defvar *default-bench-count* 100 "Default number of iterations to repeat a bench test for. This value is
+used when the slot value of :BENCH is t.")
 (defvar *testing* nil "Testing state var.")
 
 ;;; Utils
@@ -131,14 +133,6 @@ compiler optimizations.")
   (if-let ((test *testing*))
     (throw '%in-test test)
     (do-suite *test-suite*)))
-
-(defmacro with-test-env (env &body body)
-  "Generate a test closure from ENV and BODY."
-  ;; TODO 2023-08-31: test
-  (in-readtable *macs-readtable*)
-  (prog1
-      `(lambda () (let ',env ,@body))
-    (in-readtable nil)))
 
 ;; NOTE 2023-09-01: `pushnew' does not return an indication of whether
 ;; place is changed - it returns place. This is functionally sound but
@@ -234,6 +228,10 @@ compiler optimizations.")
   (:documentation
    "Pop the first `test-result' from the slot-value of ':tests' from object SELF."))
 
+(defgeneric push-fixture (self place)
+  (:documentation
+   "Push object SELF to the value of slot ':results' in object PLACE."))
+
 (defgeneric delete-test (self &key &allow-other-keys)
   (:documentation "Delete `test' object specified by `test-object' SELF and optional keys."))
 
@@ -252,10 +250,6 @@ from TESTS."))
 (defgeneric do-suite (self &key &allow-other-keys)
   (:documentation
    "Perform actions on `test-suite' object SELF with optional keys."))
-
-(defgeneric get-test-opt (self key)
-  (:documentation
-   "Get the value of first cons where car is KEY in :opts slot of SELF."))
 
 ;;;; Results
 (deftype result-tag ()
@@ -302,6 +296,8 @@ from TESTS."))
 
 (defclass test (test-object)
   ((fn :type symbol :accessor test-fn)
+   (bench :type (or boolean fixnum) :accessor test-bench :initform nil :initarg :bench)
+   (profile :type list :accessor test-profile :initform nil :initarg :profile)
    (args :type list :accessor test-args :initform nil :initarg :args)
    (decl :type list :accessor test-decl :initform nil :initarg :decl)
    (form :initarg :form :initform nil :type function-lambda-expression :accessor test-form)
@@ -310,6 +306,17 @@ from TESTS."))
    (persist :initarg :persist :initform nil :type boolean :accessor test-persist-p)
    (results :initarg :results :type (array test-result) :accessor test-results))
   (:documentation "Test class typically made with `deftest'."))
+
+(defmethod test-bench-p ((self test))
+  (when (test-bench self) t))
+
+(defmethod get-bench-count ((self test))
+  (when-let ((v (test-bench self)))
+    (cond
+      ((typep v 'fixnum) v)
+      ((eq v t) *default-bench-count*)
+      ;; unknown value
+      (t nil))))
 
 (defmethod initialize-instance ((self test) &key name)
   ;; (debug! "building test" name)
@@ -357,46 +364,79 @@ from TESTS."))
     (with-simple-restart (ignore-fail "Continue testing.")
       (error 'test-failed :reason reason :form form))))
 
+(defmacro with-test-env (self &body body)
+  `(catch '%in-test
+     (setf (test-lock-p ,self) t)
+     (let* ((*testing* ,self)
+	    (bail nil)
+	    r)
+       (block bail
+	 ,@body
+	 (setf (test-lock-p ,self) bail))
+       r)))
+
 (defmethod do-test ((self test) &optional fx)
   (declare (ignorable fx))
-  (catch '%in-test ;; for `continue-testing' restart
-    (setf (test-lock-p self) t)
-    (let* ((*testing* self)
-	   (bail nil)
-	   r)
-      (debug! "running test: " *testing*)
-      (block bail
-	(flet ((%do ()
-		 (if-let ((opt *compile-tests*))
-		   ;; RESEARCH 2023-08-31: with-compilation-unit?
-		   (progn 
-		     (when (eq opt t) (setq opt *default-test-opts*))
-		     ;; TODO 2023-09-21: handle failures here
-		     (funcall (compile-test self :declare opt))
-		     (setf r (make-test-result :pass (test-fn self))))
-		   (progn
-		     (eval-test self)
-		     (setf r (make-test-result :pass (test-name self)))))))
-	  (if *catch-test-errors*
-	      (handler-bind
-		  ((style-warning #'muffle-warning)
-		   (error 
-		     #'(lambda (c)
-			 (setf bail t)
-			 (setf r (make-test-result :fail c))
-			 (return-from bail r))))
-		(%do))
-	      (%do)))
-	(setf (test-lock-p self) bail))
-      r)))
+  (with-test-env self
+    (debug! "running test: " *testing*)
+    (flet ((%do ()
+	     (if-let ((opt *compile-tests*))
+	       ;; RESEARCH 2023-08-31: with-compilation-unit?
+	       (progn 
+		 (when (eq opt t) (setq opt *default-test-opts*))
+		 ;; TODO 2023-09-21: handle failures here
+		 (funcall (compile-test self :declare opt))
+		 (setf r (make-test-result :pass (test-fn self))))
+	       (progn
+		 (eval-test self)
+		 (setf r (make-test-result :pass (test-name self)))))))
+      (if *catch-test-errors*
+	  (handler-bind
+	      ((style-warning #'muffle-warning)
+	       (error 
+		 #'(lambda (c)
+		     (setf bail t)
+		     (setf r (make-test-result :fail c))
+		     (return-from bail r))))
+	    (%do))
+	  (%do)))))
+
+(defmacro bench (iter &body body)
+  `(loop for i from 1 to ,iter
+	 do ,@body))
+
+(defmethod do-bench ((self test) &optional fx)
+  (declare (ignorable fx))
+  (with-test-env self
+    (flet ((%do ()
+	     (if-let ((opt *compile-tests*))
+	       (progn 
+		 (when (eq opt t) (setq opt *default-test-opts*))
+		 ;; TODO 2023-09-21: handle failures here
+		 (let ((fn (compile-test self :declare opt)))
+		   (bench (test-bench self) (funcall fn)))
+		 (setf r (make-test-result :pass (test-fn self))))
+	       (progn
+		 (bench (test-bench self) (eval-test self))
+		 (setf r (make-test-result :pass (test-name self)))))))
+      (if *catch-test-errors*
+	  (handler-bind
+	      ((style-warning #'muffle-warning)
+	       (error 
+		 #'(lambda (c)
+		     (setf bail t)
+		     (setf r (make-test-result :fail c))
+		     (return-from bail r))))
+	    (%do))
+	  (%do)))))
 
 ;;;; Fixtures
 
 ;; Our fixtures are just closures - with a pandoric environment. You
 ;; might call it a domain-specific object protocol.
 
-;; You can build fixtures inside a test or use the push/pop-fixture
-;; methods on a `test-suite' object to use it from multiple.
+;; You can build fixtures inside a test or use the push-fixture
+;; method on a `test-suite' object.
 
 (deftype fixture () 'form)
 
@@ -422,14 +462,15 @@ from TESTS."))
    (results :initarg :results :initform nil :type list :accessor test-results
 	    :documentation "test-suite results")
    (stream :initarg :stream :initform *standard-output* :type stream :accessor test-stream)
-   (opts :initarg :opts :initform nil :type list :accessor test-opts))
+   (fixtures :initarg :fixtures :initform nil :type list :accessor test-fixtures))
   (:documentation "A class for collections of related `test' objects."))
 
 (defmethod print-object ((self test-suite) stream)
   (print-unreadable-object (self stream :type t :identity t)
-    (format stream "~A [~d:~d:~d:~d]"
+    (format stream "~A [~d+~d:~d:~d:~d]"
 	    (test-name self)
-	    (length (tests self))
+	    (count t (map-tests self (lambda (x) (not (test-bench-p x)))))
+	    (count t (map-tests self #'test-bench-p))
 	    (count t (map-tests self #'test-lock-p))
 	    (count t (map-tests self #'test-persist-p))
 	    (length (test-results self)))))
@@ -476,11 +517,11 @@ from TESTS."))
 ;; within the body of `deftest'.
 (defmethod do-suite ((self test-suite) &key stream)
   (when stream (setf (test-stream self) stream))
-  (with-slots (name opts stream) self
+  (with-slots (name stream) self
     (format stream "in suite ~x with ~A/~A tests:~%"
 	    name
 	    (count t (tests self)
-		   :key #'test-lock-p)
+		   :key (lambda (x) (or (test-lock-p x) (test-persist-p x))))
 	    (length (tests self)))
     ;; loop over each test, calling `do-test' if locked or persistent
     (map-tests self 
@@ -584,37 +625,36 @@ is not evaluated."
 
 ;;; Macros
 (defmacro deftest (name props &body body)
-  "Build a test parameterized by LAMBDA-LIST. BODY is wrapped in
-`with-test-env' and passed to `make-test' which returns a value based
-on the dynamic environment."
+  "Build a test with NAME, parameterized by LAMBDA-LIST and with a test form of BODY."
   (destructuring-bind (pr doc dec fn)
       (multiple-value-bind (forms dec doc)
 	  ;; parse body with docstring allowed
 	  (sb-int:parse-body
 	   (or body) t)
-	`(',props ',doc ',dec ',forms))
+	`(,props ',doc ',dec ',forms))
     ;; TODO 2023-09-21: parse plist
-    (declare (ignore pr))
     `(let ((obj (make-test
 		 :name ',(format nil "~A" name)
 		 ;; note: we could leave these unbound if we want,
 		 ;; personal preference
 		 :form ,fn
+		 ,@(when-let ((v (getf pr :persist))) `(:persist ,v))
+		 ,@(when-let ((v (getf pr :args))) `(:args ,v))
+		 ,@(when-let ((v (getf pr :bench))) `(:bench ,v))
+		 ,@(when-let ((v (getf pr :profile))) `(:profile ,v))
 		 ,@(when doc `(:doc ,doc))
 		 ,@(when dec `(:decl ,dec)))))
        (push-test obj *test-suite*)
        obj)))
 
-(defmacro defsuite (suite-name &key (stream '*standard-output*) (opts nil))
+(defmacro defsuite (suite-name &rest props)
   "Define a `test-suite' with provided keys. The object returned can be
 enabled using the `in-suite' macro, similiar to the `defpackage' API."
   (check-type suite-name (or symbol string))
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (let ((obj (make-suite
 		 :name (format nil "~A" ',suite-name)
-		 :stream ,stream
-		 :opts ',opts)))
-       ;; TODO 2023-09-17: shouldn't need setf
+		 ,@(when-let ((v (getf props :stream))) `(:stream ,v)))))
        (setq *test-suite-list* (spush obj *test-suite-list* :test #'test-name=))
        obj)))
 
