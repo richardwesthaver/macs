@@ -193,6 +193,8 @@
    :handle-missing-argument
    :handle-invalid-argument
    :cli-opt
+   :cli-val
+   :cli-cmd-args
    :cli-cmd
    :find-cmd
    :find-opt

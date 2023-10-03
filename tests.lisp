@@ -158,12 +158,12 @@
       (is (string= "foobar"
 		   (cli:completing-read "nothing: " tcoll :history thist :default "foobar"))))))
 
-(defparameter *opts* (cli:make-opts '(:name "foo" :global t :description "bar")
-			    '(:name "bar" :description "foo")))
+(defparameter *opts* (cli:make-opts (:name foo :global t :description "bar")
+			    (:name bar :description "foo")))
 
 (defparameter *cmd1* (make-cli :cmd :name "holla" :opts *opts* :description "cmd1 description"))
 (defparameter *cmd2* (make-cli :cmd :name "ayo" :cmds #(*cmd1*) :opts *opts* :description "cmd1 description"))
-(defparameter *cmds* (cli:make-cmds `(:name "baz" :description "baz" :opts ,*opts*)))
+(defparameter *cmds* (cli:make-cmds (:name "baz" :description "baz" :opts *opts*)))
 
 (defparameter *cli* (make-cli t :opts *opts* :cmds *cmds* :description "test cli"))
 (deftest cli ()

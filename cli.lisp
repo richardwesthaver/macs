@@ -68,8 +68,7 @@ evaluation of FORM."
   ;;  `(with-pandoric nil nil
   `(progn
      (init-args)
-     (parse-args ,cli *argv*)
-     (with-slots ,slots ,cli
+     (with-slots ,slots (parse-args ,cli *argv*)
        ,@body)))
 
 ;;; Prompts
@@ -154,23 +153,23 @@ Note that this macro does not export the defined function and requires
 ;; RESEARCH 2023-09-12: closed over hash-table with short/long flags
 ;; to avoid conflicts. if not, need something like a flag-function
 ;; slot at class allocation.
-(defun make-opts (&rest opts)
-  (map 'vector
-       (lambda (x)
-	 (etypecase x
-	   (string (make-cli :opt :name x))
-	   (symbol (make-cli :opt :name (string-downcase (symbol-name x)) :global t))
-	   (list (apply #'make-cli :opt x))))
-       opts))
+(defmacro make-opts (&body opts)
+  `(map 'vector
+	(lambda (x)
+	  (etypecase x
+	    (string (make-cli :opt :name x))
+	    (list (apply #'make-cli :opt x))
+	    (t (make-cli :opt :name (format nil "~(~A~)" x) :global t))))
+       ',opts))
 
-(defun make-cmds (&rest opts)
-  (map 'vector
+(defmacro make-cmds (&body opts)
+  `(map 'vector
 	(lambda (x)
 	  (etypecase x
 	    (string (make-cli :cmd :name x))
-	    (symbol (make-cli :cmd :name (string-downcase (symbol-name x))))
-	    (list (apply #'make-cli :cmd x))))
-	opts))
+	    (list (apply #'make-cli :cmd x))
+	    (t (make-cli :cmd :name (format nil "~(~A~)" x)))))
+	',opts))
 
 (defun long-opt-p (str)
   (and (char= (aref str 0) (aref str 1) #\-)
@@ -231,10 +230,15 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 (defclass cli-opt ()
   ;; note that cli-opts can have a nil or unbound name slot
   ((name :initarg :name :initform (required-argument :name) :accessor cli-name :type string)
-   (val :initarg :val :initform nil :accessor cli-val)
-   (global :initarg :global :initform nil :accessor global-opt-p)
+   (val :initarg :val :initform nil :accessor cli-val :type form)
+   (global :initarg :global :initform nil :accessor global-opt-p :type boolean)
    (description :initarg :description :accessor cli-description :type string))
   (:documentation "CLI option"))
+
+(defmethod initialize-instance :after ((self cli-opt) &key)
+  (with-slots (name) self
+    (unless (stringp name) (setf name (format nil "~(~A~)" name)))
+    self))
 
 (defmethod print-object ((self cli-opt) stream)
   (print-unreadable-object (self stream :type t)
@@ -256,13 +260,22 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 (defclass cli-cmd ()
   ;; name slot is required and must be a string
   ((name :initarg :name :initform (required-argument :name) :accessor cli-name :type string)
-   (opts :initarg :opts :initform nil :accessor cli-opts :type (or (vector cli-opt) null))
-   (cmds :initarg :cmds :initform nil :accessor cli-cmds :type (or (vector cli-cmd) null))
+   (opts :initarg :opts :initform (make-array 0 :element-type 'cli-opt)
+	 :accessor cli-opts :type (vector cli-opt))
+   (cmds :initarg :cmds :initform (make-array 0 :element-type 'cli-cmd)
+	 :accessor cli-cmds :type (vector cli-cmd))
    (thunk :initarg :thunk :accessor cli-thunk :type lambda)
    (lock :initarg :lock :accessor cli-lock-p :type boolean)
    (description :initarg :description :accessor cli-description :type string)
-   (args :initform nil :type list :accessor cli-cmd-args))
+   (args :initform nil :initarg :args :type list :accessor cli-cmd-args))
   (:documentation "CLI command"))
+
+(defmethod initialize-instance :after ((self cli-cmd) &key)
+  (with-slots (name cmds opts) self
+    (unless (stringp name) (setf name (format nil "~(~A~)" name)))
+    (unless (vectorp cmds) (setf cmds (funcall (compile nil `(lambda () ,cmds)))))
+    (unless (vectorp opts) (setf opts (funcall (compile nil `(lambda () ,opts)))))
+    self))
 
 (defmethod print-object ((self cli-cmd) stream)
   (print-unreadable-object (self stream :type t)
@@ -338,17 +351,29 @@ should be."
   (make-cli-ast
    (loop 
      for a in args
+     if (= (length a) 1) collect (make-cli-node 'arg a)
      ;; SHORT OPT
-     if (short-opt-p a)
-       collect (make-cli-node 'opt (find-short-opt self (aref a 1)))
+     else if (short-opt-p a)
+	    collect (if-let ((o (find-short-opt self (aref a 1))))
+		      (progn
+			(setf (cli-val o) t)
+			(make-cli-node 'opt o))
+		      (make-cli-node 'arg a))
+
      ;; LONG OPT
      else if (long-opt-p a)
-	    collect (make-cli-node 'opt (find-opt self (string-trim "-" a)))
+	    ;; what we actually want to do is consume the next sequence of args - TBD
+	    collect (if-let ((o (find-opt self (string-trim "-" a))))
+		      (progn
+			(setf (cli-val o) (string-trim "-" a))
+			(make-cli-node 'opt o))
+		      (make-cli-node 'arg a))
      ;; OPT GROUP
      else if (opt-group-p a)
 	    collect nil
      ;; CMD
      else if (find-cmd self a)
+	    ;; TBD
 	    collect (make-cli-node 'cmd (find-cmd self a))
      ;; ARG
      else collect (make-cli-node 'arg a))))
@@ -358,6 +383,7 @@ should be."
   (with-slots (cmds opts) self
     ;; we assume all nodes in the ast have been validated and the ast
     ;; itself is consumed. validation is performed in proc-args.
+    (setf (cli-lock-p self) t)
     (loop named install
 	  for (node . tail) on (cli-ast-ast ast)
 	  unless (null node) 
@@ -368,15 +394,18 @@ should be."
 		   (opt 
 		    (let ((name (cli-name form))
 			  (val (cli-val form)))
-		      (setf (cli-val (find-opt self name)) val)))
+		      (when-let ((o (find-opt self name)))
+			(setf (cli-val o) val))))
 		   ;; when we encounter a command we recurse over the tail
 		   (cmd 
-		    (let ((cmd (find-cmd self (cli-name form))))
+		    (when-let ((cmd (find-cmd self (cli-name form))))
 		      (setf (cli-lock-p cmd) t)
 		      ;; handle the rest of the AST
 		      (install-ast cmd (make-cli-ast tail))
 		      (return-from install)))
 		   (arg (push-arg form self)))))
+    (setf (cli-lock-p self) nil)
+    (setf (cli-cmd-args self) (nreverse (cli-cmd-args self)))
     self))
 
 (defun gen-thunk-ll% (origin args)

@@ -68,9 +68,9 @@ function in which case it is used as the function value of
   (when (debug-p)
     (format t ":DEBUG")
     (when *log-timestamp*
-      (format t " @ ~A ::~t" (log-timestamp-source)))
+      (format t " @ ~A ~t  " (log-timestamp-source)))
     ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
-    (map nil (lambda (x) (format t "~X " x)) args)
+    (map nil (lambda (x) (format t "; ~X~%" x)) args)
     (format t "~%"))
   args)
 
