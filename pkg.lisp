@@ -106,6 +106,7 @@
    #:when-let*
    #:if-let
    #:if-let*
+   :define-constant
    :defcmd
    :eval-always
    :merge! :sort!
@@ -203,6 +204,8 @@
    :gen-cli-thunk
    :install-thunk
    :cli
+   :cli-equal
+   :define-cli
    ;; ast types
    :opt
    :cmd

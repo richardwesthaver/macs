@@ -123,6 +123,20 @@ of `~A-PROMPT-HISTORY'." var var)
 		  (car (symbol-value ,h)))
 	  ,s :history ,h :default nil)))))
 
+(defmacro define-cli-constant% (name cli &optional doc)
+  `(define-constant ,name ,cli ,@doc :test #'cli-equal))
+
+(defmacro define-cli (ty name cli &optional doc)
+  "Define a symbol NAME bound to a top-level CLI object."
+  (declare (type symbol name))
+  (let ((def (case ty
+	       (:constant 'define-cli-constant%)
+	       (:parameter 'defparameter)
+	       (t 'defvar))))
+    `(progn
+       (declaim (type cli ,name))
+       (,def ,name ,cli ,@doc))))
+
 (defmacro defmain (ret &body body)
   "Define a main function in the current package which returns RET.
 
@@ -192,7 +206,6 @@ Note that this macro does not export the defined function and requires
 
 (defgeneric pop-cmd (place))
 (defgeneric pop-opt (place))
-
 (defgeneric find-cmd (self name))
 
 (defgeneric find-opt (self name))
@@ -226,10 +239,13 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 (defgeneric handle-invalid-argument (self arg)
   (:documentation "Handle an invalid argument."))
 
+(defgeneric cli-equal (a b))
+
 ;;; Objects
 (defclass cli-opt ()
   ;; note that cli-opts can have a nil or unbound name slot
   ((name :initarg :name :initform (required-argument :name) :accessor cli-name :type string)
+   (kind :initarg :kind :initform 'boolean :accessor cli-opt-kind)
    (val :initarg :val :initform nil :accessor cli-val :type form)
    (global :initarg :global :initform nil :accessor global-opt-p :type boolean)
    (description :initarg :description :accessor cli-description :type string))
@@ -257,6 +273,13 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 	    (format stream ":  ~A" d)
 	    "")))
 
+(defmethod cli-equal ((a cli-opt) (b cli-opt))
+  (with-slots (name global kind) a
+    (with-slots ((bn name) (bg global) (bk kind)) b
+      (and (string= name bn)
+	   (eql global bg)
+	   (eql kind bk)))))
+
 (defclass cli-cmd ()
   ;; name slot is required and must be a string
   ((name :initarg :name :initform (required-argument :name) :accessor cli-name :type string)
@@ -279,10 +302,11 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 
 (defmethod print-object ((self cli-cmd) stream)
   (print-unreadable-object (self stream :type t)
-    (format stream "~A :opts ~A :cmds ~A"
+    (format stream "~A :opts ~A :cmds ~A :args ~A"
 	  (cli-name self)
           (length (cli-opts self))
-	  (length (cli-cmds self)))))
+	  (length (cli-cmds self))
+	  (length (cli-cmd-args self)))))
 
 (defmethod print-usage ((self cli-cmd) &optional stream)
   (with-slots (opts cmds) self
@@ -309,6 +333,23 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 
 (defmethod pop-opt ((self cli-opt))
   (vector-pop (cli-opts self)))
+
+(defmethod cli-equal ((a cli-cmd) (b cli-cmd))
+  (with-slots (name opts cmds) a
+    (with-slots ((bn name) (bo opts) (bc cmds)) b
+      (and (string= name bn)
+	   (if (and (null opts) (null bo))
+	       t
+	       (unless (member nil (loop for oa across opts
+					 for ob across bo
+					 collect (cli-equal oa ob)))
+		 t))
+	   (if (and (null cmds) (null bc))
+	       t
+	       (unless (member nil (loop for ca across cmds
+					 for cb across bc
+					 collect (cli-equal ca cb)))
+		 t))))))
 
 ;; typically when starting from a top-level `cli', the global
 ;; `cli-opts' will be parsed first, followed by the first command
@@ -477,6 +518,15 @@ COMPILE is t, in which case a list of strings is assumed."
     (unless (null cmds)
       (loop for c across cmds
 	    do (iprintln (print-usage c) 4 stream)))))
+
+(defmethod cli-equal :before ((a cli) (b cli))
+  "Return T if A is the same cli object as B.
+
+Currently this function is intended only for instances of the CLI
+class and is used as a specialized EQL for DEFINE-CONSTANT."
+  (with-slots (version) a
+    (with-slots ((bv version)) b
+      (string= version bv))))
 
 ;; same as cli-cmd method, default is to compile though
 (defmethod parse-args ((self cli) (args list) &key (compile t))
