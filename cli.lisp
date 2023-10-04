@@ -126,7 +126,7 @@ of `~A-PROMPT-HISTORY'." var var)
 (defmacro define-cli-constant% (name cli &optional doc)
   `(define-constant ,name ,cli ,@doc :test #'cli-equal))
 
-(defmacro define-cli (ty name cli &optional doc)
+(defmacro define-cli (ty name &body cli)
   "Define a symbol NAME bound to a top-level CLI object."
   (declare (type symbol name))
   (let ((def (case ty
@@ -135,7 +135,7 @@ of `~A-PROMPT-HISTORY'." var var)
 	       (t 'defvar))))
     `(progn
        (declaim (type cli ,name))
-       (,def ,name ,cli ,@doc))))
+       (,def ,name (make-cli t ,@cli)))))
 
 (defmacro defmain (ret &body body)
   "Define a main function in the current package which returns RET.
