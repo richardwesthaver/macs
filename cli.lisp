@@ -206,9 +206,9 @@ Note that this macro does not export the defined function and requires
 
 (defgeneric pop-cmd (place))
 (defgeneric pop-opt (place))
-(defgeneric find-cmd (self name))
+(defgeneric find-cmd (self name &optional active))
 
-(defgeneric find-opt (self name))
+(defgeneric find-opt (self name &optional active))
 
 (defgeneric find-short-opt (self ch))
 
@@ -372,11 +372,13 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 (defun make-cli-ast (nodes)  
   (%make-cli-ast :ast nodes))
 
-(defmethod find-cmd ((self cli-cmd) name)
-  (find name (cli-cmds self) :key #'cli-name :test #'string=))
+(defmethod find-cmd ((self cli-cmd) name &optional active)
+  (when-let ((c (find name (cli-cmds self) :key #'cli-name :test #'string=)))
+    (if active (when-let ((a (cli-cmd-args c))) a) c)))
 
-(defmethod find-opt ((self cli-cmd) name)
-  (find name (cli-opts self) :key #'cli-name :test #'string=))
+(defmethod find-opt ((self cli-cmd) name &optional active)
+  (when-let ((o (find name (cli-opts self) :key #'cli-name :test #'string=)))
+    (if active (when-let ((v (cli-val o))) v) o)))
 
 (defmethod find-short-opt ((self cli-cmd) ch)
   (find ch (cli-opts self) :key #'cli-name :test #'opt-prefix-eq))
