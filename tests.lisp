@@ -183,9 +183,9 @@
     (is (parse-args cli '("--bar" "baz" "-f" "yaks")))
 
     (let ((c1 (parse-args cli '("--foo" "boombap"))))
-      (is (install-thunk c1 (lambda (x y z) (* x y z))))
+      (is (install-thunk c1 (lambda (&optional x y z) (when (and x y z) (* x y z)))))
       (is (= 8 (call-cmd c1 2 2 2)))
-      #| TODO (is (= 8 (do-cmd c1)) |#)
+      (is (not (do-cmd c1))))
     (is (stringp
 	 (with-output-to-string (s)
 	   (print-version cli s)

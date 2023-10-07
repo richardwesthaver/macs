@@ -170,6 +170,7 @@
    :cli-args
    :command-line-args
    :*cli-group-separator*
+   :global-opt-p
    :exec-path-list
    :argp
    :make-shorty
@@ -189,7 +190,9 @@
    :make-cli-ast
    :proc-args
    :parse-args
-   ;; :do-cmd
+   :do-cmd
+   :do-opt
+   :call-opt
    :call-cmd
    :apply-cmd
    :print-help

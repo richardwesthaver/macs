@@ -124,19 +124,21 @@ of `~A-PROMPT-HISTORY'." var var)
 		  (car (symbol-value ,h)))
 	  ,s :history ,h :default nil)))))
 
-(defmacro define-cli-constant% (name cli &optional doc)
+(defmacro define-cli-constant (name cli &optional doc)
   `(define-constant ,name ,cli ,@doc :test #'cli-equal))
 
-(defmacro define-cli (ty name &body cli)
+(defvar *default-cli-def* 'defparameter)
+
+(defmacro define-cli (name &body cli)
   "Define a symbol NAME bound to a top-level CLI object."
   (declare (type symbol name))
-  (let ((def (case ty
-	       (:constant 'define-cli-constant%)
-	       (:parameter 'defparameter)
-	       (t 'defvar))))
-    `(progn
-       (declaim (type cli ,name))
-       (,def ,name (make-cli t ,@cli)))))
+  (let ((len (length cli)))
+    `(let ((cli (if ,(evenp len) ',cli (butlast ',cli)))
+	   (body (when ,(oddp len) (car (last ',cli)))))
+       (progn
+	 (declaim (type cli ,name))
+	 (,*default-cli-def* ,name (apply #'make-cli t :thunk body cli))))))
+					     
 
 (defmacro defmain (ret &body body)
   "Define a main function in the current package which returns RET.
@@ -277,7 +279,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
    (val :initarg :val :initform nil :accessor cli-val :type form)
    (global :initarg :global :initform nil :accessor global-opt-p :type boolean)
    (description :initarg :description :accessor cli-description :type string)
-   (lock :initarg :lock :accessor cli-lock-p :type boolean))
+   (lock :initform nil :initarg :lock :accessor cli-lock-p :type boolean))
   (:documentation "CLI option"))
 
 (defmethod initialize-instance :after ((self cli-opt) &key)
@@ -319,7 +321,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
   (apply (cli-thunk self) args))
 
 (defmethod do-opt ((self cli-opt))
-  (call-opt (cli-thunk self) (cli-val self)))
+  (call-opt self (cli-val self)))
 
 (defclass cli-cmd ()
   ;; name slot is required and must be a string
@@ -329,7 +331,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
    (cmds :initarg :cmds :initform (make-array 0 :element-type 'cli-cmd)
 	 :accessor cli-cmds :type (vector cli-cmd))
    (thunk :initarg :thunk :accessor cli-thunk :type lambda)
-   (lock :initarg :lock :accessor cli-lock-p :type boolean)
+   (lock :initform nil :initarg :lock :accessor cli-lock-p :type boolean)
    (description :initarg :description :accessor cli-description :type string)
    (args :initform nil :initarg :args :accessor cli-cmd-args))
   (:documentation "CLI command"))
@@ -424,7 +426,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
   (remove-if-not #'cli-lock-p (cli-cmds self)))
 
 
-(defmethod find-opt ((self cli-cmd) name &optional active)
+(defmethod find-opt ((self cli-opt) name &optional active)
   (when-let ((o (find name (cli-opts self) :key #'cli-name :test #'string=)))
     (if active 
 	(when (cli-lock-p o) o)
@@ -434,12 +436,12 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
   "Return non-nil if OPT is active at runtime and global."
   (when (and (cli-lock-p opt) (global-opt-p opt)) t))
 
-(defmethod active-opts ((self cli-cmd) &optional global)
-      (remove-if-not 
-       (if global 
-	   #'active-global-opt-p 
-	   #'cli-lock-p) 
-       (cli-cmds self)))
+(defmethod active-opts ((self cli-opt) &optional global)
+  (remove-if-not 
+   (if global 
+       #'active-global-opt-p 
+       #'cli-lock-p)
+   (cli-opts self)))
 
 (defmethod find-short-opt ((self cli-cmd) ch)
   (find ch (cli-opts self) :key #'cli-name :test #'opt-prefix-eq))
