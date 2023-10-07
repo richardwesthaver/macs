@@ -4,17 +4,6 @@
 (in-package :macs.pan)
 (in-readtable *macs-readtable*)
 
-(defun let-binding-transform (bs)
-  (if bs
-    (cons
-      (cond ((symbolp (car bs))
-              (list (car bs)))
-            ((consp (car bs))
-              (car bs))
-            (t
-              (error "Bad let bindings")))
-      (let-binding-transform (cdr bs)))))
-
 (defun pandoriclet-get (letargs)
   `(case sym
      ,@(mapcar #`((,(car a1)) ,(car a1))

@@ -80,7 +80,6 @@
    :pop-test
    :delete-test
    :find-test
-   :get-test-opt
    :do-suite
    :test-object
    :test
@@ -449,11 +448,14 @@ from TESTS."))
 (defun make-fixture-prototype (kind form)
   (%make-fixture-prototype :kind kind :form form))
 
-(defmacro make-fixture (name largs pargs &body body)
-  `(plambda ,largs ,pargs (cons ,@body ',name)))
+(defmacro make-fixture (letargs &body ds)
+  (let ((letargs (let-binding-transform letargs)))
+    `(let (,@letargs)
+       (dlambda ,@ds))))
 
-(defmacro with-fixture (pargs fx &body body)
-  `(with-pandoric ,pargs ,fx ,@body))
+(defmacro with-fixture ((var fx) &body body)
+  `(let ((,var ,fx))
+     ,@body))
 
 ;;;; Suites
 (defclass test-suite (test-object)
@@ -483,10 +485,6 @@ from TESTS."))
 
 (defmethod map-tests ((self test-suite) function)
   (mapcar function (tests self)))
-
-(defmethod get-test-opt ((self test-suite) key)
-  (declare (type keyword key))
-  (assoc key (test-opts self)))
 
 (defmethod push-test ((self test) (place test-suite))
   (push self (tests place)))

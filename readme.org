@@ -136,36 +136,62 @@ macs System tests.
 
 #+RESULTS:
 #+begin_src lisp
-in suite MACS with 15/15 tests:
-:DEBUG @ 82954.8 :: running test:  #<TEST CLI :fn CLI-test4496 :args NIL :persist NIL {1008E426E3}> 
+in suite MACS with 14/14 tests:
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST CLI :fn CLI-test3399 :args NIL :persist NIL {1004DF7EC3}>
+
 #<PASS CLI> 
-:DEBUG @ 82954.8 :: running test:  #<TEST CLI-PROMPT :fn CLI-PROMPT-test4495 :args NIL :persist NIL {1008D95643}> 
-#<PASS CLI-PROMPT> 
-:DEBUG @ 82954.8 :: running test:  #<TEST PAN :fn PAN-test4494 :args NIL :persist NIL {1008D93693}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST PAN :fn PAN-test3398 :args NIL :persist NIL {1004BF5C53}>
+
 #<PASS PAN> 
-:DEBUG @ 82954.8 :: running test:  #<TEST ANA :fn ANA-test4493 :args NIL :persist NIL {1008D91153}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST ANA :fn ANA-test3397 :args NIL :persist NIL {1004BF3713}>
+
 #<PASS ANA> 
-:DEBUG @ 82954.8 :: running test:  #<TEST FMT :fn FMT-test4492 :args NIL :persist NIL {1008C978D3}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST FMT :fn FMT-test3396 :args NIL :persist NIL {1004BF1F13}>
+
 #<PASS FMT> 
-:DEBUG @ 82954.8 :: running test:  #<TEST ALIEN :fn ALIEN-test4491 :args NIL :persist NIL {1008C95DC3}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST ALIEN :fn ALIEN-test3395 :args NIL :persist NIL {1004AEFFE3}>
+
 #<PASS ALIEN> 
-:DEBUG @ 82954.8 :: running test:  #<TEST THREAD :fn THREAD-test4490 :args NIL :persist NIL {1008C945C3}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST THREAD :fn THREAD-test3394 :args NIL :persist NIL {1004AEE7E3}>
+
 #<PASS THREAD> 
-:DEBUG @ 82954.8 :: running test:  #<TEST REEXPORT :fn REEXPORT-test4489 :args NIL :persist NIL {1008C931B3}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST REEXPORT :fn REEXPORT-test3393 :args NIL :persist NIL {1004AED333}>
+
 #<PASS REEXPORT> 
-:DEBUG @ 82954.8 :: running test:  #<TEST COND :fn COND-test4488 :args NIL :persist NIL {1008C91F03}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST COND :fn COND-test3392 :args NIL :persist NIL {1004AEC083}>
+
 #<PASS COND> 
-:DEBUG @ 82954.8 :: running test:  #<TEST LOG :fn LOG-test4487 :args NIL :persist NIL {1008C90903}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST LOG :fn LOG-test3391 :args NIL :persist NIL {1004AEADA3}>
+
 #<PASS LOG> 
-:DEBUG @ 82954.8 :: running test:  #<TEST LIST :fn LIST-test4486 :args NIL :persist NIL {1008B672C3}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST LIST :fn LIST-test3390 :args NIL :persist NIL {1004AE9963}>
+
 #<PASS LIST> 
-:DEBUG @ 82954.8 :: running test:  #<TEST STR :fn STR-test4485 :args NIL :persist NIL {1008B65313}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST STR :fn STR-test3389 :args NIL :persist NIL {1004A6F993}>
+
 #<PASS STR> 
-:DEBUG @ 82954.8 :: running test:  #<TEST SYM :fn SYM-test4484 :args NIL :persist NIL {1008B63803}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST SYM :fn SYM-test3388 :args NIL :persist NIL {1004A6DE83}>
+
 #<PASS SYM> 
-:DEBUG @ 82954.8 :: running test:  #<TEST READTABLES :fn READTABLES-test4483 :args NIL :persist NIL {1008B61853}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST READTABLES :fn READTABLES-test3387 :args NIL :persist NIL {1004A6BED3}>
+
 #<PASS READTABLES> 
-:DEBUG @ 82954.8 :: running test:  #<TEST RT :fn RT-test4482 :args NIL :persist T {1008ACFD13}> 
+:DEBUG @ 6314.94    ; running test: 
+; #<TEST RT :fn RT-test3386 :args NIL :persist NIL {1004A69FB3}>
+
 #<PASS RT> 
 No tests failed.
 #+end_src

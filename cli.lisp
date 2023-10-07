@@ -65,7 +65,8 @@ evaluation of FORM."
 
 (defmacro with-cli (slots cli &body body)
   "Like with-slots with some extra bindings."
-  ;;  `(with-pandoric nil nil
+  ;; (with-gensyms (cli-body)
+  ;;  (let ((cli-body (mapcar (lambda (x) ()) cli-body)
   `(progn
      (init-args)
      (with-slots ,slots (parse-args ,cli *argv*)
@@ -200,17 +201,43 @@ Note that this macro does not export the defined function and requires
 (defun opt-prefix-eq (ch str)
   (char= (aref str 0) ch))
 
+(defun gen-thunk-ll (origin args)
+  (let ((a0 (list (symb '$a 0) origin)))
+    (group 
+     (nconc (loop for i from 1 for a in args nconc (list (symb '$a i) a)) a0 )
+     2)))
+
+;; TODO 2023-10-06: 
+;; (defmacro gen-cli-thunk (pvars &rest thunk)
+;;   "Generate and return a function based on THUNK suitable for the :thunk
+;; slot of cli objects with pandoric bindings PVARS.")
+
 ;;; Protocol
 (defgeneric push-cmd (cmd place))
+
 (defgeneric push-opt (opt place))
 
 (defgeneric pop-cmd (place))
+
 (defgeneric pop-opt (place))
+
 (defgeneric find-cmd (self name &optional active))
 
 (defgeneric find-opt (self name &optional active))
 
+(defgeneric active-cmds (self))
+
+(defgeneric active-opts (self &optional global))
+
 (defgeneric find-short-opt (self ch))
+
+(defgeneric call-opt (self &rest args))
+
+(defgeneric do-opt (self))
+
+(defgeneric call-cmd (self &rest args))
+
+(defgeneric apply-cmd (self arg &rest args))
 
 (defgeneric parse-args (self args &key &allow-other-keys)
   (:documentation "Parse list of strings ARGS using SELF.
@@ -219,7 +246,7 @@ A list of the same length as ARGS is returned containing 'cli-ast'
 objects: (OPT . (or char string)) (CMD . string) NIL"))
 
 (defgeneric do-cmd (self)
-  (:documentation "Run the command SELF."))
+  (:documentation "Run the command SELF with args parsed at runtime."))
 
 (defgeneric print-help (self &optional stream)
   (:documentation "Format cli SELF as a helpful string."))
@@ -246,14 +273,22 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
   ;; note that cli-opts can have a nil or unbound name slot
   ((name :initarg :name :initform (required-argument :name) :accessor cli-name :type string)
    (kind :initarg :kind :initform 'boolean :accessor cli-opt-kind)
+   (thunk :initarg :thunk :type lambda :accessor cli-thunk)
    (val :initarg :val :initform nil :accessor cli-val :type form)
    (global :initarg :global :initform nil :accessor global-opt-p :type boolean)
-   (description :initarg :description :accessor cli-description :type string))
+   (description :initarg :description :accessor cli-description :type string)
+   (lock :initarg :lock :accessor cli-lock-p :type boolean))
   (:documentation "CLI option"))
 
 (defmethod initialize-instance :after ((self cli-opt) &key)
   (with-slots (name) self
     (unless (stringp name) (setf name (format nil "~(~A~)" name)))
+    self))
+
+(defmethod install-thunk ((self cli-opt) (lambda function) &optional compile)
+  "Install THUNK into the corresponding slot in cli-cmd SELF."
+  (let ((%thunk (if compile (compile nil lambda) lambda)))
+    (setf (cli-thunk self) %thunk)
     self))
 
 (defmethod print-object ((self cli-opt) stream)
@@ -280,6 +315,12 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 	   (eql global bg)
 	   (eql kind bk)))))
 
+(defmethod call-opt ((self cli-opt) &rest args)
+  (apply (cli-thunk self) args))
+
+(defmethod do-opt ((self cli-opt))
+  (call-opt (cli-thunk self) (cli-val self)))
+
 (defclass cli-cmd ()
   ;; name slot is required and must be a string
   ((name :initarg :name :initform (required-argument :name) :accessor cli-name :type string)
@@ -290,7 +331,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
    (thunk :initarg :thunk :accessor cli-thunk :type lambda)
    (lock :initarg :lock :accessor cli-lock-p :type boolean)
    (description :initarg :description :accessor cli-description :type string)
-   (args :initform nil :initarg :args :type list :accessor cli-cmd-args))
+   (args :initform nil :initarg :args :accessor cli-cmd-args))
   (:documentation "CLI command"))
 
 (defmethod initialize-instance :after ((self cli-cmd) &key)
@@ -374,11 +415,31 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 
 (defmethod find-cmd ((self cli-cmd) name &optional active)
   (when-let ((c (find name (cli-cmds self) :key #'cli-name :test #'string=)))
-    (if active (when-let ((a (cli-cmd-args c))) a) c)))
+    (if active 
+	;; maybe issue warning here? report to user
+	(when (cli-lock-p c) c)
+	c)))
+
+(defmethod active-cmds ((self cli-cmd))
+  (remove-if-not #'cli-lock-p (cli-cmds self)))
+
 
 (defmethod find-opt ((self cli-cmd) name &optional active)
   (when-let ((o (find name (cli-opts self) :key #'cli-name :test #'string=)))
-    (if active (when-let ((v (cli-val o))) v) o)))
+    (if active 
+	(when (cli-lock-p o) o)
+	o)))
+
+(defun active-global-opt-p (opt)
+  "Return non-nil if OPT is active at runtime and global."
+  (when (and (cli-lock-p opt) (global-opt-p opt)) t))
+
+(defmethod active-opts ((self cli-cmd) &optional global)
+      (remove-if-not 
+       (if global 
+	   #'active-global-opt-p 
+	   #'cli-lock-p) 
+       (cli-cmds self)))
 
 (defmethod find-short-opt ((self cli-cmd) ch)
   (find ch (cli-opts self) :key #'cli-name :test #'opt-prefix-eq))
@@ -426,6 +487,9 @@ should be."
   (with-slots (cmds opts) self
     ;; we assume all nodes in the ast have been validated and the ast
     ;; itself is consumed. validation is performed in proc-args.
+
+    ;; before doing anything else we lock SELF, which should remain
+    ;; locked for the full runtime duration.
     (setf (cli-lock-p self) t)
     (loop named install
 	  for (node . tail) on (cli-ast-ast ast)
@@ -438,7 +502,8 @@ should be."
 		    (let ((name (cli-name form))
 			  (val (cli-val form)))
 		      (when-let ((o (find-opt self name)))
-			(setf (cli-val o) val))))
+			(setf (cli-val o) val
+			      (cli-lock-p o) t))))
 		   ;; when we encounter a command we recurse over the tail
 		   (cmd 
 		    (when-let ((cmd (find-cmd self (cli-name form))))
@@ -447,30 +512,13 @@ should be."
 		      (install-ast cmd (make-cli-ast tail))
 		      (return-from install)))
 		   (arg (push-arg form self)))))
-    (setf (cli-lock-p self) nil)
     (setf (cli-cmd-args self) (nreverse (cli-cmd-args self)))
     self))
 
-(defun gen-thunk-ll% (origin args)
-  (let ((a0 `(,(symb '$a 0) ,origin)))
-    (group 
-     (nconc a0 
-	    (loop for i from 1 for a in args nconc `(,(symb '$a i) ,a)))
-     2)))
-
-(defmacro gen-cli-thunk (origin args thunk)
-  "Generate a closure with ARGS lexically bound around THUNK
-Each arg introduces a new anaphor prefixed by $a based on the position
-in the list, starting from 1. We bind the command itself to $a0."
-  `(let ,(gen-thunk-ll% origin args)
-     ,thunk))
-
-(defmethod install-thunk ((self cli-cmd) thunk)
+(defmethod install-thunk ((self cli-cmd) (lambda function) &optional compile)
   "Install THUNK into the corresponding slot in cli-cmd SELF."
-  (let ((args (cli-cmd-args self)))
-    (setf (cli-thunk self)
-	  ;; always compiles
-	  (funcall (compile nil (lambda () (macroexpand `(gen-cli-thunk ,self ,args ,thunk))))))
+  (let ((%thunk (if compile (compile nil lambda) lambda)))
+    (setf (cli-thunk self) %thunk)
     self))
 
 (defmethod push-arg (arg (self cli-cmd))
@@ -487,11 +535,15 @@ COMPILE is t, in which case a list of strings is assumed."
 
 ;; warning: make sure to fill in the opt and cmd slots with values
 ;; from the top-level args before doing a command.
+(defmethod call-cmd ((self cli-cmd) &rest args)
+  ;; TODO 2023-09-12: handle args/env
+  (apply (cli-thunk self) args))
+
+(defmethod apply-cmd ((self cli-cmd) arg &rest args)
+  (apply (cli-thunk self) arg args))
+
 (defmethod do-cmd ((self cli-cmd))
-  (if (slot-boundp self 'thunk)
-      ;; TODO 2023-09-12: handle args/env
-      (funcall (eval (cli-thunk self)))
-      (error 'slot-unbound 'thunk)))
+  (call-cmd self (cli-cmd-args self)))
 
 (defclass cli (cli-cmd)
   ;; name slot defaults to *package*, must be string

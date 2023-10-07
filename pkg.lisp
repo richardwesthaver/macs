@@ -31,7 +31,8 @@
   (:nicknames :list)
   (:export
    #:ensure-car
-   #:ensure-cons))
+   #:ensure-cons
+   :let-binding-transform))
 
 (defpackage :macs.cond
   (:use :cl)
@@ -181,12 +182,16 @@
    :make-cli
    :make-opts
    :make-cmds
+   :active-opts
+   :active-cmds
    :proc-args
    :make-cli-node
    :make-cli-ast
    :proc-args
    :parse-args
-   :do-cmd
+   ;; :do-cmd
+   :call-cmd
+   :apply-cmd
    :print-help
    :print-version
    :print-usage
@@ -201,7 +206,7 @@
    :find-opt
    :find-short-opt
    :install-ast
-   :gen-cli-thunk
+   ;; :gen-cli-thunk
    :install-thunk
    :cli
    :cli-equal

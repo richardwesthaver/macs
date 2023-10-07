@@ -33,13 +33,16 @@
 (in-suite :macs)
 (in-readtable *macs-readtable*)
 
-(deftest rt (:bench 100 :profile t :persist t)
+(deftest rt (:bench 100 :profile t :persist nil)
   (is (typep (make-fixture-prototype :empty nil) 'fixture-prototype))
-  (is (typep (make-fixture tfix () () t) 'function))
-  (let ((fx1 (make-fixture fx1 () (a b c) (setq a 1 b 2 c 3))))
-    (funcall fx1)
-    (with-fixture (a b c) fx1 
-      (is (not (member 'nil (mapcar #'= (list 1 2 3) (list a b c)))))))
+  (with-fixture (fx (make-fixture ((a 1) (b 2)) 
+		      (:+ () (+ (incf a) (incf b)))
+		      (:- () (- (decf a) (decf b)))
+		      (t () 0)))
+    (is (= 5 (funcall fx :+)))
+    (is (= 7 (funcall fx :+)))
+    (is (= 5 (funcall fx :-)))
+    (is (= 0 (funcall fx))))
   (signals (error t) (test-form (make-instance 'test-result))))
 
 (deftest readtables ()
@@ -166,6 +169,7 @@
 (defparameter *cmds* (cli:make-cmds (:name "baz" :description "baz" :opts *opts*)))
 
 (defparameter *cli* (make-cli t :opts *opts* :cmds *cmds* :description "test cli"))
+
 (deftest cli ()
   "test MACS.CLI OOS."
   (let ((cli *cli*))
@@ -178,14 +182,10 @@
 		       (make-cli-node 'arg "fax")))))
     (is (parse-args cli '("--bar" "baz" "-f" "yaks")))
 
-    (unless *compile-tests*
-      (is (= 1 (funcall (gen-cli-thunk 1 nil (lambda () $a0)))))
-      (is (= 2 (funcall (gen-cli-thunk nil (2 3) (lambda () $a1)))))
-      (is (= 3 (funcall (gen-cli-thunk nil (2 3) (lambda () $a2)))))q
-      (let ((c1 (parse-args cli '("--foo" "boombap"))))
-	;; the form we pass in needs to be unevaluated - this is a function
-	(is (install-thunk c1 (lambda () $a0 'thunk-ok)))
-	(is (eql 'thunk-ok (do-cmd c1)))))
+    (let ((c1 (parse-args cli '("--foo" "boombap"))))
+      (is (install-thunk c1 (lambda (x y z) (* x y z))))
+      (is (= 8 (call-cmd c1 2 2 2)))
+      #| TODO (is (= 8 (do-cmd c1)) |#)
     (is (stringp
 	 (with-output-to-string (s)
 	   (print-version cli s)
