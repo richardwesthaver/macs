@@ -722,7 +722,7 @@ Example:
        ,else)))
 
 
-(defmacro defcmd (name &body body)
+(defmacro def! (name &body body)
   "`defun' without args."
   `(defun ,name () ,@body))
 

@@ -1,0 +1,2 @@
+;;; skel @ 2023-10-08.02:37:25 -*- mode: skel; -*-
+(:name "skel" :vc #S(skel::sk-vc-meta :kind :hg :remotes nil))

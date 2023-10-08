@@ -69,7 +69,7 @@ evaluation of FORM."
   ;;  (let ((cli-body (mapcar (lambda (x) ()) cli-body)
   `(progn
      (init-args)
-     (with-slots ,slots (parse-args ,cli *argv*)
+     (with-slots ,slots (parse-args ,cli *argv* :compile t)
        ,@body)))
 
 ;;; Prompts
@@ -129,16 +129,29 @@ of `~A-PROMPT-HISTORY'." var var)
 
 (defvar *default-cli-def* 'defparameter)
 
+(defmacro defcmd (name &body body)
+  `(defun ,name (&optional $args) 
+     (declare (ignorable $args))
+     ,@body))
+
+(defun walk-cli-slots (cli)
+  "Walk the plist CLI, performing actions as necessary based on the slot
+keys."
+  (loop for kv in (group cli 2)
+	when (eql :thunk (car kv))
+	  return (let ((th (cdr kv)))
+		   (setf th (if (symbolp th) (funcall (cdr kv)) (compile nil (cdr kv))))))
+	cli)
+
 (defmacro define-cli (name &body cli)
   "Define a symbol NAME bound to a top-level CLI object."
   (declare (type symbol name))
   (let ((len (length cli)))
-    `(let ((cli (if ,(evenp len) ',cli (butlast ',cli)))
-	   (body (when ,(oddp len) (car (last ',cli)))))
+    `(let ((cli (if (evenp ,len) (walk-cli-slots ',cli) (walk-cli-slots (butlast ',cli))))
+	   (body (when (oddp ,len) (lambda () (car (last ',cli))) #'default-thunk)))
        (progn
 	 (declaim (type cli ,name))
 	 (,*default-cli-def* ,name (apply #'make-cli t :thunk body cli))))))
-					     
 
 (defmacro defmain (ret &body body)
   "Define a main function in the current package which returns RET.
@@ -177,7 +190,7 @@ Note that this macro does not export the defined function and requires
 	    (string (make-cli :opt :name x))
 	    (list (apply #'make-cli :opt x))
 	    (t (make-cli :opt :name (format nil "~(~A~)" x) :global t))))
-       ',opts))
+	(walk-cli-slots ',opts)))
 
 (defmacro make-cmds (&body opts)
   `(map 'vector
@@ -186,7 +199,7 @@ Note that this macro does not export the defined function and requires
 	    (string (make-cli :cmd :name x))
 	    (list (apply #'make-cli :cmd x))
 	    (t (make-cli :cmd :name (format nil "~(~A~)" x)))))
-	',opts))
+	(walk-cli-slots ',opts)))
 
 (defun long-opt-p (str)
   (and (char= (aref str 0) (aref str 1) #\-)
@@ -233,7 +246,7 @@ Note that this macro does not export the defined function and requires
 
 (defgeneric find-short-opt (self ch))
 
-(defgeneric call-opt (self &rest args))
+(defgeneric call-opt (self arg))
 
 (defgeneric do-opt (self))
 
@@ -270,12 +283,14 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 
 (defgeneric cli-equal (a b))
 
+(defun default-thunk () (lambda ()))
+
 ;;; Objects
 (defclass cli-opt ()
   ;; note that cli-opts can have a nil or unbound name slot
   ((name :initarg :name :initform (required-argument :name) :accessor cli-name :type string)
    (kind :initarg :kind :initform 'boolean :accessor cli-opt-kind)
-   (thunk :initarg :thunk :type lambda :accessor cli-thunk)
+   (thunk :initform #'default-thunk :initarg :thunk :type function-lambda-expression :accessor cli-thunk)
    (val :initarg :val :initform nil :accessor cli-val :type form)
    (global :initarg :global :initform nil :accessor global-opt-p :type boolean)
    (description :initarg :description :accessor cli-description :type string)
@@ -283,8 +298,9 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
   (:documentation "CLI option"))
 
 (defmethod initialize-instance :after ((self cli-opt) &key)
-  (with-slots (name) self
+  (with-slots (name thunk) self
     (unless (stringp name) (setf name (format nil "~(~A~)" name)))
+    (when (symbolp thunk) (setf thunk (funcall (compile nil `(lambda () ,(symbol-function thunk))))))
     self))
 
 (defmethod install-thunk ((self cli-opt) (lambda function) &optional compile)
@@ -317,8 +333,8 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 	   (eql global bg)
 	   (eql kind bk)))))
 
-(defmethod call-opt ((self cli-opt) &rest args)
-  (apply (cli-thunk self) args))
+(defmethod call-opt ((self cli-opt) arg)
+  (funcall (compile nil (cli-thunk self)) arg))
 
 (defmethod do-opt ((self cli-opt))
   (call-opt self (cli-val self)))
@@ -330,17 +346,19 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 	 :accessor cli-opts :type (vector cli-opt))
    (cmds :initarg :cmds :initform (make-array 0 :element-type 'cli-cmd)
 	 :accessor cli-cmds :type (vector cli-cmd))
-   (thunk :initarg :thunk :accessor cli-thunk :type lambda)
+   (thunk :initform #'default-thunk :initarg :thunk :accessor cli-thunk :type function-lambda-expression)
    (lock :initform nil :initarg :lock :accessor cli-lock-p :type boolean)
    (description :initarg :description :accessor cli-description :type string)
    (args :initform nil :initarg :args :accessor cli-cmd-args))
   (:documentation "CLI command"))
 
 (defmethod initialize-instance :after ((self cli-cmd) &key)
-  (with-slots (name cmds opts) self
+  (with-slots (name cmds opts thunk) self
     (unless (stringp name) (setf name (format nil "~(~A~)" name)))
     (unless (vectorp cmds) (setf cmds (funcall (compile nil `(lambda () ,cmds)))))
     (unless (vectorp opts) (setf opts (funcall (compile nil `(lambda () ,opts)))))
+    (when (symbolp thunk) (setf thunk (funcall (compile nil `(lambda () ,(symbol-function thunk))))))
+    (unless (functionp thunk) (setf thunk (funcall thunk)))
     self))
 
 (defmethod print-object ((self cli-cmd) stream)
@@ -426,7 +444,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
   (remove-if-not #'cli-lock-p (cli-cmds self)))
 
 
-(defmethod find-opt ((self cli-opt) name &optional active)
+(defmethod find-opt ((self cli-cmd) name &optional active)
   (when-let ((o (find name (cli-opts self) :key #'cli-name :test #'string=)))
     (if active 
 	(when (cli-lock-p o) o)
@@ -436,7 +454,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
   "Return non-nil if OPT is active at runtime and global."
   (when (and (cli-lock-p opt) (global-opt-p opt)) t))
 
-(defmethod active-opts ((self cli-opt) &optional global)
+(defmethod active-opts ((self cli-cmd) &optional global)
   (remove-if-not 
    (if global 
        #'active-global-opt-p 
@@ -508,10 +526,10 @@ should be."
 			      (cli-lock-p o) t))))
 		   ;; when we encounter a command we recurse over the tail
 		   (cmd 
-		    (when-let ((cmd (find-cmd self (cli-name form))))
-		      (setf (cli-lock-p cmd) t)
+		    (when-let ((c (find-cmd self (cli-name form))))
+		      (setf (cli-lock-p c) t)
 		      ;; handle the rest of the AST
-		      (install-ast cmd (make-cli-ast tail))
+		      (install-ast c (make-cli-ast tail))
 		      (return-from install)))
 		   (arg (push-arg form self)))))
     (setf (cli-cmd-args self) (nreverse (cli-cmd-args self)))

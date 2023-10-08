@@ -108,7 +108,7 @@
    #:if-let
    #:if-let*
    :define-constant
-   :defcmd
+   :def!
    :eval-always
    :merge! :sort!
    :list-slot-values-using-class :list-class-methods :list-class-slots :list-indirect-slot-methods))
@@ -122,7 +122,7 @@
 (defpackage :macs.log
   (:use :cl :str :fmt :sym :fu)
   (:nicknames :log)
-  (:export :*log-level* :log-level-designator :log-timestamp-source :log! :warn! :info! :debug! :trace!))
+  (:export :*log-level* :log-level-designator :log-timestamp-source :log! :warn! :info! :debug! :trace! :debug-p))
 
 (defpackage :macs.ana
   (:use :cl :macs.readtables :macs.reexport :macs.fu)
@@ -173,6 +173,7 @@
    :global-opt-p
    :exec-path-list
    :argp
+   :$args
    :make-shorty
    :with-cli-handlers
    :completing-read
@@ -213,6 +214,7 @@
    :install-thunk
    :cli
    :cli-equal
+   :defcmd
    :define-cli
    ;; ast types
    :opt

@@ -66,11 +66,10 @@ function in which case it is used as the function value of
 ;; TODO 2023-08-31: single format control string
 (defun debug! (&rest args)
   (when (debug-p)
-    (format t ":DEBUG")
-    (when *log-timestamp*
-      (format t " @ ~A ~t  " (log-timestamp-source)))
+    (format t ":DEBUG~A~%"
+	    (if *log-timestamp*
+		(format nil " @ ~A ~t" (log-timestamp-source))
+	      ""))
     ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
-    (map nil (lambda (x) (format t "; ~X~%" x)) args)
-    (format t "~%"))
+    (map nil (lambda (x) (format t "; ~X~%" x)) args))
   args)
-
