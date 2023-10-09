@@ -28,6 +28,7 @@
    :exec-path-list
    :argp
    :$args
+   :$argc
    :make-shorty
    :with-cli-handlers
    :completing-read
@@ -202,7 +203,9 @@ of `~A-PROMPT-HISTORY'." var var)
 (defmacro defcmd (name &body body)
   `(defun ,name (&optional $args) 
      (declare (ignorable $args))
-     ,@body))
+     (let (($argc (length $args)))
+       (declare (ignorable $argc))
+       ,@body)))
 
 (defun walk-cli-slots (cli)
   "Walk the plist CLI, performing actions as necessary based on the slot
