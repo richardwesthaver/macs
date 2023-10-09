@@ -21,8 +21,7 @@
 		 (:file "thread")
 		 (:file "fs")
 		 (:file "ana")
-		 (:file "pan")
-		 (:file "cli")))
+		 (:file "pan")))
 	       (:file "macs" :depends-on ("src"))))
 
 (defsystem "macs/tests"

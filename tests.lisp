@@ -8,8 +8,8 @@
 (defpackage :macs.tests
   (:use
    :cl
-   :macs.readtables
-   :macs.reexport
+   :readtables
+   :reexport
    :macs.str
    :macs.fmt
    :macs.sym
@@ -23,16 +23,29 @@
    :macs.cli
    :macs.alien
    :macs.thread
-   :macs.rt)
+   :rt)
   (:export :run-tests))
 (in-package :macs.tests)
 
-(defsuite :macs)
-(defsuite :macs.readtables)
-(defsuite :macs.rt)
-(in-suite :macs)
 (in-readtable *macs-readtable*)
 
+;;; READTABLES
+(defsuite :readtables)
+(in-suite :readtables)
+(deftest readtables ()
+  "Test *macs-readtable* without cl-ppcre"
+  (is (typep #`(,a1 ,a1 ',a1 ,@a1) 'function))
+  (is (string= #"test "foo" "# "test \"foo\" "))
+  (is (string= #$test "1 2 3"$# "test \"1 2 3\"")))
+
+#+cl-ppcre
+(deftest ppcre-readtables (:persist t)
+  "Test *macs-readtable* with cl-ppcre"
+  (is (= 1 1)))
+
+;;; RT
+(defsuite :rt)
+(in-suite :rt)
 (deftest rt (:bench 100 :profile t :persist nil)
   (is (typep (make-fixture-prototype :empty nil) 'fixture-prototype))
   (with-fixture (fx (make-fixture ((a 1) (b 2)) 
@@ -45,16 +58,60 @@
     (is (= 0 (funcall fx))))
   (signals (error t) (test-form (make-instance 'test-result))))
 
-(deftest readtables ()
-  "Test *macs-readtable* without cl-ppcre"
-  (is (typep #`(,a1 ,a1 ',a1 ,@a1) 'function))
-  (is (string= #"test "foo" "# "test \"foo\" "))
-  (is (string= #$test "1 2 3"$# "test \"1 2 3\"")))
+;;; CLI
+;; WARNING bugs ahead
 
-#+cl-ppcre
-(deftest ppcre-readtables (:persist t)
-  "Test *macs-readtable* with cl-ppcre"
-  (is (= 1 1)))
+;; we should be able to call this from the body of the test, but we
+;; get an undefined-function error for 'MACS.RT::MAKE-PROMPT!'
+(defsuite :cli)
+(in-suite :cli)
+(unless *compile-tests*
+  (deftest cli-prompt ()
+    "Test MACS.CLI prompts"
+    (make-prompt! tpfoo "testing: ")
+    (defvar tcoll nil)
+    (defvar thist nil)
+    (let ((*standard-input* (make-string-input-stream 
+			     (format nil "~A~%~A~%" "foobar" "foobar"))))
+      ;; prompts 
+      (is (string= (tpfoo-prompt) "foobar"))
+      (is (string= "foobar"
+		   (cli:completing-read "nothing: " tcoll :history thist :default "foobar"))))))
+
+(defparameter *opts* (cli:make-opts (:name foo :global t :description "bar")
+			    (:name bar :description "foo")))
+
+(defparameter *cmd1* (make-cli :cmd :name "holla" :opts *opts* :description "cmd1 description"))
+(defparameter *cmd2* (make-cli :cmd :name "ayo" :cmds #(*cmd1*) :opts *opts* :description "cmd1 description"))
+(defparameter *cmds* (cli:make-cmds (:name "baz" :description "baz" :opts *opts*)))
+
+(defparameter *cli* (make-cli t :opts *opts* :cmds *cmds* :description "test cli"))
+
+(deftest cli ()
+  "test MACS.CLI OOS."
+  (let ((cli *cli*))
+    (is (eq (make-shorty "test") #\t))
+    (is (equalp (proc-args cli '("-f" "baz" "--bar" "fax")) ;; not eql
+		(make-cli-ast 
+		 (list (make-cli-node 'opt (find-short-opt cli #\f))
+		       (make-cli-node 'cmd (find-cmd cli "baz"))
+		       (make-cli-node 'opt (find-opt cli "bar"))
+		       (make-cli-node 'arg "fax")))))
+    (is (parse-args cli '("--bar" "baz" "-f" "yaks")))
+
+    (let ((c1 (parse-args cli '("--foo" "boombap"))))
+      (is (install-thunk c1 (lambda (&optional x y z) (when (and x y z) (* x y z)))))
+      (is (= 8 (call-cmd c1 2 2 2)))
+      (is (not (do-cmd c1))))
+    (is (stringp
+	 (with-output-to-string (s)
+	   (print-version cli s)
+	   (print-usage cli s)
+	   (print-help cli s))))))
+
+;;; MACS
+(defsuite :macs)
+(in-suite :macs)
 
 (deftest sym ()
   "Test MACS.SYM"
@@ -64,7 +121,7 @@
   (is (eq 'macs.tests::foo (format-symbol :macs.tests "~A" 'foo)))
   (is (eq (make-keyword 'fizz) :fizz)))
 
-;;; TODO
+;;;; TODO
 (deftest str ()
   "Test MACS.STR"
   (is (typep "test" 'string-designator))
@@ -143,51 +200,3 @@
       (is (= 0 (funcall p nil)))
       (is (= 1 (funcall p 1)))
       (is (= 1 b c)))))
-
-;; WARNING bugs ahead
-
-;; we should be able to call this from the body of the test, but we
-;; get an undefined-function error for 'MACS.RT::MAKE-PROMPT!'
-(unless *compile-tests*
-  (deftest cli-prompt ()
-    "Test MACS.CLI prompts"
-    (make-prompt! tpfoo "testing: ")
-    (defvar tcoll nil)
-    (defvar thist nil)
-    (let ((*standard-input* (make-string-input-stream 
-			     (format nil "~A~%~A~%" "foobar" "foobar"))))
-      ;; prompts 
-      (is (string= (tpfoo-prompt) "foobar"))
-      (is (string= "foobar"
-		   (cli:completing-read "nothing: " tcoll :history thist :default "foobar"))))))
-
-(defparameter *opts* (cli:make-opts (:name foo :global t :description "bar")
-			    (:name bar :description "foo")))
-
-(defparameter *cmd1* (make-cli :cmd :name "holla" :opts *opts* :description "cmd1 description"))
-(defparameter *cmd2* (make-cli :cmd :name "ayo" :cmds #(*cmd1*) :opts *opts* :description "cmd1 description"))
-(defparameter *cmds* (cli:make-cmds (:name "baz" :description "baz" :opts *opts*)))
-
-(defparameter *cli* (make-cli t :opts *opts* :cmds *cmds* :description "test cli"))
-
-(deftest cli ()
-  "test MACS.CLI OOS."
-  (let ((cli *cli*))
-    (is (eq (make-shorty "test") #\t))
-    (is (equalp (proc-args cli '("-f" "baz" "--bar" "fax")) ;; not eql
-		(make-cli-ast 
-		 (list (make-cli-node 'opt (find-short-opt cli #\f))
-		       (make-cli-node 'cmd (find-cmd cli "baz"))
-		       (make-cli-node 'opt (find-opt cli "bar"))
-		       (make-cli-node 'arg "fax")))))
-    (is (parse-args cli '("--bar" "baz" "-f" "yaks")))
-
-    (let ((c1 (parse-args cli '("--foo" "boombap"))))
-      (is (install-thunk c1 (lambda (&optional x y z) (when (and x y z) (* x y z)))))
-      (is (= 8 (call-cmd c1 2 2 2)))
-      (is (not (do-cmd c1))))
-    (is (stringp
-	 (with-output-to-string (s)
-	   (print-version cli s)
-	   (print-usage cli s)
-	   (print-help cli s))))))

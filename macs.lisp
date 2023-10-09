@@ -7,7 +7,6 @@
    :macs.str :macs.sym :macs.list :macs.cond
    :macs.fu
    :macs.ana :macs.pan
-   :macs.cli
    :macs.fs :macs.alien)
   (:export :*macs-version*))
 
@@ -16,7 +15,7 @@
 (defvar *macs-version* "0.1.0")
 (reexports :readtables :reexport
 	   :macs.str :macs.sym :macs.list :macs.cond :macs.fu :macs.ana 
-	   :macs.pan :macs.cli :macs.fs :macs.alien)
+	   :macs.pan :macs.fs :macs.alien)
 
 (defpackage :macs-user
   (:use :cl :macs))

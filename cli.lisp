@@ -12,11 +12,10 @@
 ;;   - output stream supports UTF-8
 
 ;;; Code:
-(defpackage :macs.cli
+(defpackage :cli
   (:use :cl :sym :cond :fu :str :ana :fmt :log)
   (:import-from :ana :alet)
   (:import-from :uiop :println)
-  (:nicknames :cli)
   (:shadowing-import-from :sb-ext :exit)
   (:export
    :*argv*
@@ -83,7 +82,7 @@
    :cli-version
    :cli-usage))
 
-(in-package :macs.cli)
+(in-package :cli)
 
 (defun cli-arg0 () (car sb-ext:*posix-argv*))
 (defun cli-args () (cdr sb-ext:*posix-argv*))
@@ -228,7 +227,7 @@ keys."
   "Define a main function in the current package which returns RET.
 
 Note that this macro does not export the defined function and requires
-`macs.cli:main' to be an external symbol."
+`cli:main' to be an external symbol."
   `(progn
      (declaim (type stream output))
      (defun main (&key (output *standard-output*))
