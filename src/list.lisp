@@ -2,7 +2,7 @@
 
 ;;; Code:
 (defpackage :macs.list
-  (:use :cl :macs.reexport)
+  (:use :cl :reexport)
   (:nicknames :list)
   (:export
    #:ensure-car

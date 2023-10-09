@@ -2,7 +2,7 @@
 
 ;;; Code:
 (defpackage :macs.fu
-  (:use :cl :sb-mop :sb-c :macs.readtables :macs.reexport :macs.sym :macs.list :macs.cond)
+  (:use :cl :sb-mop :sb-c :readtables :reexport :macs.sym :macs.list :macs.cond)
   (:nicknames :fu)
   (:export
    #:*macs-readtable*

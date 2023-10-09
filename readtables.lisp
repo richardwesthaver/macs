@@ -1,4 +1,4 @@
-;;; readtables.lisp --- macs.readtables
+;;; readtables.lisp --- readtables
 
 ;; The standard readtable is controlled by the Lisp implementation and
 ;; generally shouldn't be touched. There can be problems with
@@ -12,9 +12,8 @@
 ;; behavior (using standard) versus your source code (custom).
 
 ;;; Code:
-(defpackage :macs.readtables
+(defpackage :readtables
   (:use :cl)
-  (:nicknames :readtables)
   (:export
    #:defreadtable
    #:in-readtable
@@ -37,8 +36,8 @@
    #:readtable-does-not-exist
    #:parse-body))
 
-(in-package :macs.readtables)
-(pushnew :macs.readtables *features*)
+(in-package :readtables)
+(pushnew :readtables *features*)
 
 (defmacro without-package-lock ((&rest package-names) &body body)
   `(sb-ext:with-unlocked-packages (,@package-names) ,@body))

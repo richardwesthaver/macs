@@ -2,7 +2,7 @@
 
 ;;; Code:
 (defpackage :macs.alien
-  (:use :cl :macs.reexport :sb-vm :sb-alien :sb-ext :sb-c :macs.str :macs.sym :macs.fu)
+  (:use :cl :reexport :sb-vm :sb-alien :sb-ext :sb-c :macs.str :macs.sym :macs.fu)
   (:nicknames :alien)
   (:export
    :foreign-int-to-integer :foreign-int-to-bool :bool-to-foreign-int

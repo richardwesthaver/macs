@@ -8,35 +8,35 @@
 
 ;;; Code:
 (defpackage :macs.thread
-  (:use :cl :macs.reexport :macs.alien :sb-thread)
+  (:use :cl :reexport :macs.alien :sb-thread)
   (:nicknames :thread)
   (:export
    :print-thread-info :print-thread-message-top-level :thread-support-p))
 
 (in-package :macs.thread)
 
-(reexport-from :sb-thread
-	       :include '(:main-thread
-			  :*current-thread*
-			  :list-all-threads
-			  :thread
-			  :thread-alive-p
-			  :thread-name
-			  :thread-error
-			  :thread-yield
-			  :make-thread
-			  :join-thread
-			  :destroy-thread
-			  :interrupt-thread
-			  :semaphore
-			  :get-semaphore
-			  :make-semaphore
-			  :mutex
-			  :get-mutex
-			  :make-mutex
-			  :spinlock
-			  :get-spinlock
-			  :make-spinlock))
+;; (reexport-from :sb-thread
+;; 	       :include '(:main-thread
+;; 			  :*current-thread*
+;; 			  :list-all-threads
+;; 			  :thread
+;; 			  :thread-alive-p
+;; 			  :thread-name
+;; 			  :thread-error
+;; 			  :thread-yield
+;; 			  :make-thread
+;; 			  :join-thread
+;; 			  :destroy-thread
+;; 			  :interrupt-thread
+;; 			  :semaphore
+;; 			  :get-semaphore
+;; 			  :make-semaphore
+;; 			  :mutex
+;; 			  :get-mutex
+;; 			  :make-mutex
+;; 			  :spinlock
+;; 			  :get-spinlock
+;; 			  :make-spinlock))
 
 (defun thread-support-p () (member :thread-support *features*))
 

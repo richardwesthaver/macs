@@ -14,15 +14,15 @@
 		 (:file "sym")
 		 (:file "list")
 		 (:file "cond")
+		 (:file "fu")
 		 (:file "fmt")
 		 (:file "log")
+		 (:file "alien")
 		 (:file "thread")
 		 (:file "fs")
-		 (:file "fu")
 		 (:file "ana")
 		 (:file "pan")
-		 (:file "cli")
-		 (:file "alien")))
+		 (:file "cli")))
 	       (:file "macs" :depends-on ("src"))))
 
 (defsystem "macs/tests"

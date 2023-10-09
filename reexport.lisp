@@ -6,7 +6,6 @@
 ;;; Code:
 (defpackage :reexport
   (:use :cl)
-  (:nicknames :reexport)
   (:export :reexport-from :reexports))
 
 (in-package :reexport)

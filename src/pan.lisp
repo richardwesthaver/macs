@@ -2,7 +2,7 @@
 
 ;;; Code:
 (defpackage :macs.pan
-  (:use :cl :macs.readtables :macs.fu :macs.ana)
+  (:use :cl :readtables :macs.fu :macs.ana)
   (:nicknames :pan)
   (:export
    #:pandoriclet

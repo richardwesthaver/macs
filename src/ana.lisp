@@ -2,7 +2,7 @@
 
 ;;; Code:
 (defpackage :macs.ana
-  (:use :cl :macs.readtables :macs.reexport :macs.fu)
+  (:use :cl :readtables :reexport :macs.fu)
   (:nicknames :ana)
   (:export
    #:alambda
