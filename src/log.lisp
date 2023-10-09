@@ -17,6 +17,11 @@
 ;; for configuring logging. The DSL will be embedded in skelfiles.
 
 ;;; Code:
+(defpackage :macs.log
+  (:use :cl :str :fmt :sym :fu)
+  (:nicknames :log)
+  (:export :*log-level* :log-level-designator :log-timestamp-source :log! :warn! :info! :debug! :trace! :debug-p))
+
 (in-package :macs.log)
 
 (deftype log-level-designator () '(member :warn :debug :info :trace))

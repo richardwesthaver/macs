@@ -1,10 +1,8 @@
-;;; macs.lisp --- macs wrapper package
-
-;;; Code:
+;;; pkg.lisp --- macs packages
 (defpackage :macs
   (:use 
    :cl
-   :macs.readtables
+   :readtables
    :macs.reexport
    :macs.str :macs.sym :macs.list :macs.cond
    :macs.fu
@@ -22,4 +20,3 @@
 		  
 (defpackage :macs-user
   (:use :cl :macs))
-

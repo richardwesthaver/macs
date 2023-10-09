@@ -12,6 +12,77 @@
 ;;   - output stream supports UTF-8
 
 ;;; Code:
+(defpackage :macs.cli
+  (:use :cl :sym :cond :fu :str :ana :fmt :log)
+  (:import-from :ana :alet)
+  (:import-from :uiop :println)
+  (:nicknames :cli)
+  (:shadowing-import-from :sb-ext :exit)
+  (:export
+   :*argv*
+   :init-args
+   :cli-arg0
+   :cli-args
+   :command-line-args
+   :*cli-group-separator*
+   :global-opt-p
+   :exec-path-list
+   :argp
+   :$args
+   :make-shorty
+   :with-cli-handlers
+   :completing-read
+   :make-prompt!
+   :defmain
+   :main
+   :with-cli
+   :make-cli
+   :make-opts
+   :make-cmds
+   :active-opts
+   :active-cmds
+   :proc-args
+   :make-cli-node
+   :make-cli-ast
+   :proc-args
+   :parse-args
+   :do-cmd
+   :do-opt
+   :call-opt
+   :call-cmd
+   :apply-cmd
+   :print-help
+   :print-version
+   :print-usage
+   :handle-unknown-argument
+   :handle-missing-argument
+   :handle-invalid-argument
+   :cli-opt
+   :cli-val
+   :cli-cmd-args
+   :cli-cmd
+   :find-cmd
+   :find-opt
+   :find-short-opt
+   :install-ast
+   ;; :gen-cli-thunk
+   :install-thunk
+   :cli
+   :cli-equal
+   :defcmd
+   :define-cli
+   ;; ast types
+   :opt
+   :cmd
+   :arg
+   :cli-name
+   :cli-opts
+   :cli-cmds
+   :cli-thunk
+   :cli-description
+   :cli-version
+   :cli-usage))
+
 (in-package :macs.cli)
 
 (defun cli-arg0 () (car sb-ext:*posix-argv*))

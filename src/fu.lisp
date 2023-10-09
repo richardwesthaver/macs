@@ -1,6 +1,59 @@
 ;;; fu.lisp --- Function utilities
 
 ;;; Code:
+(defpackage :macs.fu
+  (:use :cl :sb-mop :sb-c :macs.readtables :macs.reexport :macs.sym :macs.list :macs.cond)
+  (:nicknames :fu)
+  (:export
+   #:*macs-readtable*
+   #:mkstr
+   #:symb
+   #:group
+   #:flatten
+   #:fact
+   #:choose
+   #:g!-symbol-p
+   #:defmacro/g!
+   #:o!-symbol-p
+   #:o!-symbol-to-g!-symbol
+   #:defmacro!
+   #:defun!
+   #:|#"-reader|
+   #:|#`-reader|
+   #:|#f-reader|
+   #:|#$-reader|
+   #:segment-reader
+   #:match-mode-ppcre-lambda-form
+   #:subst-mode-ppcre-lambda-form
+   #+cl-ppcre #:|#~-reader|
+   #:dlambda
+   #:make-tlist
+   #:tlist-left
+   #:tlist-right
+   #:tlist-empty-p
+   #:tlist-add-left
+   #:tlist-add-right
+   #:tlist-rem-left
+   #:tlist-update
+   #:build-batcher-sn
+   #:sortf
+   #:dollar-symbol-p
+   #:if-match
+   #:when-match
+   #:once-only
+   #:destructuring-case
+   #:destructuring-ccase
+   #:destructuring-ecase
+   #:when-let
+   #:when-let*
+   #:if-let
+   #:if-let*
+   :define-constant
+   :def!
+   :eval-always
+   :merge! :sort!
+   :list-slot-values-using-class :list-class-methods :list-class-slots :list-indirect-slot-methods))
+
 (in-package :macs.fu)  
 
 ;;; From LOL

@@ -1,10 +1,15 @@
-;;; reexport.lisp --- macs.reexport
+;;; reexport.lisp --- reexport
 
 ;; this is pulled directly from Masayuki Takagi's `cl-reexport':
 ;; https://github.com/takagi/cl-reexport/blob/master/src/cl-reexport.lisp
 
 ;;; Code:
-(in-package :macs.reexport)
+(defpackage :reexport
+  (:use :cl)
+  (:nicknames :reexport)
+  (:export :reexport-from :reexports))
+
+(in-package :reexport)
 
 ;;; internal
 (defun external-symbols (package)

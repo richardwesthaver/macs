@@ -1,7 +1,22 @@
 ;;; ana.lisp --- anaphoric macros
 
 ;;; Code:
+(defpackage :macs.ana
+  (:use :cl :macs.readtables :macs.reexport :macs.fu)
+  (:nicknames :ana)
+  (:export
+   #:alambda
+   #:nlet-tail
+   #:alet%
+   #:alet
+   #:acond2
+   #:it
+   #:aif
+   #:this
+   #:self))
+
 (in-package :macs.ana)
+
 (in-readtable *macs-readtable*)
 
 ;; Graham's alambda

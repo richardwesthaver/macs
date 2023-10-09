@@ -7,6 +7,12 @@
 ;; mostly yoinked from sb-thread and friends
 
 ;;; Code:
+(defpackage :macs.thread
+  (:use :cl :macs.reexport :macs.alien :sb-thread)
+  (:nicknames :thread)
+  (:export
+   :print-thread-info :print-thread-message-top-level :thread-support-p))
+
 (in-package :macs.thread)
 
 (reexport-from :sb-thread

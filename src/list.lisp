@@ -1,6 +1,14 @@
 ;;; list.lisp --- List utils
 
 ;;; Code:
+(defpackage :macs.list
+  (:use :cl :macs.reexport)
+  (:nicknames :list)
+  (:export
+   #:ensure-car
+   #:ensure-cons
+   :let-binding-transform))
+
 (in-package :macs.list)
 (reexport-from :sb-int
 	       :include '(:recons :memq :assq :ensure-list :proper-list-of-length-p :proper-list-p

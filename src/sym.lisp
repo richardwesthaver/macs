@@ -3,6 +3,20 @@
 ;; inspired by alexandria/symbols.lisp
 
 ;;; Code:
+(defpackage :macs.sym
+  (:use :cl :reexport :str :sb-int)
+  (:nicknames :sym)
+  (:export
+   #:ensure-symbol
+   #:format-symbol
+   #:make-keyword
+   #:make-slot-name
+   #:make-gensym
+   #:make-gensym-list
+   #:with-gensyms
+   #:with-unique-names
+   #:symbolicate))
+
 (in-package :macs.sym)
 
 (declaim (inline ensure-symbol))

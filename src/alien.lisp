@@ -1,6 +1,16 @@
 ;;; macs/alien.lisp --- foreign alien friends
 
 ;;; Code:
+(defpackage :macs.alien
+  (:use :cl :macs.reexport :sb-vm :sb-alien :sb-ext :sb-c :macs.str :macs.sym :macs.fu)
+  (:nicknames :alien)
+  (:export
+   :foreign-int-to-integer :foreign-int-to-bool :bool-to-foreign-int
+   :defbytes
+   :u1 :u2 :u3 :u4 :u8 :u16 :u24 :u32 :u64 :u128
+   :i2 :i3 :i4 :i8 :i16 :i24 :i32 :i64 :i128
+   :f16 :f24 :f32 :f64 :f128))
+
 (in-package :macs.alien)
 
 (reexport-from :sb-vm

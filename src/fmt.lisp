@@ -1,6 +1,12 @@
 ;;; fmt.lisp --- printer and format utils
 
 ;;; Code:
+(defpackage :macs.fmt
+  (:use :cl :reexport :str :fu :list)
+  (:import-from :uiop :println)
+  (:nicknames :fmt)
+  (:export :printer-status :fmt-row :fmt-sxhash :iprintln :fmt-tree))
+
 (in-package :macs.fmt)
 
 (defun iprintln (x &optional (n 2) stream)

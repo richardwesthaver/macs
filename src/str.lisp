@@ -1,6 +1,13 @@
 ;;; str.lisp --- String utilities
 
 ;;; Code:
+(defpackage :macs.str
+  (:use :cl :uiop/driver)
+  (:nicknames :str)
+  (:import-from :macs.reexport :reexports)
+  (:export
+   #:string-designator))
+
 (in-package :macs.str)
 
 (deftype string-designator ()

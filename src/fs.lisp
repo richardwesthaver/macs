@@ -8,4 +8,9 @@
 ;; something. oldie but goodie for reference.
 
 ;;; Code:
+(defpackage :macs.fs
+  (:use :cl :macs.str :macs.cond :macs.fu)
+  (:nicknames :fs)
+  (:export))
+
 (in-package :macs.fs)

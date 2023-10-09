@@ -1,6 +1,20 @@
 ;;; pan.lisp --- Pandoric macros
 
 ;;; Code:
+(defpackage :macs.pan
+  (:use :cl :macs.readtables :macs.fu :macs.ana)
+  (:nicknames :pan)
+  (:export
+   #:pandoriclet
+   #:pandoriclet-get
+   #:pandoriclet-set
+   #:get-pandoric
+   #:with-pandoric
+   #:pandoric-hotpatch
+   #:pandoric-recode
+   #:plambda
+   #:pandoric-eval))
+
 (in-package :macs.pan)
 (in-readtable *macs-readtable*)
 
