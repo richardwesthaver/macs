@@ -24,6 +24,7 @@
    :cli-args
    :command-line-args
    :*cli-group-separator*
+   :*cli-opt-kinds*
    :global-opt-p
    :exec-path-list
    :argp
@@ -37,6 +38,7 @@
    :main
    :with-cli
    :make-cli
+   :make-opt-parser
    :make-opts
    :make-cmds
    :active-opts
@@ -358,11 +360,28 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 
 (defun default-thunk () (lambda ()))
 
+(defvar *cli-opt-kinds* '(boolean string list symbol keyword number file))
+
+(defun cli-opt-kind-p (s)
+  (declare (type symbol s))
+  (find s *cli-opt-kinds*))
+
+(defmacro make-opt-parser (kind-spec &body forms) ;; & thunk?
+  "Return a cli-opt-parser function based on KIND-SPEC which is either a
+symbol from *cli-opt-kinds* or a list, and optional FORMS which
+is a list of handlers for the opt-val."
+  (let ((kind (if (consp kind-spec) (car kind-spec) kind-spec))
+	(super (when (consp kind-spec) (cdr kind-spec))))
+    `(defun ,(symb kind '-opt-parser) (val)
+       ,@(when super `(funcall ,(symb super '-opt-parser)))
+       ;; do stuff
+       ,@forms)))
+
 ;;; Objects
 (defclass cli-opt ()
   ;; note that cli-opts can have a nil or unbound name slot
   ((name :initarg :name :initform (required-argument :name) :accessor cli-name :type string)
-   (kind :initarg :kind :initform 'boolean :accessor cli-opt-kind)
+   (kind :initarg :kind :initform 'boolean :accessor cli-opt-kind :type cli-opt-kind-p)
    (thunk :initform #'default-thunk :initarg :thunk :type function-lambda-expression :accessor cli-thunk)
    (val :initarg :val :initform nil :accessor cli-val :type form)
    (global :initarg :global :initform nil :accessor global-opt-p :type boolean)
