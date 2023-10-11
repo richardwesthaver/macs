@@ -5,6 +5,7 @@
   (:use :cl :reexport :sb-vm :sb-alien :sb-ext :sb-c :macs.str :macs.sym :macs.fu)
   (:nicknames :alien)
   (:export
+   :copy-c-string
    :foreign-int-to-integer :foreign-int-to-bool :bool-to-foreign-int
    :defbytes
    :u1 :u2 :u3 :u4 :u8 :u16 :u24 :u32 :u64 :u128
@@ -17,6 +18,14 @@
 	       :include
 	       '(:with-pinned-objects :with-pinned-object-iterator :with-code-pages-pinned
 		 :sanctify-for-execution))
+
+(defun copy-c-string (src dest &aux (index 0))
+  (loop (let ((b (sb-sys:sap-ref-8 src index)))
+          (when (= b 0)
+            (setf (fill-pointer dest) index)
+            (return))
+          (setf (char dest index) (code-char b))
+          (incf index))))
 
 (defun foreign-int-to-integer (buffer size)
   "Check SIZE of int BUFFER. return BUFFER."
