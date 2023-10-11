@@ -222,8 +222,8 @@ keys."
   "Define a symbol NAME bound to a top-level CLI object."
   (declare (type symbol name))
   (let ((len (length cli)))
-    `(let ((cli (if (evenp ,len) (walk-cli-slots ',cli) (walk-cli-slots (butlast ',cli))))
-	   (body (when (oddp ,len) (lambda () (car (last ',cli))) #'default-thunk)))
+    `(let ((cli (if ,(evenp len) (walk-cli-slots ',cli) (walk-cli-slots (butlast ',cli))))
+	   (body (if ,(oddp len) (lambda () ',(last cli)) (lambda () (print-help ,name)))))
        (progn
 	 (declaim (type cli ,name))
 	 (,*default-cli-def* ,name (apply #'make-cli t :thunk body cli))))))
@@ -358,7 +358,7 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 
 (defgeneric cli-equal (a b))
 
-(defun default-thunk () (lambda ()))
+(defun default-thunk (cli) (lambda (x) (declare (ignore x)) (print-help cli)))
 
 (defvar *cli-opt-kinds* '(boolean string list symbol keyword number file))
 
