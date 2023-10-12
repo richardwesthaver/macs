@@ -68,16 +68,18 @@ string as the argument."
               (string name))))
 
 (sb-ext:with-unlocked-packages (:sb-int)
-  (defun make-gensym-list (length &optional (x "G"))
-    "Returns a list of LENGTH gensyms, each generated as if with a call to
+  (handler-bind
+      ((sb-kernel:redefinition-warning #'muffle-warning))
+    (defun make-gensym-list (length &optional (x "G"))
+      "Returns a list of LENGTH gensyms, each generated as if with a call to
 MAKE-GENSYM, using the second (optional, defaulting to \"G\")
 argument. This function is implemented in SBCL
 src/code/primordial-extensions.lisp but re-implemented here. The only
 difference is that we also handle non-zero integers, which can be
 passed as the first argument to `gensym'."
-    (let ((g (if (typep x '(integer 0)) x (string x))))
-      (loop repeat length
-            collect (gensym g)))))
+      (let ((g (if (typep x '(integer 0)) x (string x))))
+	(loop repeat length
+              collect (gensym g))))))
   
 ;;; alexandria/macros.lisp
 (reexport-from :sb-int

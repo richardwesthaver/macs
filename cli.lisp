@@ -48,6 +48,7 @@
    :make-cli-ast
    :proc-args
    :parse-args
+   :debug-opts
    :do-cmd
    :do-opt
    :call-opt
@@ -63,6 +64,7 @@
    :cli-val
    :cli-cmd-args
    :cli-cmd
+   :cli-cwd
    :find-cmd
    :find-opt
    :find-short-opt
@@ -142,10 +144,12 @@ evaluation of FORM."
   ;;  (let ((cli-body (mapcar (lambda (x) ()) cli-body)
   `(progn
      (init-args)
+     (setf (cli-cwd ,cli) (sb-posix:getcwd))
      (with-slots ,slots (parse-args ,cli *argv* :compile t)
        ,@body)))
 
 ;;; Prompts
+(declaim (inline completing-read))
 (defun completing-read (prompt collection
 			&key (history nil) (default nil)
 			(key nil) (test nil))
@@ -163,6 +167,8 @@ simulate one by embedding a DSL in our prompters if we choose. For
 example, perhaps we treat a single '?' character as a request from the
 user to list valid options while continue waiting for input."
   (princ prompt)
+  ;; ensure we empty internal buffer
+  (finish-output)
   (let* ((coll (symbol-value collection))
 	 (r (if coll
 		(find (read-line) coll :key key :test test)
@@ -209,24 +215,20 @@ of `~A-PROMPT-HISTORY'." var var)
        (declare (ignorable $argc))
        ,@body)))
 
+(declaim (inline walk-cli-slots))
 (defun walk-cli-slots (cli)
   "Walk the plist CLI, performing actions as necessary based on the slot
 keys."
   (loop for kv in (group cli 2)
 	when (eql :thunk (car kv))
 	  return (let ((th (cdr kv)))
-		   (setf th (if (symbolp th) (funcall (cdr kv)) (compile nil (cdr kv))))))
+		   (if (or (functionp th) (symbolp th)) (funcall th) (compile nil th))))
 	cli)
 
-(defmacro define-cli (name &body cli)
+(defmacro define-cli (name &body body)
   "Define a symbol NAME bound to a top-level CLI object."
   (declare (type symbol name))
-  (let ((len (length cli)))
-    `(let ((cli (if ,(evenp len) (walk-cli-slots ',cli) (walk-cli-slots (butlast ',cli))))
-	   (body (if ,(oddp len) (lambda () ',(last cli)) (lambda () (print-help ,name)))))
-       (progn
-	 (declaim (type cli ,name))
-	 (,*default-cli-def* ,name (apply #'make-cli t :thunk body cli))))))
+      `(,*default-cli-def* ,name (apply #'make-cli t (walk-cli-slots ',body))))
 
 (defmacro defmain (ret &body body)
   "Define a main function in the current package which returns RET.
@@ -660,7 +662,10 @@ COMPILE is t, in which case a list of strings is assumed."
 (defclass cli (cli-cmd)
   ;; name slot defaults to *package*, must be string
   ((name :initarg :name :initform (string-downcase (package-name *package*)) :accessor cli-name :type string)
-   (version :initarg :version :initform "0.1.0" :accessor cli-version :type string))
+   (version :initarg :version :initform "0.1.0" :accessor cli-version :type string)
+   ;; TODO 2023-10-11: look into pushd popd - wd-stack?
+   (cwd :initarg :cwd :initform (sb-posix:getcwd) :type string :accessor cli-cwd
+	:documentation "working directory of the top-level CLI."))
   (:documentation "CLI"))
 
 (defmethod print-usage ((self cli) &optional stream)
@@ -699,5 +704,26 @@ class and is used as a specialized EQL for DEFINE-CONSTANT."
   "Parse list of string arguments ARGS and return the updated object SELF."
   (with-slots (opts cmds) self
     (let ((args (if compile (proc-args self args) args)))
-      (debug! args)
       (install-ast self args))))
+
+(declaim (inline debug-opts))
+(defun debug-opts (cli)
+  (let ((o (active-opts cli))
+	(a (cli-cmd-args cli))
+	(c (active-cmds cli)))
+    (debug! (cli-cwd cli) o a c)))
+
+(declaim (inline solop))
+(defun solop (self)
+  (and (= 0 (length (active-opts self t)) (length (active-cmds self)))))
+
+(defmethod do-cmd :around ((self cli))
+  (if (solop self)
+      (call-next-method)
+      (progn
+	(loop for o across (active-opts self t)
+	      do (do-opt o))
+	(loop for c across (active-cmds self)
+	      do (do-cmd c)))))
+
+  
