@@ -5,6 +5,7 @@
   (:use :cl :sb-mop :sb-c :readtables :reexport :macs.sym :macs.list :macs.cond)
   (:nicknames :fu)
   (:export
+   :until
    #:*macs-readtable*
    #:mkstr
    #:symb
@@ -55,6 +56,15 @@
    :list-slot-values-using-class :list-class-methods :list-class-slots :list-indirect-slot-methods))
 
 (in-package :macs.fu)  
+
+;;; Misc
+(defmacro until (condition &body body)
+  (let ((block-name (gensym)))
+    `(block ,block-name
+       (loop
+	 (if ,condition
+	     (return-from ,block-name nil)
+	     (progn ,@body))))))
 
 ;;; From LOL
 

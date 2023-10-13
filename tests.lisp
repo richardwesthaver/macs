@@ -10,6 +10,7 @@
    :cl
    :readtables
    :reexport
+   :cli
    :macs.str
    :macs.fmt
    :macs.sym
@@ -20,7 +21,6 @@
    :macs.ana
    :macs.pan
    :macs.fs
-   :macs.cli
    :macs.alien
    :macs.thread
    :rt)
@@ -98,16 +98,13 @@
 		       (make-cli-node 'opt (find-opt cli "bar"))
 		       (make-cli-node 'arg "fax")))))
     (is (parse-args cli '("--bar" "baz" "-f" "yaks")))
-
-    (let ((c1 (parse-args cli '("--foo" "boombap"))))
-      (is (install-thunk c1 (lambda (&optional x y z) (when (and x y z) (* x y z)))))
-      (is (= 8 (call-cmd c1 2 2 2)))
-      (is (not (do-cmd c1))))
     (is (stringp
 	 (with-output-to-string (s)
 	   (print-version cli s)
 	   (print-usage cli s)
-	   (print-help cli s))))))
+	   (print-help cli s))))
+    (is (string= "foobar" (parse-str-opt "foobar")))))
+
 
 ;;; MACS
 (defsuite :macs)

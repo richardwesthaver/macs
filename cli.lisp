@@ -16,6 +16,8 @@
   (:use :cl :sym :cond :fu :str :ana :fmt :log)
   (:import-from :ana :alet)
   (:import-from :uiop :println)
+  (:import-from :sb-posix :filename-designator)
+  (:import-from :sb-ext :parse-native-namestring)
   (:shadowing-import-from :sb-ext :exit)
   (:export
    :*argv*
@@ -30,6 +32,8 @@
    :argp
    :$args
    :$argc
+   :$opts
+   :$optc
    :make-shorty
    :with-cli-handlers
    :completing-read
@@ -38,7 +42,18 @@
    :main
    :with-cli
    :make-cli
+   ;; opt-parsers
    :make-opt-parser
+   :parse-bool-opt
+   :parse-str-opt
+   :parse-form-opt
+   :parse-list-opt
+   :parse-sym-opt
+   :parse-key-opt
+   :parse-num-opt
+   :parse-str-opt
+   :parse-file-opt
+   :parse-dir-opt
    :make-opts
    :make-cmds
    :active-opts
@@ -209,10 +224,11 @@ of `~A-PROMPT-HISTORY'." var var)
 (defvar *default-cli-def* 'defparameter)
 
 (defmacro defcmd (name &body body)
-  `(defun ,name (&optional $args) 
-     (declare (ignorable $args))
-     (let (($argc (length $args)))
-       (declare (ignorable $argc))
+  `(defun ,name ($args $opts) 
+     (declare (ignorable $args $opts))
+     (let (($argc (length $args))
+	   ($optc (length $opts)))
+       (declare (ignorable $argc $optc))
        ,@body)))
 
 (declaim (inline walk-cli-slots))
@@ -222,7 +238,7 @@ keys."
   (loop for kv in (group cli 2)
 	when (eql :thunk (car kv))
 	  return (let ((th (cdr kv)))
-		   (if (or (functionp th) (symbolp th)) (funcall th) (compile nil th))))
+		   (if (or (functionp th) (symbolp th)) (funcall th) (compile nil (lambda () th)))))
 	cli)
 
 (defmacro define-cli (name &body body)
@@ -327,9 +343,7 @@ Note that this macro does not export the defined function and requires
 
 (defgeneric do-opt (self))
 
-(defgeneric call-cmd (self &rest args))
-
-(defgeneric apply-cmd (self arg &rest args))
+(defgeneric call-cmd (self args opts))
 
 (defgeneric parse-args (self args &key &allow-other-keys)
   (:documentation "Parse list of strings ARGS using SELF.
@@ -362,22 +376,47 @@ objects: (OPT . (or char string)) (CMD . string) NIL"))
 
 (defun default-thunk (cli) (lambda (x) (declare (ignore x)) (print-help cli)))
 
-(defvar *cli-opt-kinds* '(boolean string list symbol keyword number file))
+(defvar *cli-opt-kinds* '(bool str form list sym key num file dir))
 
 (defun cli-opt-kind-p (s)
   (declare (type symbol s))
   (find s *cli-opt-kinds*))
 
-(defmacro make-opt-parser (kind-spec &body forms) ;; & thunk?
-  "Return a cli-opt-parser function based on KIND-SPEC which is either a
-symbol from *cli-opt-kinds* or a list, and optional FORMS which
+(defmacro make-opt-parser (kind-spec &body body)
+  "Return a KIND-opt-parser function based on KIND-SPEC which is either a
+symbol from *cli-opt-kinds* or a list, and optional BODY which
 is a list of handlers for the opt-val."
-  (let ((kind (if (consp kind-spec) (car kind-spec) kind-spec))
-	(super (when (consp kind-spec) (cdr kind-spec))))
-    `(defun ,(symb kind '-opt-parser) (val)
-       ,@(when super `(funcall ,(symb super '-opt-parser)))
-       ;; do stuff
-       ,@forms)))
+  (let* ((kind (if (consp kind-spec) (car kind-spec) kind-spec))
+	 (super (when (consp kind-spec) (cadr kind-spec)))
+	 (fn-name (symb 'parse- kind '-opt)))
+    ;; thread em
+    (let ((fn1 (when (not (eql 'nil super)) (symb 'parse- super '-opt))))
+      `(progn
+	 (defun ,fn-name ($val)
+	   "Parse the cli-opt-val $VAL."
+	   ;; do stuff
+	   (when (not (eql ',fn1 'nil)) (setq $val (funcall ',fn1 $val)))
+	   ,@body)))))
+
+(make-opt-parser bool $val)
+
+(make-opt-parser (str bool) (when (stringp $val) $val))
+
+(make-opt-parser (form str) (read-from-string $val))
+
+(make-opt-parser (list form) (when (listp $val) $val))
+
+(make-opt-parser (sym form) (when (symbolp $val) $val))
+
+(make-opt-parser (key form) (when (keywordp $val) $val))
+
+(make-opt-parser (num form) (when (numberp $val) $val))
+
+(make-opt-parser (file str) 
+  (when $val (parse-native-namestring $val nil *default-pathname-defaults* :as-directory nil)))
+
+(make-opt-parser (dir str) 
+  (when $val (sb-ext:parse-native-namestring $val nil *default-pathname-defaults* :as-directory t)))
 
 ;;; Objects
 (defclass cli-opt ()
@@ -390,6 +429,10 @@ is a list of handlers for the opt-val."
    (description :initarg :description :accessor cli-description :type string)
    (lock :initform nil :initarg :lock :accessor cli-lock-p :type boolean))
   (:documentation "CLI option"))
+
+(defmethod handle-unknown-argument ((self cli-opt) arg))
+(defmethod handle-missing-argument ((self cli-opt) arg))
+(defmethod handle-invalid-argument ((self cli-opt) arg))
 
 (defmethod initialize-instance :after ((self cli-opt) &key)
   (with-slots (name thunk) self
@@ -451,8 +494,7 @@ is a list of handlers for the opt-val."
     (unless (stringp name) (setf name (format nil "~(~A~)" name)))
     (unless (vectorp cmds) (setf cmds (funcall (compile nil `(lambda () ,cmds)))))
     (unless (vectorp opts) (setf opts (funcall (compile nil `(lambda () ,opts)))))
-    (when (symbolp thunk) (setf thunk (funcall (compile nil `(lambda () ,(symbol-function thunk))))))
-    (unless (functionp thunk) (setf thunk (funcall thunk)))
+    (when (symbolp thunk) (setf thunk (symbol-function thunk)))
     self))
 
 (defmethod print-object ((self cli-cmd) stream)
@@ -645,19 +687,16 @@ ARGS is assumed to be a valid cli-ast (list of cli-nodes), unless
 COMPILE is t, in which case a list of strings is assumed."
   (with-slots (opts cmds) self
     (let ((args (if compile (proc-args self args) args)))
-      (install-ast self args))))
+      (print (install-ast self args)))))
 
 ;; warning: make sure to fill in the opt and cmd slots with values
 ;; from the top-level args before doing a command.
-(defmethod call-cmd ((self cli-cmd) &rest args)
+(defmethod call-cmd ((self cli-cmd) args opts)
   ;; TODO 2023-09-12: handle args/env
-  (apply (cli-thunk self) args))
-
-(defmethod apply-cmd ((self cli-cmd) arg &rest args)
-  (apply (cli-thunk self) arg args))
+  (funcall (cli-thunk self) args opts))
 
 (defmethod do-cmd ((self cli-cmd))
-  (call-cmd self (cli-cmd-args self)))
+  (call-cmd self (cli-cmd-args self) (cli-opts self)))
 
 (defclass cli (cli-cmd)
   ;; name slot defaults to *package*, must be string
@@ -717,9 +756,9 @@ class and is used as a specialized EQL for DEFINE-CONSTANT."
 (defun solop (self)
   (and (= 0 (length (active-opts self t)) (length (active-cmds self)))))
 
-(defmethod do-cmd :around ((self cli))
+(defmethod do-cmd ((self cli))
   (if (solop self)
-      (call-next-method)
+      (call-cmd self (cli-cmd-args self) (cli-opts self))
       (progn
 	(loop for o across (active-opts self t)
 	      do (do-opt o))
