@@ -1,10 +1,8 @@
-(defsystem "reexport"
+(defsystem "pkg"
   :version "0.1.0"
   :author "ellis <ellis@rwest.io>"
-  :maintainer "ellis <ellis@rwest.io>"
-  :description "cl-reexport clone"
+  :description "home of the 'defpkg' defpackage extensions"
   :bug-tracker "https://lab.rwest.io/ellis/macs/issues"
   :source-control (:hg "https://lab.rwest.io/ellis/macs")
-  :depends-on (:pkg)
   :in-order-to ((test-op (test-op "macs/tests")))
-  :components ((:file "reexport")))
+  :components ((:file "pkg")))

@@ -3,7 +3,7 @@
 ;; inspired by alexandria/symbols.lisp
 
 ;;; Code:
-(defpackage :macs.sym
+(pkg:defpkg :macs.sym
   (:use :cl :reexport :str :sb-int)
   (:nicknames :sym)
   (:export
@@ -18,6 +18,14 @@
    #:symbolicate))
 
 (in-package :macs.sym)
+
+;;; alexandria/macros.lisp
+(reexport-from :sb-int
+	       :include '(:with-unique-names :symbolicate :package-symbolicate :keywordicate :gensymify*))
+;; On SBCL, `with-unique-names' is defined under
+;; src/code/primordial-extensions.lisp. We use that instead of
+;; defining our own.
+(setf (macro-function 'with-gensyms) (macro-function 'with-unique-names))
 
 (declaim (inline ensure-symbol))
 (defun ensure-symbol (name &optional (package *package*))
@@ -80,11 +88,3 @@ passed as the first argument to `gensym'."
       (let ((g (if (typep x '(integer 0)) x (string x))))
 	(loop repeat length
               collect (gensym g))))))
-  
-;;; alexandria/macros.lisp
-(reexport-from :sb-int
-	       :include '(:with-unique-names :symbolicate :package-symbolicate :keywordicate :gensymify*))
-;; On SBCL, `with-unique-names' is defined under
-;; src/code/primordial-extensions.lisp. We use that instead of
-;; defining our own.
-(setf (macro-function 'with-gensyms) (macro-function 'with-unique-names))

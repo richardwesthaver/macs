@@ -4,7 +4,7 @@
 ;; https://github.com/takagi/cl-reexport/blob/master/src/cl-reexport.lisp
 
 ;;; Code:
-(defpackage :reexport
+(pkg:defpkg :reexport
   (:use :cl)
   (:export :reexport-from :reexports))
 

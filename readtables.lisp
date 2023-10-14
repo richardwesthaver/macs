@@ -12,7 +12,7 @@
 ;; behavior (using standard) versus your source code (custom).
 
 ;;; Code:
-(defpackage :readtables
+(pkg:defpkg :readtables
   (:use :cl)
   (:export
    #:defreadtable
@@ -1106,3 +1106,5 @@ Signals a PROGRAM-ERROR is the lambda-list is malformed."
 	  ((eq readtable *standard-readtable*) :common-lisp)
           ((eq readtable *case-preserving-standard-readtable*) :modern)
 	  (t nil))))
+
+(provide :readtables)

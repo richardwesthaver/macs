@@ -1,4 +1,4 @@
-;;; rt.lisp --- macs.rt
+;;; rt.lisp --- regression testing
 
 ;; Regression Testing framework. inspired by PCL, the original CMUCL
 ;; code, and the SBCL port.
@@ -31,7 +31,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require 'sb-sprof))
 
-(defpackage :macs.rt
+(pkg:defpkg :rt
   (:use
    :cl :sxp
    :sym :list :cond :readtables :fu :fmt :log :ana :pan :sb-aprof
@@ -90,7 +90,7 @@
    :test-form
    :test-results))
 
-(in-package :macs.rt)
+(in-package :rt)
 (in-readtable *macs-readtable*)
 
 ;;; Vars
@@ -661,3 +661,5 @@ enabled using the `in-suite' macro, similiar to the `defpackage' API."
 NAME. Return the `test-suite'."
   (assert-suite name)
   `(setf *test-suite* (ensure-suite ',name)))
+
+(provide :rt)

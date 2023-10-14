@@ -11,8 +11,14 @@
 ;;   - running in a POSIX-compliant shell
 ;;   - output stream supports UTF-8
 
+;; TODO 2023-10-14: install-ast, install-thunk, proc-args, etc should
+;; return IR types - CLI-IR THUNK and CLI-IR respectively.
+
+;; TODO 2023-10-14: rename cli-ast to cli-ir, install-ast to
+;; install-ir, etc.
+
 ;;; Code:
-(defpackage :cli
+(pkg:defpkg :cli
   (:use :cl :sym :cond :fu :str :ana :fmt :log)
   (:import-from :ana :alet)
   (:import-from :uiop :println)
@@ -772,4 +778,4 @@ class and is used as a specialized EQL for DEFINE-CONSTANT."
 	(loop for c across (active-cmds self)
 	      do (do-cmd c)))))
 
-  
+(provide :cli)
