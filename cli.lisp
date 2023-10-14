@@ -30,6 +30,7 @@
    :global-opt-p
    :exec-path-list
    :argp
+   :$val
    :$args
    :$argc
    :$opts
@@ -88,6 +89,7 @@
    :install-thunk
    :cli
    :cli-equal
+   :defopt
    :defcmd
    :define-cli
    ;; ast types
@@ -230,6 +232,11 @@ of `~A-PROMPT-HISTORY'." var var)
 	   ($optc (length $opts)))
        (declare (ignorable $argc $optc))
        ,@body)))
+
+(defmacro defopt (name &body body)
+  `(defun ,name ($val)
+     (declare (ignorable $val))
+     ,@body))
 
 (declaim (inline walk-cli-slots))
 (defun walk-cli-slots (cli)

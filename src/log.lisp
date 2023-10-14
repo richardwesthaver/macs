@@ -20,7 +20,9 @@
 (defpackage :macs.log
   (:use :cl :str :fmt :sym :fu)
   (:nicknames :log)
-  (:export :*log-level* :log-level-designator :log-timestamp-source :log! :warn! :info! :debug! :trace! :debug-p))
+  (:export :*log-level* :log-level-designator :log-timestamp-source 
+   :log! :warn! :info! :debug! :trace!  :dbg!
+   :debug-p))
 
 (in-package :macs.log)
 
@@ -68,13 +70,21 @@ function in which case it is used as the function value of
 
 (defun debug-p () (eq *log-level* :debug))
 
+(defun debug-log-line ()
+  (format t ":DEBUG~A~%"
+	  (if *log-timestamp*
+	      (format nil " @ ~A ~t" (log-timestamp-source))
+	      "")))
+
 ;; TODO 2023-08-31: single format control string
 (defun debug! (&rest args)
   (when (debug-p)
-    (format t ":DEBUG~A~%"
-	    (if *log-timestamp*
-		(format nil " @ ~A ~t" (log-timestamp-source))
-	      ""))
+    (debug-log-line)
     ;; RESEARCH 2023-08-31: what's better here.. loop, do, mapc+nil?
     (map nil (lambda (x) (format t "; ~X~%" x)) args))
   args)
+
+(defun dbg! (&rest args)
+  (when (debug-p)
+    (debug-log-line)
+    (apply #'describe args)))
