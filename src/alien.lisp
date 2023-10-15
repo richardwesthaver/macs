@@ -19,8 +19,9 @@
 ;; represented by objects of type ALIEN-VALUE.
 
 ;;; Code:
-(defpackage :macs.alien
+(pkg:defpkg :macs.alien
   (:use :cl :reexport :sb-vm :sb-alien :sb-ext :sb-c :macs.str :macs.sym :macs.fu)
+  (:reexport :sb-alien)
   (:nicknames :alien)
   (:export
    :copy-c-string
